@@ -91,6 +91,19 @@ If `murvix --version` shows 1.x, Muxy 1.x's CLI comes first on your `PATH`.
 - Key bindings in **Settings → Terminal → Key bindings** win over app
   shortcuts while a terminal is focused.
 
+## Super+C interrupts the shell instead of copying (Omarchy)
+
+Omarchy's universal copy binding sends `Ctrl+C` to windows it does not consider
+terminals. Add this rule to `~/.config/hypr/hyprland.lua`, then run
+`hyprctl reload`:
+
+```lua
+o.window("com\\.muxy(-beta)?\\.app", { tag = "+terminal" })
+```
+
+This tells Omarchy to send `Ctrl+Shift+C` to Murvix, which is the Linux copy
+shortcut.
+
 ## Start fresh
 
 1. Stop the server, which ends every terminal: `murvix server stop --force`.

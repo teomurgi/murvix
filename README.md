@@ -39,6 +39,15 @@ makepkg -si
 
 Launch **Murvix** from the application menu, or run `murvix` in a terminal.
 
+If you run Murvix on Omarchy, add the window rule below so Omarchy treats it as a terminal. Otherwise **Super+C** sends `Ctrl+C` to the focused shell instead of copying:
+
+```lua
+-- ~/.config/hypr/hyprland.lua
+o.window("com\\.muxy(-beta)?\\.app", { tag = "+terminal" })
+```
+
+After saving, run `hyprctl reload` to apply the rule.
+
 ### Build from source
 
 You need Git, a C toolchain, Rust 1.92 (installed by `rustup` from `rust-toolchain.toml`), and Zig 0.15.2 on your `PATH`. On macOS, install the Xcode Command Line Tools. On Linux, install the packages in [`packaging/linux/PKGBUILD`](packaging/linux/PKGBUILD); WebKitGTK 4.1 is also needed for extensions and browser panes.
