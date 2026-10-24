@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import tempfile
 
-from release import APPS, ROOT, channel, check_build
+from release import LINUX_APPS, ROOT, channel, check_build
 
 
 ARCHITECTURES = {"arm64": ("arm64", "aarch64"), "x86_64": ("amd64", "x86_64")}
@@ -16,7 +16,7 @@ ARCHITECTURES = {"arm64": ("arm64", "aarch64"), "x86_64": ("amd64", "x86_64")}
 
 def identity(version):
     release_channel = channel(version)
-    name, identifier = APPS[release_channel]
+    name, identifier = LINUX_APPS[release_channel]
     suffix = "-beta" if release_channel == "beta" else ""
     return name, identifier, suffix
 
@@ -140,13 +140,13 @@ def bundle_identity(directory):
 def package_appimage(version, arch, payload, output, tools_directory):
     _, identifier, _ = identity(version)
     _, machine = ARCHITECTURES[arch]
-    archive = output / f"Muxy-{version}-linux-{arch}.AppImage"
+    archive = output / f"Murvix-{version}-linux-{arch}.AppImage"
     if archive.exists():
         raise ValueError(f"Output already exists: {archive}")
     tools = appimage_tools(arch, tools_directory)
     with tempfile.TemporaryDirectory() as temporary:
         work = Path(temporary)
-        root = work / "Muxy.AppDir"
+        root = work / "Murvix.AppDir"
         binaries = root / "usr/bin"
         for binary in ("murvix-app", "murvix", "murvix-server"):
             copy(payload / binary, binaries / binary, 0o755)

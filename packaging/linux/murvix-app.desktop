@@ -7,3 +7,4 @@ Terminal=false
 Categories=System;TerminalEmulator;
 Keywords=terminal;multiplexer;
 StartupNotify=true
+StartupWMClass=com.murvix.app

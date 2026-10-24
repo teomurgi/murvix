@@ -31,6 +31,18 @@ impl Channel {
             Self::Stable => "com.muxy.app",
         }
     }
+
+    /// Linux application ID / window class.
+    ///
+    /// This is separate from [`Self::bundle_identifier`] because macOS keeps the
+    /// Muxy bundle identifier for 1.x updater compatibility, while the Linux
+    /// desktop is branded as Murvix.
+    pub const fn linux_app_id(self) -> &'static str {
+        match self {
+            Self::Beta => "com.murvix-beta.app",
+            Self::Stable => "com.murvix.app",
+        }
+    }
 }
 
 /// A released version, in the order releases of its channel follow.

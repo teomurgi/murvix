@@ -13,6 +13,9 @@ BETA_PATTERN = re.compile(r"([0-9]+\.[0-9]+\.[0-9]+)-beta\.([1-9][0-9]*)")
 STABLE_PATTERN = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
 # Each channel installs as its own app. Stable replaces Muxy 1.x, which shares its identity.
 APPS = {"beta": ("Muxy Beta", "com.muxy-beta.app"), "stable": ("Muxy", "com.muxy.app")}
+# Linux is branded as Murvix and uses its own application ID, while macOS keeps
+# the Muxy bundle identifier so the 1.x Sparkle updater can install Murvix in place.
+LINUX_APPS = {"beta": ("Murvix Beta", "com.murvix-beta.app"), "stable": ("Murvix", "com.murvix.app")}
 # Muxy 1.x's Sparkle only installs an update that keeps 1.x's EdDSA public key.
 SPARKLE_PUBLIC_KEY = "X5YPWvD11Qthw+41DPZQRK8aOYBlPjjfeWW2k3510cY="
 

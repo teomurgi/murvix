@@ -122,7 +122,7 @@ Debian packages and AppImages do not use the in-app updater.
 
 ### Remove
 
-Stop the local server in **Settings → Server**, then quit Muxy. Stopping the
+Stop the local server in **Settings → Server**, then quit Murvix. Stopping the
 server ends its running terminals. Removal keeps your settings, projects and
 saved session data.
 
@@ -136,8 +136,8 @@ saved session data.
 - **Debian package:** run `sudo apt remove murvix-desktop` (or `murvix-desktop-beta`).
 - **AppImage:** delete the downloaded file, its matching unpacked copy listed
   above, and any CLI link or Applications entry pointing into that copy. The entry
-  is in `${XDG_DATA_HOME:-$HOME/.local/share}/applications/com.muxy.app.desktop`
-  (`com.muxy-beta.app.desktop` for beta). Do not delete a copy still used by
+  is in `${XDG_DATA_HOME:-$HOME/.local/share}/applications/com.murvix.app.desktop`
+  (`com.murvix-beta.app.desktop` for beta). Do not delete a copy still used by
   another running app or server.
 
 ## CLI and server only

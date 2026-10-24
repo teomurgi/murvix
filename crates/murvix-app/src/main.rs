@@ -257,7 +257,7 @@ fn window_options() -> WindowOptions {
         #[cfg(target_os = "linux")]
         app_id: Some(
             murvix_core::release::Channel::current()
-                .bundle_identifier()
+                .linux_app_id()
                 .into(),
         ),
         ..WindowOptions::default()

@@ -21,6 +21,8 @@ import urllib.request
 import urllib.parse
 
 RELEASES = "https://github.com/teomurgi/Murvix/releases/download"
+# Linux desktop identity. macOS keeps the Muxy bundle identifier for 1.x updater compatibility.
+LINUX_APPS = {"beta": ("Murvix Beta", "com.murvix-beta.app"), "stable": ("Murvix", "com.murvix.app")}
 MAX_ARCHIVE = 2 * 1024**3
 FILES = {"murvix-app", "murvix", "murvix-server", "icon.png", "install.py", "LICENSE", "manifest.json"}
 BINARIES = {"murvix-app", "murvix", "murvix-server"}
@@ -291,17 +293,17 @@ def restart(root, version, previous, parent):
 
 
 def desktop_entry(root, version, appimage=False):
-    beta = channel(version) == "beta"
-    identifier = "com.muxy-beta.app" if beta else "com.muxy.app"
+    release_channel = channel(version)
+    name, identifier = LINUX_APPS[release_channel]
     path = data_home() / "applications" / f"{identifier}.desktop"
     executable = str(root / ("usr/bin/murvix-app" if appimage else "current/murvix-app"))
     executable = executable.replace("\\", "\\\\\\\\").replace('"', '\\\\"').replace("`", "\\\\`").replace("$", "\\\\$").replace("%", "%%")
     icon = str(root / (f"{identifier}.png" if appimage else "current/icon.png")).replace("\\", "\\\\")
-    contents = (f"[Desktop Entry]\nType=Application\nName={'Muxy Beta' if beta else 'Muxy'}\n"
+    contents = (f"[Desktop Entry]\nType=Application\nName={name}\n"
                 f'Exec="{executable}" %F\nIcon={icon}\nTerminal=false\nCategories=Development;TerminalEmulator;\n'
                 f"StartupWMClass={identifier}\n")
     if appimage:
-        contents += f"X-Muxy-AppImage={root.name}\n"
+        contents += f"X-Murvix-AppImage={root.name}\n"
     return path, contents
 
 
@@ -314,7 +316,7 @@ def integrate_appimage(root, version):
         previous = path.read_text() if path.is_file() and not path.is_symlink() else ""
         if previous == contents:
             return
-        owner = re.search(r"^X-Muxy-AppImage=([0-9a-f]{64})$", previous, re.MULTILINE)
+        owner = re.search(r"^X-Murvix-AppImage=([0-9a-f]{64})$", previous, re.MULTILINE)
         if not owner or previous != desktop_entry(root.parent / owner[1], version, appimage=True)[1]:
             print(f"Kept existing desktop entry {path}", file=sys.stderr)
             return
@@ -375,7 +377,7 @@ def uninstall(root):
 
 
 def fetch(url, output, limit):
-    request = urllib.request.Request(url, headers={"User-Agent": "Muxy-Desktop-Installer"})
+    request = urllib.request.Request(url, headers={"User-Agent": "Murvix-Desktop-Installer"})
     with urllib.request.build_opener(HTTPSRedirectHandler()).open(request, timeout=60) as response:
         if not response.url.startswith("https://"):
             raise ValueError("Refusing an insecure download redirect")
@@ -445,7 +447,7 @@ def main():
             args.version = latest(args.channel or "stable")
         if args.channel and channel(args.version) != args.channel:
             raise ValueError("The version does not belong to the selected channel")
-        print(f"Installing Muxy {args.version} for Linux {architecture()}…", flush=True)
+        print(f"Installing Murvix {args.version} for Linux {architecture()}…", flush=True)
     if args.command in {"install", "stage", "verify", "discard", "activate", "restart", "integrate-appimage"}:
         channel(args.version or "")
     root = args.root or (default_root(args.version) if args.command == "install" else Path(__file__).resolve().parent.parent.parent)
@@ -471,7 +473,7 @@ def main():
         if args.command in {"install", "stage"}:
             installation(root, args.version)
             if args.command == "install" and (root / "current").is_symlink():
-                raise ValueError("Muxy is already installed. Use Check for Updates in the app; uninstall before reinstalling.")
+                raise ValueError("Murvix is already installed. Use Check for Updates in the app; uninstall before reinstalling.")
             with tempfile.TemporaryDirectory() as temporary:
                 archive, expected = ((args.archive, args.sha256) if args.archive
                                      else download(args.version, Path(temporary)))
@@ -479,7 +481,7 @@ def main():
             if args.command == "install":
                 integrate(root, args.version)
                 switch(root, args.version)
-                print(f"Installed {root / 'current'}. Open Muxy from your desktop's Applications menu.")
+                print(f"Installed {root / 'current'}. Open Murvix from your desktop's Applications menu.")
         elif args.command == "verify":
             installation(root, args.version)
             print(json.dumps(verify(root / "versions" / args.version, args.version)))
@@ -498,7 +500,7 @@ def main():
                     shutil.rmtree(directory)
         else:
             uninstall(root)
-            print("Removed the desktop installation. Your Muxy settings, projects and session data were kept.")
+            print("Removed the desktop installation. Your Murvix settings, projects and session data were kept.")
 
 
 if __name__ == "__main__":

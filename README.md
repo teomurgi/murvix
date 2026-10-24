@@ -43,7 +43,7 @@ If you run Murvix on Omarchy, add the window rule below so Omarchy treats it as 
 
 ```lua
 -- ~/.config/hypr/hyprland.lua
-o.window("com\\.muxy(-beta)?\\.app", { tag = "+terminal" })
+o.window("com\\.murvix(-beta)?\\.app", { tag = "+terminal" })
 ```
 
 After saving, run `hyprctl reload` to apply the rule.

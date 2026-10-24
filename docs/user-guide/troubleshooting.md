@@ -98,7 +98,7 @@ terminals. Add this rule to `~/.config/hypr/hyprland.lua`, then run
 `hyprctl reload`:
 
 ```lua
-o.window("com\\.muxy(-beta)?\\.app", { tag = "+terminal" })
+o.window("com\\.murvix(-beta)?\\.app", { tag = "+terminal" })
 ```
 
 This tells Omarchy to send `Ctrl+Shift+C` to Murvix, which is the Linux copy

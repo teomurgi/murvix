@@ -232,7 +232,7 @@ class DesktopDistributionTests(unittest.TestCase):
         INSTALL.integrate_appimage(new, self.new)
         self.assertEqual(entry.read_text(), INSTALL.desktop_entry(new, self.new, appimage=True)[1])
         self.assertIn(f'Exec="{new}/usr/bin/murvix-app" %F', entry.read_text())
-        self.assertIn(f"Icon={new}/com.muxy-beta.app.png", entry.read_text())
+        self.assertIn(f"Icon={new}/com.murvix-beta.app.png", entry.read_text())
         INSTALL.integrate_appimage(new, "2.2.0")
         stable, stable_contents = INSTALL.desktop_entry(new, "2.2.0", appimage=True)
         self.assertEqual(stable.read_text(), stable_contents)
