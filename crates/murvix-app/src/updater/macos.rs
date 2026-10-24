@@ -95,7 +95,7 @@ impl Installation {
     pub(crate) fn prepare(&self, release: Release) -> Result<PreparedUpdate> {
         let client = client()?;
         let staging = tempfile::Builder::new()
-            .prefix(".muxy-beta-update-")
+            .prefix(".murvix-beta-update-")
             .tempdir_in(
                 self.bundle
                     .parent()
@@ -176,7 +176,7 @@ impl Installation {
         path.parent() == self.bundle.parent()
             && path
                 .file_name()
-                .is_some_and(|name| name.to_string_lossy().starts_with(".muxy-beta-update-"))
+                .is_some_and(|name| name.to_string_lossy().starts_with(".murvix-beta-update-"))
             && std::fs::symlink_metadata(path).is_ok_and(|m| m.is_dir() && !m.is_symlink())
     }
 
@@ -243,7 +243,7 @@ impl Installation {
         for (key, expected) in [
             ("CFBundleIdentifier", Channel::current().bundle_identifier()),
             ("CFBundleExecutable", "murvix-app"),
-            ("MuxyVersion", version),
+            ("MurvixVersion", version),
         ] {
             let actual = run(Command::new("/usr/bin/plutil")
                 .args(["-extract", key, "raw", "-o", "-"])
@@ -509,14 +509,14 @@ mod tests {
     #[test]
     fn native_verification_checks_literal_requirement_and_nested_code() -> Result<()> {
         let directory = tempfile::tempdir()?;
-        let app = directory.path().join("Muxy Beta.app");
+        let app = directory.path().join("Murvix Beta.app");
         let binaries = app.join("Contents/MacOS");
         std::fs::create_dir_all(&binaries)?;
         std::fs::write(
             app.join("Contents/Info.plist"),
             r#"<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
-<key>CFBundleIdentifier</key><string>com.muxy-beta.app</string>
+<key>CFBundleIdentifier</key><string>com.murvix-beta.app</string>
 <key>CFBundleExecutable</key><string>murvix-app</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 </dict></plist>"#,
@@ -531,15 +531,15 @@ mod tests {
         run(Command::new("/usr/bin/codesign")
             .args(["--force", "--sign", "-"])
             .arg(&app))?;
-        verify_code(&app, "identifier \"com.muxy-beta.app\"")?;
-        assert!(verify_code(&app, "identifier \"com.muxy.app\"").is_err());
+        verify_code(&app, "identifier \"com.murvix-beta.app\"")?;
+        assert!(verify_code(&app, "identifier \"com.murvix.app\"").is_err());
         let installation = Installation {
             bundle: app.clone(),
             team: "TESTTEAM00".into(),
         };
         assert!(installation.verify_signature(&app, true).is_err());
         std::fs::write(binaries.join("murvix"), b"changed helper")?;
-        assert!(verify_code(&app, "identifier \"com.muxy-beta.app\"").is_err());
+        assert!(verify_code(&app, "identifier \"com.murvix-beta.app\"").is_err());
         Ok(())
     }
 }
@@ -567,12 +567,12 @@ mod retirement_tests {
     #[test]
     fn discarded_downloads_respect_installation_locks_and_recovery_files() -> Result<()> {
         let root = tempfile::tempdir()?;
-        let staging = root.path().join(".muxy-beta-update-superseded");
+        let staging = root.path().join(".murvix-beta-update-superseded");
         std::fs::create_dir(&staging)?;
         let update = PreparedUpdate {
             version: "2.0.0-beta.10".into(),
             installation: Installation {
-                bundle: root.path().join("Muxy Beta.app"),
+                bundle: root.path().join("Murvix Beta.app"),
                 team: "TESTTEAM00".into(),
             },
             staging: staging.clone(),
@@ -600,7 +600,7 @@ mod retirement_tests {
     fn only_committed_unused_bundles_are_retired() -> Result<()> {
         let root = tempfile::tempdir()?;
         let installation = Installation {
-            bundle: root.path().join("Muxy Beta.app"),
+            bundle: root.path().join("Murvix Beta.app"),
             team: "TESTTEAM00".into(),
         };
         let server = murvix_protocol::ServerInfo::current();
@@ -610,7 +610,7 @@ mod retirement_tests {
             ("recovery", false, 0),
             ("unused", true, 0),
         ] {
-            let path = root.path().join(format!(".muxy-beta-update-{name}"));
+            let path = root.path().join(format!(".murvix-beta-update-{name}"));
             std::fs::create_dir_all(path.join("previous.app"))?;
             write_record(
                 &path.join("retained.json"),

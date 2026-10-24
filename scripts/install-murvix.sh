@@ -181,7 +181,7 @@ for BINARY in murvix murvix-server; do
 done
 if [ ! -L "$DEST/murvix" ] && [ ! -L "$DEST/murvix-server" ] &&
     cmp -s "$DEST/murvix" "$STAGE/pair/murvix" && cmp -s "$DEST/murvix-server" "$STAGE/pair/murvix-server"; then
-    echo "Muxy $VERSION is already installed."
+    echo "Murvix $VERSION is already installed."
     exit 0
 fi
 [ ! -e "$MANAGED/current" ] || [ -L "$MANAGED/current" ] || fail "$MANAGED/current must be a symlink."
@@ -218,7 +218,7 @@ for BINARY in murvix-server murvix; do
 done
 mv -f "$MOVE_FLAG" "$STAGE/current" "$MANAGED/current"
 COMMITTED=true
-printf 'Installed Muxy %s in %s\n' "$VERSION" "$DEST"
+printf 'Installed Murvix %s in %s\n' "$VERSION" "$DEST"
 case ":$PATH:" in
     *":$DEST:"*) ;;
     *) printf 'Add this directory to PATH: %s\n' "$DEST" ;;

@@ -11,11 +11,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BETA_PATTERN = re.compile(r"([0-9]+\.[0-9]+\.[0-9]+)-beta\.([1-9][0-9]*)")
 STABLE_PATTERN = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
-# Each channel installs as its own app. Stable replaces Muxy 1.x, which shares its identity.
-APPS = {"beta": ("Muxy Beta", "com.muxy-beta.app"), "stable": ("Muxy", "com.muxy.app")}
-# Linux is branded as Murvix and uses its own application ID, while macOS keeps
-# the Muxy bundle identifier so the 1.x Sparkle updater can install Murvix in place.
-LINUX_APPS = {"beta": ("Murvix Beta", "com.murvix-beta.app"), "stable": ("Murvix", "com.murvix.app")}
+# Each channel installs as its own app.
+APPS = {"beta": ("Murvix Beta", "com.murvix-beta.app"), "stable": ("Murvix", "com.murvix.app")}
+# Linux is branded as Murvix and uses the same application ID as macOS.
+LINUX_APPS = APPS.copy()
 # Muxy 1.x's Sparkle only installs an update that keeps 1.x's EdDSA public key.
 SPARKLE_PUBLIC_KEY = "X5YPWvD11Qthw+41DPZQRK8aOYBlPjjfeWW2k3510cY="
 
@@ -53,10 +52,15 @@ def git(root, *args):
 
 
 def checkout_version(root):
-    # Stable releases: no -beta suffix (semver). The commit count is no longer
-    # appended; versioning follows plain semver X.Y.Z.
+    # Betas are versioned as X.Y.Z-beta.<commit-count>. The BETA_VERSION file
+    # holds the X.Y.Z base; the commit count comes from the repository.
+    if git(root, "rev-parse", "--is-shallow-repository") != "false":
+        raise ValueError("full checkout required (fetch-depth: 0)")
     base = (root / "BETA_VERSION").read_text().strip()
-    return base
+    if channel(base) != "stable":
+        raise ValueError("BETA_VERSION must be X.Y.Z")
+    count = git(root, "rev-list", "--count", "HEAD")
+    return f"{base}-beta.{count}"
 
 
 def promotion(root, beta_tag, version, next_beta_version):
@@ -144,15 +148,15 @@ def bundle_info(version, build):
         "CFBundleShortVersionString": version.split("-")[0],
         "CFBundleVersion": build,
         "CFBundleGetInfoString": f"{name} {version}",
-        "MuxyVersion": version,
+        "MurvixVersion": version,
         "LSMinimumSystemVersion": "14.0",
         "LSApplicationCategoryType": "public.app-category.developer-tools",
         "NSHighResolutionCapable": True,
         "NSSupportsAutomaticGraphicsSwitching": True,
         "NSPrincipalClass": "NSApplication",
-        "NSMicrophoneUsageDescription": "Muxy uses your microphone to dictate text into Composer.",
-        "NSSpeechRecognitionUsageDescription": "Muxy transcribes your dictation on this device and inserts it into Composer.",
-        "NSLocalNetworkUsageDescription": "Commands you run in Muxy terminals can connect to devices on your local network.",
+        "NSMicrophoneUsageDescription": "Murvix uses your microphone to dictate text into Composer.",
+        "NSSpeechRecognitionUsageDescription": "Murvix transcribes your dictation on this device and inserts it into Composer.",
+        "NSLocalNetworkUsageDescription": "Commands you run in Murvix terminals can connect to devices on your local network.",
         "NSAppTransportSecurity": {"NSAllowsArbitraryLoadsInWebContent": True},
         **sparkle,
     }
@@ -164,7 +168,7 @@ def update_metadata(version, repository, directory):
         raise ValueError("invalid GitHub repository")
     platforms = {}
     for platform, arch in (("macos-aarch64", "arm64"), ("macos-x86_64", "x86_64")):
-        filename = f"Muxy-{version}-{arch}.dmg"
+        filename = f"Murvix-{version}-{arch}.dmg"
         if arch == "x86_64" and not (directory / filename).exists():
             continue
         size = (directory / filename).stat().st_size

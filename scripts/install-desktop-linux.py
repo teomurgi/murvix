@@ -21,7 +21,7 @@ import urllib.request
 import urllib.parse
 
 RELEASES = "https://github.com/teomurgi/Murvix/releases/download"
-# Linux desktop identity. macOS keeps the Muxy bundle identifier for 1.x updater compatibility.
+# Linux desktop identity. Both platforms now use Murvix-branded identifiers.
 LINUX_APPS = {"beta": ("Murvix Beta", "com.murvix-beta.app"), "stable": ("Murvix", "com.murvix.app")}
 MAX_ARCHIVE = 2 * 1024**3
 FILES = {"murvix-app", "murvix", "murvix-server", "icon.png", "install.py", "LICENSE", "manifest.json"}

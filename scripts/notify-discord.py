@@ -15,8 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from release import channel  # noqa: E402
 
 ANNOUNCEMENTS = {
-    "beta": ("Muxy {version} (beta) released", "Beta channel", 15844367),
-    "stable": ("Muxy v{version} released", "Stable channel", 3066993),
+    "beta": ("Murvix {version} (beta) released", "Beta channel", 15844367),
+    "stable": ("Murvix v{version} released", "Stable channel", 3066993),
 }
 NOTES_LIMIT = 3800
 
@@ -30,7 +30,7 @@ def payload(tag, notes, repository, now):
     if len(notes) > NOTES_LIMIT:
         notes = notes[:NOTES_LIMIT] + "…"
     return {
-        "username": "Muxy Releases",
+        "username": "Murvix Releases",
         "embeds": [{
             "title": title.format(version=version),
             "url": f"https://github.com/{repository}/releases/tag/{tag}",

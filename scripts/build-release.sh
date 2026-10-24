@@ -114,12 +114,12 @@ fi
 # Sign every executable before sealing the bundle.
 for BINARY in murvix murvix-server murvix-app; do
     if [[ "$BINARY" == murvix-app ]]; then
-        codesign "${SIGN_ARGS[@]}" --entitlements "$ROOT/packaging/macos/Muxy.entitlements" "$APP/Contents/MacOS/$BINARY"
+        codesign "${SIGN_ARGS[@]}" --entitlements "$ROOT/packaging/macos/Murvix.entitlements" "$APP/Contents/MacOS/$BINARY"
     else
         codesign "${SIGN_ARGS[@]}" "$APP/Contents/MacOS/$BINARY"
     fi
 done
-codesign "${SIGN_ARGS[@]}" --entitlements "$ROOT/packaging/macos/Muxy.entitlements" "$APP"
+codesign "${SIGN_ARGS[@]}" --entitlements "$ROOT/packaging/macos/Murvix.entitlements" "$APP"
 codesign --verify --deep --strict --verbose=2 "$APP"
 for BINARY in murvix murvix-server; do
     python3 "$ROOT/scripts/release.py" check-build "$VERSION" "$APP/Contents/MacOS/$BINARY"
@@ -132,7 +132,7 @@ CLI_ARCHIVE="$STAGING/artifacts/murvix-${VERSION}-macos-${ARCH}.zip"
 (cd "$STAGING/cli" && zip -X "$CLI_ARCHIVE" murvix murvix-server LICENSE)
 
 ln -s /Applications "$STAGING/dmg/Applications"
-DMG="$STAGING/artifacts/Muxy-${VERSION}-${ARCH}.dmg"
+DMG="$STAGING/artifacts/Murvix-${VERSION}-${ARCH}.dmg"
 # CI runners intermittently fail with "hdiutil: create failed - Resource busy".
 for ATTEMPT in 1 2 3 4 5; do
     rm -f "$DMG"
@@ -148,7 +148,7 @@ done
 codesign "${SIGN_ARGS[@]}" "$DMG"
 codesign --verify --strict --verbose=2 "$DMG"
 ditto -c -k --sequesterRsrc --keepParent "$STAGING/symbols" \
-    "$STAGING/artifacts/Muxy-${VERSION}-${ARCH}-symbols.zip"
+    "$STAGING/artifacts/Murvix-${VERSION}-${ARCH}-symbols.zip"
 mv "$APP" "$STAGING/artifacts/"
 mv "$STAGING/artifacts" "$OUTPUT_DIR"
 echo "==> Built $OUTPUT_DIR"

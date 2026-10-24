@@ -145,9 +145,9 @@ mod tests {
     fn only_executables_inside_an_app_bundle_have_one() {
         assert_eq!(
             containing(Path::new(
-                "/Applications/Muxy.app/Contents/MacOS/murvix-app"
+                "/Applications/Murvix.app/Contents/MacOS/murvix-app"
             )),
-            Some(Path::new("/Applications/Muxy.app"))
+            Some(Path::new("/Applications/Murvix.app"))
         );
         assert_eq!(containing(Path::new("/repo/target/debug/murvix-app")), None);
     }
@@ -156,7 +156,7 @@ mod tests {
     fn leases_follow_bundle_identity_through_replacement_without_holding_installation_lock()
     -> io::Result<()> {
         let root = tempfile::tempdir()?;
-        let current = root.path().join("Muxy Beta.app");
+        let current = root.path().join("Murvix Beta.app");
         let retired = root.path().join("previous.app");
         fs::create_dir(&current)?;
         let lease = lease_file(root.path(), &identity(&current)?)?;

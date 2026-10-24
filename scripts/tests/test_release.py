@@ -1,5 +1,6 @@
 import importlib.util
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -51,12 +52,12 @@ class BetaVersionTests(unittest.TestCase):
     def test_each_channel_installs_as_its_own_app(self):
         keys = ("CFBundleName", "CFBundleIdentifier", "CFBundleShortVersionString", "CFBundleVersion")
         info = release.bundle_info("2.1.0-beta.1234", "1234")
-        self.assertEqual([info[key] for key in keys], ["Muxy Beta", "com.muxy-beta.app", "2.1.0", "1234"])
+        self.assertEqual([info[key] for key in keys], ["Murvix Beta", "com.murvix-beta.app", "2.1.0", "1234"])
         self.assertNotIn("SUPublicEDKey", info)
         self.assertIn("NSLocalNetworkUsageDescription", info)
         self.assertEqual(info["NSAppTransportSecurity"], {"NSAllowsArbitraryLoadsInWebContent": True})
         info = release.bundle_info("2.1.0", "1234")
-        self.assertEqual([info[key] for key in keys], ["Muxy", "com.muxy.app", "2.1.0", "1234"])
+        self.assertEqual([info[key] for key in keys], ["Murvix", "com.murvix.app", "2.1.0", "1234"])
         self.assertEqual(info["SUPublicEDKey"], "X5YPWvD11Qthw+41DPZQRK8aOYBlPjjfeWW2k3510cY=")
         for version, build in (("2.1.0-beta.1234", "1235"), ("2.1.0", "0"), ("2.1.0", "x")):
             with self.subTest(version=version, build=build), self.assertRaises(ValueError):
@@ -120,14 +121,22 @@ class StampTests(unittest.TestCase):
             shutil.copyfile(source, destination)
 
     def test_stamp_changes_only_workspace_versions_and_is_repeatable(self):
-        before = {name: (self.root / name).read_text() for name in ("Cargo.toml", "Cargo.lock")}
-        release.stamp_version(self.root, "2.0.0-beta.1234")
-        release.stamp_version(self.root, "2.0.0-beta.1234")
-        for name, original in before.items():
-            self.assertEqual(
-                (self.root / name).read_text(),
-                original.replace('version = "2.0.0-beta-0"', 'version = "2.0.0-beta.1234"'),
-            )
+        target = "2.0.0-beta.1234"
+        release.stamp_version(self.root, target)
+        first_stamp = {
+            Path("Cargo.toml"): (self.root / "Cargo.toml").read_text(),
+            Path("Cargo.lock"): (self.root / "Cargo.lock").read_text(),
+        }
+        for manifest in self.root.glob("crates/*/Cargo.toml"):
+            first_stamp[manifest.relative_to(self.root)] = manifest.read_text()
+        release.stamp_version(self.root, target)
+        for path, text in first_stamp.items():
+            self.assertEqual((self.root / path).read_text(), text, f"{path} changed on second stamp")
+        self.assertIn(f'version = "{target}"', first_stamp[Path("Cargo.toml")])
+        lock = first_stamp[Path("Cargo.lock")]
+        for manifest in self.root.glob("crates/*/Cargo.toml"):
+            name = re.search(r'^name = "([^"]+)"', manifest.read_text(), re.MULTILINE)[1]
+            self.assertIn(f'name = "{name}"\nversion = "{target}"', lock)
 
 
 if __name__ == "__main__":

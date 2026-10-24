@@ -20,7 +20,7 @@ Usually `settings.toml` has an error or an unknown key. Start the app from a
 terminal to see why:
 
 ```bash
-"/Applications/Muxy.app/Contents/MacOS/murvix-app"
+"/Applications/Murvix.app/Contents/MacOS/murvix-app"
 ```
 
 Fix the line it names, or move `settings.toml` out of the profile folder to
@@ -32,7 +32,7 @@ If `murvix` reports `request timed out`, run the server in the foreground to see
 the error, often a typo in `server.toml`:
 
 ```bash
-"/Applications/Muxy.app/Contents/MacOS/murvix-server"   # or murvix-server, if installed on its own
+"/Applications/Murvix.app/Contents/MacOS/murvix-server"   # or murvix-server, if installed on its own
 ```
 
 ## `murvix` is not found, or is the wrong version
@@ -51,7 +51,7 @@ If `murvix --version` shows 1.x, Muxy 1.x's CLI comes first on your `PATH`.
 - **Host key not trusted:** run `ssh <host>` once and accept the key.
 - **Login refused:** check that `ssh <host>` works with your key or agent. Only
   the desktop app supports passwords.
-- **Muxy isn't installed:** install it from the **Remote** section, or run the
+- **Murvix isn't installed:** install it from the **Remote** section, or run the
   installer there. See [Remote servers](../features/remote-servers.md).
 - **Incompatible version:** install the same version on both computers. If the
   version is right but the old server is still running, run
@@ -62,14 +62,14 @@ If `murvix --version` shows 1.x, Muxy 1.x's CLI comes first on your `PATH`.
 
 - Check **Settings → Mobile → Status** says it is listening.
 - On macOS, allow `murvix-server` if the firewall asks.
-- On iOS, allow the Muxy app to use the local network.
+- On iOS, allow the Murvix app to use the local network.
 - The phone must reach the computer: same network, a VPN, or an address added
   with `murvix mobile pair --address`.
 
 ## No agent notifications
 
-- Allow notifications in **System Settings → Notifications → Muxy**.
-- Muxy doesn't notify for the pane you're looking at, or for detached
+- Allow notifications in **System Settings → Notifications → Murvix**.
+- Murvix doesn't notify for the pane you're looking at, or for detached
   terminals.
 - Recognition is best effort. `murvix activity list` shows what the server sees.
 
@@ -107,7 +107,7 @@ shortcut.
 ## Start fresh
 
 1. Stop the server, which ends every terminal: `murvix server stop --force`.
-2. Quit Muxy.
+2. Quit Murvix.
 3. Move the [profile folder](../features/server.md#files) somewhere else.
 
 Muxy 1.x data and `~/.config/ghostty` are not touched. The next launch imports

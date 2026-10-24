@@ -150,7 +150,7 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual((old / 'murvix').read_bytes(), b'client-v1')
 
     def test_bundle_links_refused_and_explicit_replace_never_changes_bundle(self):
-        bundle = self.root / 'Muxy Beta.app'
+        bundle = self.root / 'Murvix Beta.app'
         bundle.mkdir()
         self.dest.mkdir()
         for name in ('murvix', 'murvix-server'):

@@ -51,9 +51,9 @@ def publish(version, repository, sha):
                     print("The beta feed already points to a newer build; leaving it unchanged")
                     return
         else:
-            gh(repository, "create", CHANNEL, "--target", sha, "--title", "Muxy 2.x Beta Updates",
+            gh(repository, "create", CHANNEL, "--target", sha, "--title", "Murvix 2.x Beta Updates",
                "--draft", "--prerelease", "--latest=false", "--notes",
-               "Update feed for Muxy 2.x beta. Downloads are attached to each versioned beta release.")
+               "Update feed for Murvix 2.x beta. Downloads are attached to each versioned beta release.")
         gh(repository, "upload", CHANNEL, str(candidate / "update.json"), "--clobber")
         gh(repository, "edit", CHANNEL, "--draft=false", "--prerelease", "--latest=false")
 

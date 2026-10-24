@@ -73,8 +73,8 @@ def appimage(archive, version, desktop, fuse):
                 tab = cli("browser", "open", "about:blank", "--project", "Home").strip()
                 assert json.loads(cli("browser", "wait", tab, "--function", "document.readyState === 'complete'",
                                       "--timeout-ms", "10000")), "Packaged browser did not finish loading"
-                cli("browser", "eval", tab, "document.title = 'Muxy package check'")
-                assert json.loads(cli("browser", "read", tab, "--json"))["title"] == "Muxy package check"
+                cli("browser", "eval", tab, "document.title = 'Murvix package check'")
+                assert json.loads(cli("browser", "read", tab, "--json"))["title"] == "Murvix package check"
                 cli("browser", "close", tab)
                 os.killpg(gui.pid, signal.SIGTERM)
                 gui.wait(timeout=15)

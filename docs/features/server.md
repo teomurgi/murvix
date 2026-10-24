@@ -83,8 +83,8 @@ Everything lives in one profile folder:
 
 | Platform | Stable | Beta |
 | --- | --- | --- |
-| macOS | `~/Library/Application Support/Muxy 2` | `~/Library/Application Support/Muxy Beta` |
-| Linux | `$XDG_STATE_HOME/murvix`, or `~/.local/state/murvix` | `$XDG_STATE_HOME/muxy-beta`, or `~/.local/state/muxy-beta` |
+| macOS | `~/Library/Application Support/Murvix` | `~/Library/Application Support/Murvix Beta` |
+| Linux | `$XDG_STATE_HOME/murvix`, or `~/.local/state/murvix` | `$XDG_STATE_HOME/murvix-beta`, or `~/.local/state/murvix-beta` |
 
 | File | What it holds |
 | --- | --- |
@@ -97,4 +97,4 @@ Everything lives in one profile folder:
 | `tui-state.json` | Terminal UI layouts |
 
 Set `MUXY_DIR` to use a different profile folder. Development builds use
-`Muxy Dev` (`muxy-dev` on Linux), so they never touch your real data.
+`Murvix Dev` (`murvix-dev` on Linux), so they never touch your real data.

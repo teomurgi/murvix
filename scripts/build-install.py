@@ -88,7 +88,7 @@ def signing_identity(requested):
 
 
 def package_app(directory, binaries, version, identity):
-    app = directory / "Muxy Beta.app"
+    app = directory / "Murvix Beta.app"
     contents = app / "Contents"
     executables = contents / "MacOS"
     resources = contents / "Resources"
@@ -100,8 +100,8 @@ def package_app(directory, binaries, version, identity):
     if version == "2.0.0-beta-0":
         # Keep unstamped local builds identifiable without stamping the source checkout.
         info = bundle_info("2.0.0-beta.1", "1")
-        info.update(CFBundleVersion="0", MuxyVersion=version,
-                    CFBundleGetInfoString="Muxy Beta " + version)
+        info.update(CFBundleVersion="0", MurvixVersion=version,
+                    CFBundleGetInfoString="Murvix Beta " + version)
     else:
         info = bundle_info(version, build_number(version))
     (contents / "Info.plist").write_bytes(plistlib.dumps(info))
@@ -121,7 +121,7 @@ def package_app(directory, binaries, version, identity):
     sign = ("codesign", "--force", "--sign", identity, "--options", "runtime", "--timestamp")
     for name in BINARIES:
         run(*sign, executables / name)
-    entitlements = ("--entitlements", ROOT / "packaging/macos/Muxy.entitlements")
+    entitlements = ("--entitlements", ROOT / "packaging/macos/Murvix.entitlements")
     run(*sign, *entitlements, executables / "murvix-app")
     run(*sign, *entitlements, app)
     run("codesign", "--verify", "--deep", "--strict", "--verbose=2", app)
@@ -140,7 +140,7 @@ def install(artifact, bin_dir, app_dir=None):
     bin_dir.mkdir(parents=True, exist_ok=True)
     with (bin_dir / ".murvix-build-install.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        destination = app_dir / "Muxy Beta.app" if app_dir else bin_dir / ".murvix-local"
+        destination = app_dir / "Murvix Beta.app" if app_dir else bin_dir / ".murvix-local"
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.is_symlink() or (destination.exists() and not destination.is_dir()):
             raise ValueError(f"Expected a regular installation directory: {destination}")
@@ -201,7 +201,7 @@ def main():
         "existing shell variables and command-line options take precedence. "
         "macOS credentials: set NOTARY_KEYCHAIN_PROFILE, or APPLE_ID, "
         "APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID. Replaces the installed "
-        "Muxy bundle and commands. Does not launch the app or restart servers."
+        "Murvix bundle and commands. Does not launch the app or restart servers."
     ))
     parser.add_argument("--install-dir", type=Path, default=Path.home() / ".local/bin")
     parser.add_argument("--app-dir", type=Path, default=Path("/Applications"))
@@ -251,7 +251,7 @@ def main():
                 args.app_dir.expanduser().resolve() if system == "Darwin" else None)
         if str(args.install_dir.expanduser().resolve()) not in os.environ.get("PATH", "").split(os.pathsep):
             print(f"Add {args.install_dir.expanduser().resolve()} to PATH to run murvix.")
-        print("Reopen Muxy to use the new build. Existing servers and sessions were left running.")
+        print("Reopen Murvix to use the new build. Existing servers and sessions were left running.")
 
 
 if __name__ == "__main__":

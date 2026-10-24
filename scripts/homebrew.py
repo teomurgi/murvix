@@ -30,7 +30,7 @@ def digest(sums, name):
 
 
 def cask(version, sums, repository):
-    arm, intel = (digest(sums, f"Muxy-{version}-{arch}.dmg") for arch in ("arm64", "x86_64"))
+    arm, intel = (digest(sums, f"Murvix-{version}-{arch}.dmg") for arch in ("arm64", "x86_64"))
     # The app updates itself and keeps running servers through it; brew upgrade would not.
     return f'''cask "murvix" do
   arch arm: "arm64", intel: "x86_64"
@@ -39,8 +39,8 @@ def cask(version, sums, repository):
   sha256 arm:   "{arm}",
          intel: "{intel}"
 
-  url "https://github.com/{repository}/releases/download/v#{{version}}/Muxy-#{{version}}-#{{arch}}.dmg"
-  name "Muxy"
+  url "https://github.com/{repository}/releases/download/v#{{version}}/Murvix-#{{version}}-#{{arch}}.dmg"
+  name "Murvix"
   desc "Terminal multiplexer"
   homepage "https://github.com/{repository}"
 
@@ -52,18 +52,17 @@ def cask(version, sums, repository):
   auto_updates true
   depends_on macos: :sonoma
 
-  app "Muxy.app"
+  app "Murvix.app"
 
   zap trash: [
-    "~/Library/Application Support/Muxy 2",
-    "~/Library/Application Support/Muxy",
-    "~/Library/Caches/com.muxy.app",
-    "~/Library/HTTPStorages/com.muxy.app",
-    "~/Library/HTTPStorages/com.muxy.app.binarycookies",
-    "~/Library/Logs/Muxy",
-    "~/Library/Preferences/com.muxy.app.plist",
-    "~/Library/Saved Application State/com.muxy.app.savedState",
-    "~/Library/WebKit/com.muxy.app",
+    "~/Library/Application Support/Murvix",
+    "~/Library/Caches/com.murvix.app",
+    "~/Library/HTTPStorages/com.murvix.app",
+    "~/Library/HTTPStorages/com.murvix.app.binarycookies",
+    "~/Library/Logs/Murvix",
+    "~/Library/Preferences/com.murvix.app.plist",
+    "~/Library/Saved Application State/com.murvix.app.savedState",
+    "~/Library/WebKit/com.murvix.app",
   ]
 end
 '''
@@ -75,7 +74,7 @@ def formula(version, sums, repository):
         return (f'      url "https://github.com/{repository}/releases/download/v{version}/{name}"\n'
                 f'      sha256 "{digest(sums, name)}"')
 
-    return f'''class MuxyCli < Formula
+    return f'''class MurvixCli < Formula
   desc "Terminal multiplexer: the murvix CLI, terminal UI, and server"
   homepage "https://github.com/{repository}"
   version "{version}"

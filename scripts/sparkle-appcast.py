@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Sign a stable DMG with Sparkle and write the appcast that updates Muxy 1.x to it.
-
-Muxy 1.x checks the latest release's appcast with Sparkle. Signing with its EdDSA
-key and keeping its bundle identifier lets it install Muxy 2 in place.
-"""
+"""Sign a stable DMG with Sparkle and write the appcast for Murvix updates."""
 
 import argparse
 import base64
@@ -61,9 +57,9 @@ def appcast(version, build, repository, dmg, signature):
     return f"""<?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
   <channel>
-    <title>Muxy Updates</title>
+    <title>Murvix Updates</title>
     <link>https://github.com/{repository}</link>
-    <description>Muxy stable releases</description>
+    <description>Murvix stable releases</description>
     <language>en</language>
     <item>
       <title>Version {version}</title>
@@ -81,11 +77,11 @@ def appcast(version, build, repository, dmg, signature):
 
 def write(args):
     if channel(args.version) != "stable":
-        raise ValueError("only stable releases update Muxy 1.x")
+        raise ValueError("only stable releases get a Sparkle appcast")
     if not args.build.isdigit() or args.build.startswith("0"):
         raise ValueError("build number must be a positive commit count")
-    if args.dmg.name not in {f"Muxy-{args.version}-{arch}.dmg" for arch in ("arm64", "x86_64")}:
-        raise ValueError("expected a Muxy-<version>-<arch>.dmg")
+    if args.dmg.name not in {f"Murvix-{args.version}-{arch}.dmg" for arch in ("arm64", "x86_64")}:
+        raise ValueError("expected a Murvix-<version>-<arch>.dmg")
     key = os.environ.get("SPARKLE_PRIVATE_KEY", "")
     if not key:
         raise ValueError("SPARKLE_PRIVATE_KEY is required")

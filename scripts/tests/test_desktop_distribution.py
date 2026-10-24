@@ -288,7 +288,7 @@ class DesktopDistributionTests(unittest.TestCase):
                     INSTALL.latest("stable")
 
     def test_linux_metadata_is_complete_checksummed_and_keeps_macos_assets(self):
-        for name in (f"Muxy-{self.new}-arm64.dmg", f"Muxy-{self.new}-x86_64.dmg",
+        for name in (f"Murvix-{self.new}-arm64.dmg", f"Murvix-{self.new}-x86_64.dmg",
                      f"murvix-desktop-{self.new}-linux-arm64.tar.gz", f"murvix-desktop-{self.new}-linux-x86_64.tar.gz"):
             (self.home / name).write_bytes(b"release bytes")
         metadata = RELEASE.update_metadata(self.new, "teomurgi/Murvix", self.home)

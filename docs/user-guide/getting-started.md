@@ -24,9 +24,9 @@ brew install --cask muxy-app/tap/muxy
 Or download it yourself:
 
 1. From the [latest release](https://github.com/muxy-app/muxy/releases/latest),
-   download `Muxy-<version>-arm64.dmg` for Apple Silicon or
-   `Muxy-<version>-x86_64.dmg` for Intel.
-2. Drag **Muxy** to `/Applications` and open it.
+   download `Murvix-<version>-arm64.dmg` for Apple Silicon or
+   `Murvix-<version>-x86_64.dmg` for Intel.
+2. Drag **Murvix** to `/Applications` and open it.
 
 To use [`murvix`](../features/murvix-cli.md) in your shell, choose **Install Command
 Line Tool…** from the app menu. It links `~/.local/bin/murvix`.
@@ -65,7 +65,7 @@ curl -fsSL --proto '=https' --proto-redir '=https' \
   | python3 - install
 ```
 
-Open **Muxy** from Applications. The app, CLI and server install into
+Open **Murvix** from Applications. The app, CLI and server install into
 `~/.local/share/murvix-desktop` by default. Add `~/.local/bin` to your shell's
 `PATH` to use `murvix <folder>` from a terminal.
 
@@ -81,39 +81,39 @@ directory, replace the filename below with your download:
 sudo apt install './murvix-desktop_<version>_amd64.deb'
 ```
 
-APT installs the dependencies and adds **Muxy** to Applications, with `murvix`
+APT installs the dependencies and adds **Murvix** to Applications, with `murvix`
 and `murvix-server` in `/usr/bin`.
 
 ### AppImage
 
 Install the [runtime libraries above](#quick-installer-with-in-app-updates), then
-download `Muxy-<version>-linux-x86_64.AppImage` or
-`Muxy-<version>-linux-arm64.AppImage` from the
+download `Murvix-<version>-linux-x86_64.AppImage` or
+`Murvix-<version>-linux-arm64.AppImage` from the
 [latest stable release](https://github.com/muxy-app/muxy/releases/latest).
 Use `uname -m` to check: `aarch64` means ARM64. Replace the filename below with
 your download and run it without `sudo`:
 
 ```sh
-chmod +x './Muxy-<version>-linux-x86_64.AppImage'
-'./Muxy-<version>-linux-x86_64.AppImage'
+chmod +x './Murvix-<version>-linux-x86_64.AppImage'
+'./Murvix-<version>-linux-x86_64.AppImage'
 ```
 
-The first launch adds **Muxy** to Applications. AppImage uses **system WebKitGTK**.
+The first launch adds **Murvix** to Applications. AppImage uses **system WebKitGTK**.
 If FUSE is unavailable, append `--appimage-extract-and-run` when launching it.
 
-Muxy keeps an unpacked copy in
+Murvix keeps an unpacked copy in
 `${XDG_DATA_HOME:-$HOME/.local/share}/murvix-appimage/<bundle-id>` so terminals can
 keep running after the window closes. This takes extra disk space. Use
-`./Muxy-<version>-linux-x86_64.AppImage --cli <arguments>` for the bundled CLI,
+`./Murvix-<version>-linux-x86_64.AppImage --cli <arguments>` for the bundled CLI,
 or choose **Install Command Line Tool…** in the app to link it into `~/.local/bin`.
 
 ### Updates
 
 - **Quick installer:** the app checks automatically; **Check for Updates** checks
   now. Stable installs stay on stable; beta installs stay on beta.
-- **Debian package:** stop the server and quit Muxy, then download the newer `.deb`
-  and install it with `sudo apt install`. There is no Muxy APT repository, so
-  `apt upgrade` alone does not update Muxy.
+- **Debian package:** stop the server and quit Murvix, then download the newer `.deb`
+  and install it with `sudo apt install`. There is no Murvix APT repository, so
+  `apt upgrade` alone does not update Murvix.
 - **AppImage:** quit the app, then download and run the newer file. Running
   terminals stay alive. If you linked the CLI, choose **Install Command Line Tool…**
   again from the new app.
@@ -197,16 +197,16 @@ working; see [Coming from 1.x](../extensions/get-started.md#coming-from-1x).
 
 ## Beta
 
-The beta gets new features first. **Muxy Beta** installs alongside stable,
+The beta gets new features first. **Murvix Beta** installs alongside stable,
 with separate settings and session data.
 
 - **macOS:** download the newest `v<version>-beta.<N>` pre-release from the
-  [releases page](https://github.com/muxy-app/muxy/releases). The app updates to
+  [releases page](https://github.com/teomurgi/murvix/releases). The app updates to
   each new beta.
 - **Linux:** append `--channel beta` to the [quick-installer command](#quick-installer-with-in-app-updates)
   (`python3 - install --channel beta`), or download a beta `.deb` or AppImage
   from the releases page. Use the same [update method](#updates) as stable.
-  The quick installer and Debian package provide `muxy-beta` and `murvix-server-beta`.
+  The quick installer and Debian package provide `murvix-beta` and `murvix-server-beta`.
 - **CLI and server only:** give the [install script](#install-script) a beta
   version, such as `2.1.0-beta.1143`.
 

@@ -23,19 +23,18 @@ pub fn muxy_dir() -> io::Result<PathBuf> {
     Ok(directory)
 }
 
-/// Releases of each channel and local builds never share data. Stable is
-/// `Muxy 2` on macOS because 1.x keeps its data in `Muxy`.
+/// Releases of each channel and local builds never share data.
 fn directory_name(version: &str, debug: bool, linux: bool) -> &'static str {
     let channel = Version::parse(version)
         .filter(|_| !debug)
         .map(Version::channel);
     match (channel, linux) {
-        (None, false) => "Muxy Dev",
-        (None, true) => "muxy-dev",
-        (Some(Channel::Beta), false) => "Muxy Beta",
-        (Some(Channel::Beta), true) => "muxy-beta",
-        (Some(Channel::Stable), false) => "Muxy 2",
-        (Some(Channel::Stable), true) => "muxy",
+        (None, false) => "Murvix Dev",
+        (None, true) => "murvix-dev",
+        (Some(Channel::Beta), false) => "Murvix Beta",
+        (Some(Channel::Beta), true) => "murvix-beta",
+        (Some(Channel::Stable), false) => "Murvix",
+        (Some(Channel::Stable), true) => "murvix",
     }
 }
 
@@ -86,12 +85,12 @@ mod tests {
     fn channels_and_development_builds_do_not_share_data_on_either_platform() -> io::Result<()> {
         for linux in [false, true] {
             for (version, debug, macos_name, linux_name) in [
-                ("2.0.0-beta-0", true, "Muxy Dev", "muxy-dev"),
-                ("2.0.0-beta-0", false, "Muxy Dev", "muxy-dev"),
-                ("2.0.0-beta.1001", true, "Muxy Dev", "muxy-dev"),
-                ("2.0.0-beta.1001", false, "Muxy Beta", "muxy-beta"),
-                ("2.0.0", true, "Muxy Dev", "muxy-dev"),
-                ("2.0.0", false, "Muxy 2", "muxy"),
+                ("2.0.0-beta-0", true, "Murvix Dev", "murvix-dev"),
+                ("2.0.0-beta-0", false, "Murvix Dev", "murvix-dev"),
+                ("2.0.0-beta.1001", true, "Murvix Dev", "murvix-dev"),
+                ("2.0.0-beta.1001", false, "Murvix Beta", "murvix-beta"),
+                ("2.0.0", true, "Murvix Dev", "murvix-dev"),
+                ("2.0.0", false, "Murvix", "murvix"),
             ] {
                 let expected = if linux {
                     format!(".local/state/{linux_name}")

@@ -50,17 +50,17 @@ cd "$ARTIFACTS"
 ASSETS=(install-murvix.sh install-desktop-linux.py murvix-desktop.apparmor)
 for ARCH in arm64 x86_64; do
     ASSETS+=("murvix-${VERSION}-linux-${ARCH}.tar.gz")
-    ASSETS+=("murvix-desktop-${VERSION}-linux-${ARCH}.tar.gz" "Muxy-${VERSION}-linux-${ARCH}.AppImage")
+    ASSETS+=("murvix-desktop-${VERSION}-linux-${ARCH}.tar.gz" "Murvix-${VERSION}-linux-${ARCH}.AppImage")
     DEB_ARCH="$ARCH"
     [[ "$ARCH" != x86_64 ]] || DEB_ARCH=amd64
     DEB_PACKAGE=murvix-desktop
     [[ "$CHANNEL" != beta ]] || DEB_PACKAGE=murvix-desktop-beta
     ASSETS+=("${DEB_PACKAGE}_${VERSION}_${DEB_ARCH}.deb")
     # A beta may skip Intel; a stable release is also how Intel Macs leave Muxy 1.x.
-    if [[ "$CHANNEL" == beta && "$ARCH" == x86_64 && ! -e "Muxy-${VERSION}-${ARCH}.dmg" && ! -e "murvix-${VERSION}-macos-${ARCH}.zip" ]]; then
+    if [[ "$CHANNEL" == beta && "$ARCH" == x86_64 && ! -e "Murvix-${VERSION}-${ARCH}.dmg" && ! -e "murvix-${VERSION}-macos-${ARCH}.zip" ]]; then
         continue
     fi
-    ASSETS+=("Muxy-${VERSION}-${ARCH}.dmg" "murvix-${VERSION}-macos-${ARCH}.zip")
+    ASSETS+=("Murvix-${VERSION}-${ARCH}.dmg" "murvix-${VERSION}-macos-${ARCH}.zip")
     if [[ "$CHANNEL" == stable ]]; then
         ASSETS+=("appcast-${ARCH}.xml")
     fi
@@ -124,7 +124,7 @@ else
         DRAFT_FLAGS+=(--prerelease)
     fi
     gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$SOURCE" \
-        --title "Muxy $VERSION" "${DRAFT_FLAGS[@]}" --notes-file release-notes.md
+        --title "Murvix $VERSION" "${DRAFT_FLAGS[@]}" --notes-file release-notes.md
 fi
 
 # A failed upload leaves a resumable draft, never a half-populated public release.
