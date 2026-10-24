@@ -1,6 +1,6 @@
 <h1 align="center">Murvix</h1>
 
-<p align="center">An Omarchy-integrated form of <a href="https://github.com/muxy-app/muxy">muxy</a> — a lightweight, memory-efficient terminal multiplexer built with Rust, GPUI and libghostty.</p>
+<p align="center">An Omarchy-integrated, macOs compatible form of <a href="https://github.com/muxy-app/muxy">muxy</a> — a lightweight, memory-efficient terminal multiplexer built with Rust, GPUI and libghostty.</p>
 
 ## Credits
 
