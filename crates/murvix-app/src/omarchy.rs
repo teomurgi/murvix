@@ -151,6 +151,9 @@ fn render_scheme(colors: &HashMap<String, String>) -> Option<String> {
 }
 
 fn write_theme(themes_dir: &Path, scheme: &str) -> bool {
+    if fs::create_dir_all(themes_dir).is_err() {
+        return false;
+    }
     let target = themes_dir.join(THEME_NAME);
     if fs::read_to_string(&target).ok().as_deref() == Some(scheme) {
         return false;

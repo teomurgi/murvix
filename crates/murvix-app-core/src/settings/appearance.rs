@@ -106,12 +106,39 @@ pub struct Appearance {
     pub agent_sessions_providers: Vec<murvix_protocol::AgentProvider>,
 }
 
+/// The built-in theme, or Omarchy's synced theme on an Omarchy desktop.
+fn default_theme(dark: bool) -> String {
+    if omarchy_theme_available() {
+        "Omarchy".into()
+    } else if dark {
+        "Murvix".into()
+    } else {
+        "Murvix Light".into()
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn omarchy_theme_available() -> bool {
+    use std::path::PathBuf;
+
+    let state = std::env::var_os("XDG_STATE_HOME")
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute())
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".local/state")));
+    state.is_some_and(|state| state.join("omarchy/current/theme.name").is_file())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn omarchy_theme_available() -> bool {
+    false
+}
+
 impl Default for Appearance {
     fn default() -> Self {
         Self {
             layout: AppLayout::default(),
-            dark_theme: "Murvix".into(),
-            light_theme: "Murvix Light".into(),
+            dark_theme: default_theme(true),
+            light_theme: default_theme(false),
             sidebar_expanded: false,
             sidebar_vibrancy: true,
             sidebar_vibrancy_level: 50,

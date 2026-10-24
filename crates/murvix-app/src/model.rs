@@ -459,7 +459,6 @@ impl AppModel {
             model.save(cx);
             model.flush_composer(cx)
         });
-        let themes = crate::theme::Catalog::load(&boot.state_path.with_file_name("themes"));
         #[cfg(target_os = "linux")]
         let omarchy = {
             let (sender, received) = async_channel::unbounded::<()>();
@@ -476,6 +475,9 @@ impl AppModel {
             }
             omarchy
         };
+        // Load after the Omarchy integration has written the current theme, so
+        // a fresh profile can select it on the first launch.
+        let themes = crate::theme::Catalog::load(&boot.state_path.with_file_name("themes"));
         let (theme, palette) = themes.resolve(&boot.settings.appearance, dark);
         let palette = palette.with_options(&boot.terminal.options);
         let configuration_error = boot.import_message;

@@ -121,7 +121,7 @@ The [terminal UI guide](docs/features/terminal-ui.md) covers scrollback, mouse s
 
 ## Make it yours
 
-**Themes.** Pick light and dark themes in **Settings → Appearance**, or drop your own themes into the profile's `themes/` folder. On Omarchy, Murvix writes the active desktop palette to the theme catalog as `Omarchy` and refreshes it whenever the desktop theme changes; select `Omarchy` once and future theme switches follow along.
+**Themes.** Pick light and dark themes in **Settings → Appearance**, or drop your own themes into the profile's `themes/` folder. On Omarchy, Murvix selects the active desktop palette as `Omarchy` on first launch and refreshes it whenever the desktop theme changes.
 
 **Extensions.** Extensions are web projects that can add tabs, panels, popovers, sidebar and status bar items, commands, shortcuts, background logic, and translations. Manage them in **Settings → Extensions**, and declare the permissions each one needs. Start with the [extension guide](docs/extensions/get-started.md).
 
