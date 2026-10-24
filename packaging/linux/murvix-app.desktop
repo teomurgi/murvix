@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Murvix
+Comment=GPU-accelerated terminal multiplexer
+Exec=murvix-app
+Terminal=false
+Categories=System;TerminalEmulator;
+Keywords=terminal;multiplexer;
+StartupNotify=true

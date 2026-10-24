@@ -1,0 +1,938 @@
+mod background;
+mod calls;
+mod commands;
+mod consent;
+mod events;
+mod http;
+mod items;
+mod local;
+mod logs;
+mod scripts;
+mod surfaces;
+#[cfg(test)]
+mod tests;
+mod updates;
+mod verbs;
+mod worktrees;
+
+pub(crate) use commands::{ExtensionShortcut, RunCommand};
+pub(in crate::model) use events::root_of;
+pub(crate) use logs::log_file;
+pub(crate) use verbs::base64;
+
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+use std::path::Path;
+
+use gpui::{Context, Entity, Window};
+use murvix_app_core::ServerId;
+use murvix_app_core::extensions::{
+    AUDIT_LOG, AuditLog, Grants, Registry, Request, Rule, required_permission,
+};
+use murvix_core::capability::Feature;
+use murvix_protocol::ProjectId;
+use murvix_ui::tr;
+use serde_json::{Map, Value, json};
+
+use super::AppModel;
+use crate::views::webview::{Request as PageRequest, Webview};
+
+pub(crate) struct Runtime {
+    pub registry: Registry,
+    grants: Result<Grants, String>,
+    local: local::Local,
+    local_revision: u64,
+    pub epoch: u64,
+    epochs: HashMap<String, u64>,
+    /// Each server's extension connection, kept apart from the app's own.
+    clients: HashMap<ServerId, murvix_client::Client>,
+    /// Which install each server's connection is, so events from one that was
+    /// replaced are ignored.
+    installs: HashMap<ServerId, u64>,
+    next_install: u64,
+    /// Connections being opened, by server and connection generation, so
+    /// only one opens at a time.
+    opening: HashSet<(ServerId, u64)>,
+    scripts: HashMap<u64, scripts::Running>,
+    backgrounds: HashMap<String, background::Background>,
+    loading_scripts: usize,
+    loading_backgrounds: HashSet<String>,
+    jobs: HashMap<(String, String), Job>,
+    cancelled_jobs: HashSet<(String, String)>,
+    next: u64,
+    waiting: VecDeque<consent::Waiting>,
+    sheet: Option<consent::Sheet>,
+    pub logs: logs::Logs,
+    /// The profile's record of every gated decision.
+    audit: AuditLog,
+    native_modal: Option<scripts::Picker>,
+    /// Stored overrides for each extension's declared settings.
+    pub settings: BTreeMap<String, Map<String, Value>>,
+    pub(crate) items: surfaces::Items,
+    shortcuts: Vec<surfaces::Shortcut>,
+    events: events::Tracker,
+    gh_user: Option<(std::time::Instant, Value)>,
+    /// Whether the script and page backends were asked if they can run.
+    runtimes_probed: bool,
+}
+
+impl Runtime {
+    pub(crate) fn reserve_job(&mut self) -> u64 {
+        self.next += 1;
+        self.next
+    }
+
+    pub(crate) fn new(profile: &Path) -> Self {
+        Self {
+            registry: Registry::empty(profile),
+            grants: Err("extensions are loading".into()),
+            local: local::Local::new(profile),
+            local_revision: 0,
+            epoch: 1,
+            epochs: HashMap::new(),
+            clients: HashMap::new(),
+            installs: HashMap::new(),
+            next_install: 0,
+            opening: HashSet::new(),
+            scripts: HashMap::new(),
+            backgrounds: HashMap::new(),
+            loading_scripts: 0,
+            loading_backgrounds: HashSet::new(),
+            jobs: HashMap::new(),
+            cancelled_jobs: HashSet::new(),
+            next: 0,
+            waiting: VecDeque::new(),
+            sheet: None,
+            logs: logs::Logs::new(),
+            audit: AuditLog::new(profile),
+            native_modal: None,
+            settings: BTreeMap::new(),
+            items: surfaces::Items::default(),
+            shortcuts: Vec::new(),
+            events: events::Tracker::default(),
+            gh_user: None,
+            runtimes_probed: false,
+        }
+    }
+
+    fn epoch_for(&self, owner: &str) -> u64 {
+        self.epochs.get(owner).copied().unwrap_or(0)
+    }
+
+    /// The server's extension connection, which other app work that must not
+    /// queue behind terminals, such as listing folders, may share.
+    pub(crate) fn client(&self, server: ServerId) -> Option<murvix_client::Client> {
+        self.clients.get(&server).cloned()
+    }
+}
+
+impl Drop for Runtime {
+    fn drop(&mut self) {
+        for (_, client) in self.clients.drain() {
+            client.disconnect();
+        }
+    }
+}
+
+struct Job {
+    id: u64,
+    call: Call,
+}
+
+#[derive(Clone)]
+enum Reply {
+    Page(gpui::WeakEntity<Webview>, PageRequest),
+    Script(u64, std::sync::mpsc::SyncSender<String>),
+}
+
+impl Reply {
+    fn send(&self, result: Result<Value, String>, cx: &mut gpui::App) {
+        match self {
+            Self::Page(view, request) => {
+                let _ = view.update(cx, |view, _| view.reply(request, result));
+            }
+            Self::Script(_, reply) => {
+                let _ = reply.try_send(envelope(result).to_string());
+            }
+        }
+    }
+
+    fn key(&self) -> String {
+        match self {
+            Self::Page(view, request) => {
+                format!("page:{:?}:{}", view.entity_id(), request.generation)
+            }
+            Self::Script(id, _) => format!("script:{id}"),
+        }
+    }
+}
+
+fn envelope(result: Result<Value, String>) -> Value {
+    match result {
+        Ok(value) => json!({"ok":true,"value":value}),
+        Err(error) => json!({"ok":false,"cancelled":error == "cancelled","error":error}),
+    }
+}
+
+#[derive(Clone)]
+struct Call {
+    owner: String,
+    epoch: u64,
+    generation: u64,
+    project: ProjectId,
+    verb: String,
+    args: Value,
+    reply: Reply,
+    /// Set once runtime consent has been granted for this call.
+    approved: bool,
+}
+
+impl AppModel {
+    /// Opens `server`'s extension connection, through its worker, unless one
+    /// is already opening for this connection.
+    pub(crate) fn extension_client(&mut self, server: ServerId, cx: &mut Context<Self>) {
+        let (sender, receiver) = async_channel::bounded(1);
+        let generation = self.generation(server);
+        if self.extensions.opening.contains(&(server, generation)) {
+            return;
+        }
+        if !self.send(server, crate::boot::Work::ExtensionConnection(sender), cx) {
+            return;
+        }
+        self.extensions.opening.insert((server, generation));
+        cx.spawn(async move |model, cx| {
+            let connected = receiver.recv().await;
+            let _ = model.update(cx, |model, _| {
+                model.extensions.opening.remove(&(server, generation));
+            });
+            let Ok(connected) = connected else {
+                return;
+            };
+            let connected = connected.and_then(|client| {
+                let events = client.events().ok_or("extension events already taken")?;
+                let (sender, receiver) = async_channel::bounded(64);
+                std::thread::Builder::new()
+                    .name("extension-events".into())
+                    .spawn(move || {
+                        for event in events {
+                            if matches!(
+                                event,
+                                murvix_client::ClientEvent::FilesChanged { .. }
+                                    | murvix_client::ClientEvent::Disconnected
+                            ) && sender.send_blocking(event).is_err()
+                            {
+                                break;
+                            }
+                        }
+                    })
+                    .map_err(|error| error.to_string())?;
+                Ok((client, receiver))
+            });
+            let (client, events) = match connected {
+                Ok(connected) => connected,
+                Err(error) => {
+                    let _ = model.update(cx, |model, _| {
+                        let message = model.server_message(server, &error);
+                        model.extension_log("", format!("[muxy] {message}"));
+                    });
+                    return;
+                }
+            };
+            let installed = model
+                .update(cx, |model, cx| {
+                    if model.generation(server) != generation || !model.ready(server) {
+                        return None;
+                    }
+                    model.disconnect_extensions(server);
+                    model.extensions.next_install += 1;
+                    let install = model.extensions.next_install;
+                    model.extensions.clients.insert(server, client.clone());
+                    model.extensions.installs.insert(server, install);
+                    model.sync_extension_events(cx);
+                    model.resume_remote(server, cx);
+                    model.check_remote_projects(server, cx);
+                    Some(install)
+                })
+                .ok()
+                .flatten();
+            let Some(install) = installed else {
+                client.disconnect();
+                return;
+            };
+            drop(client);
+            while let Ok(event) = events.recv().await {
+                if model
+                    .update(cx, |model, cx| {
+                        if model.generation(server) != generation
+                            || model.extensions.installs.get(&server) != Some(&install)
+                        {
+                            return;
+                        }
+                        match event {
+                            murvix_client::ClientEvent::FilesChanged { project, changes } => {
+                                model.extension_files_changed(project, changes, cx);
+                            }
+                            murvix_client::ClientEvent::Disconnected => {
+                                model.disconnect_extensions(server);
+                                let message = model
+                                    .server_message(server, "extension server connection closed");
+                                model.extension_log("", format!("[muxy] {message}"));
+                                if model.ready(server) && model.quitting == super::Quitting::Idle {
+                                    model.extension_client(server, cx);
+                                }
+                            }
+                            _ => (),
+                        }
+                    })
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        })
+        .detach();
+    }
+
+    /// Closes `server`'s extension connection. Its file watches end with it.
+    pub(super) fn disconnect_extensions(&mut self, server: ServerId) {
+        self.extensions.installs.remove(&server);
+        if let Some(client) = self.extensions.clients.remove(&server) {
+            client.disconnect();
+        }
+        let state = &self.state;
+        self.extensions
+            .events
+            .forget_watches(|project| state.project_server(project) == Some(server));
+    }
+
+    /// The server an extension call acts on: its project's.
+    fn call_server(&self, call: &Call) -> ServerId {
+        self.state
+            .project_server(call.project)
+            .unwrap_or_else(ServerId::local)
+    }
+
+    fn call_client(&self, call: &Call) -> Option<murvix_client::Client> {
+        self.extensions
+            .clients
+            .get(&self.call_server(call))
+            .cloned()
+    }
+
+    /// Asks the script and page backends whether what they load at run time
+    /// is there, once an extension is enabled to need it. The answer can only
+    /// take a feature away, and says why.
+    fn probe_extension_runtimes(&mut self, cx: &mut Context<Self>) {
+        if self.extensions.runtimes_probed || self.extensions.registry.active().next().is_none() {
+            return;
+        }
+        self.extensions.runtimes_probed = true;
+        let probe = cx.background_executor().spawn(async {
+            [
+                (Feature::ExtensionScripts, murvix_ui::javascript::probe()),
+                (Feature::ExtensionWebviews, murvix_ui::webview::probe()),
+            ]
+        });
+        cx.spawn(async move |model, cx| {
+            let found = probe.await;
+            let _ = model.update(cx, |model, cx| {
+                for (feature, capability) in found {
+                    if model.capabilities.has_backend(feature) && !capability.is_supported() {
+                        model.capabilities.set(feature, capability);
+                    }
+                }
+                cx.notify();
+            });
+        })
+        .detach();
+    }
+
+    fn receive_extension_snapshot(&mut self, snapshot: local::Snapshot, cx: &mut Context<Self>) {
+        if snapshot.revision <= self.extensions.local_revision {
+            return;
+        }
+        let disabled: Vec<_> = self
+            .extensions
+            .registry
+            .active()
+            .filter(|extension| snapshot.registry.enabled(&extension.name).is_none())
+            .map(|extension| extension.name.clone())
+            .collect();
+        for owner in disabled {
+            self.stop_extension(&owner, cx);
+        }
+        self.extensions.local_revision = snapshot.revision;
+        self.extensions.registry = snapshot.registry;
+        self.probe_extension_runtimes(cx);
+        self.extensions.grants = snapshot.grants;
+        self.extensions.settings = snapshot.settings;
+        self.read_earlier_logs(cx);
+        self.invalidate_webview_shortcuts();
+        self.register_extension_surfaces(cx);
+        self.load_extension_icons(cx);
+        self.sync_backgrounds(cx);
+        self.sync_extension_events(cx);
+        self.close_hidden_popover(cx);
+        self.sync_language(cx);
+        self.sync_preferences(cx);
+        cx.notify();
+    }
+
+    /// Starts each newly loaded extension's log tail with its file's earlier
+    /// lines, before the extension logs anything this session.
+    fn read_earlier_logs(&mut self, cx: &mut Context<Self>) {
+        let extensions: Vec<_> = self
+            .extensions
+            .registry
+            .extensions
+            .values()
+            .map(|extension| (extension.name.clone(), extension.directory.clone()))
+            .collect();
+        for (owner, root) in extensions {
+            let Some(lines) = self.extensions.logs.read_earlier(&owner, &root) else {
+                continue;
+            };
+            cx.spawn(async move |model, cx| {
+                if let Ok(lines) = lines.recv().await {
+                    let _ = model.update(cx, |model, cx| {
+                        model.extensions.logs.prepend(&owner, lines);
+                        cx.notify();
+                    });
+                }
+            })
+            .detach();
+        }
+    }
+
+    /// An extension's remembered consent rules.
+    pub(crate) fn extension_rules(&self, owner: &str) -> Vec<Rule> {
+        self.extensions
+            .grants
+            .as_ref()
+            .map_or_else(|_| Vec::new(), |grants| grants.rules(owner))
+    }
+
+    pub(crate) fn remove_extension_rule(
+        &mut self,
+        owner: &str,
+        rule: Rule,
+        cx: &mut Context<Self>,
+    ) -> gpui::Task<Result<(), String>> {
+        let owner = owner.to_owned();
+        self.change_extensions(
+            move |state| {
+                state
+                    .grants
+                    .as_mut()
+                    .map_err(|error| error.clone())?
+                    .remove(&owner, &rule)
+            },
+            cx,
+        )
+    }
+
+    /// The profile's record of every gated decision.
+    pub(crate) fn extension_audit_log(&self) -> std::path::PathBuf {
+        self.path.with_file_name(AUDIT_LOG)
+    }
+
+    /// Whether the installed extensions have been read from disk yet.
+    pub(crate) fn extensions_loaded(&self) -> bool {
+        self.extensions.local_revision > 0
+    }
+
+    fn change_extensions(
+        &mut self,
+        operation: impl FnOnce(&mut local::State) -> Result<(), String> + Send + 'static,
+        cx: &mut Context<Self>,
+    ) -> gpui::Task<Result<(), String>> {
+        let task = self.extensions.local.submit(move |state| {
+            let result = operation(state);
+            Ok((state.snapshot(), result))
+        });
+        cx.spawn(async move |model, cx| {
+            let (snapshot, result) = task.await?;
+            model
+                .update(cx, |model, cx| {
+                    model.receive_extension_snapshot(snapshot, cx);
+                })
+                .map_err(|error| error.to_string())?;
+            result
+        })
+    }
+
+    pub(crate) fn refresh_installed_extensions(&mut self, cx: &mut Context<Self>) {
+        let task = self.refresh_installed_extensions_task(cx);
+        cx.spawn(async move |model, cx| {
+            if let Err(error) = task.await {
+                let _ = model.update(cx, |model, cx| model.fail(error, cx));
+            }
+        })
+        .detach();
+    }
+
+    pub(crate) fn refresh_installed_extensions_task(
+        &mut self,
+        cx: &mut Context<Self>,
+    ) -> gpui::Task<Result<(), String>> {
+        self.change_extensions(
+            |state| {
+                state.registry.reload();
+                Ok(())
+            },
+            cx,
+        )
+    }
+
+    pub(crate) fn load_unpacked_extension(
+        &mut self,
+        path: std::path::PathBuf,
+        cx: &mut Context<Self>,
+    ) -> gpui::Task<Result<(), String>> {
+        self.change_extensions(
+            move |state| state.registry.load_unpacked(&path).map(|_| ()),
+            cx,
+        )
+    }
+
+    pub(crate) fn reload_extensions(
+        &mut self,
+        cx: &mut Context<Self>,
+    ) -> gpui::Task<Result<(), String>> {
+        let checks = self.extension_close_checks(None, cx);
+        let epoch = self.extensions.epoch;
+        cx.spawn(async move |model, cx| {
+            for view in checks {
+                let Ok(check) = view.update(cx, Webview::before_close) else {
+                    return Err(tr!(
+                        "The extension view could not be closed. Try reloading again."
+                    )
+                    .into());
+                };
+                if check.recv().await.unwrap_or(true) {
+                    return Err(tr!(
+                        "The extension kept an open view. Save or close it before reloading."
+                    )
+                    .into());
+                }
+            }
+            let task = model
+                .update(cx, |model, cx| {
+                    if model.extensions.epoch != epoch {
+                        return Err(
+                            tr!("Extensions changed while reloading. Try again.").to_string()
+                        );
+                    }
+                    model.stop_extensions(cx);
+                    Ok(model.refresh_installed_extensions_task(cx))
+                })
+                .map_err(|error| error.to_string())??;
+            task.await
+        })
+    }
+
+    fn stop_extension(&mut self, owner: &str, cx: &mut Context<Self>) {
+        self.extensions.epoch += 1;
+        *self.extensions.epochs.entry(owner.into()).or_default() += 1;
+        if self
+            .extensions
+            .native_modal
+            .as_ref()
+            .is_some_and(|picker| picker.owner == owner)
+        {
+            self.extensions.native_modal = None;
+            if matches!(
+                self.overlay,
+                Some(crate::views::overlays::Overlay::Native(_))
+            ) {
+                self.overlay = None;
+            }
+        }
+        self.stop_backgrounds(Some(owner));
+        self.extensions
+            .scripts
+            .retain(|_, running| running.owner != owner);
+        self.extensions
+            .shortcuts
+            .retain(|shortcut| shortcut.owner != owner);
+        self.extensions.items.clear(Some(owner));
+        if self
+            .extensions
+            .sheet
+            .as_ref()
+            .is_some_and(|sheet| sheet.owner == owner)
+        {
+            self.extensions.sheet = None;
+        }
+        let waiting = std::mem::take(&mut self.extensions.waiting);
+        for waiting in waiting {
+            if waiting.owner() == owner {
+                self.fail_waiting(waiting, "extension disabled", cx);
+            } else {
+                self.extensions.waiting.push_back(waiting);
+            }
+        }
+        self.prune_extension_jobs(cx);
+        self.remove_owner_surfaces(Some(owner), cx);
+    }
+
+    pub(in crate::model) fn prune_extension_jobs(&mut self, cx: &mut Context<Self>) {
+        let expired: Vec<_> = self
+            .extensions
+            .jobs
+            .iter()
+            .filter(|(_, job)| !self.call_live(&job.call, cx))
+            .map(|(key, _)| key.clone())
+            .collect();
+        for key in expired {
+            if let Some(job) = self.extensions.jobs.remove(&key)
+                && let Some(client) = self.call_client(&job.call)
+            {
+                cx.spawn(async move |_, _| {
+                    let _ = client.cancel_exec_async(job.id).await;
+                })
+                .detach();
+            }
+        }
+    }
+
+    pub(crate) fn set_extension_enabled(
+        &mut self,
+        owner: &str,
+        enabled: bool,
+        cx: &mut Context<Self>,
+    ) -> gpui::Task<Result<(), String>> {
+        let owner = owner.to_owned();
+        self.change_extensions(move |state| state.registry.set_enabled(&owner, enabled), cx)
+    }
+
+    /// Stores (or with `None`, clears) the user's value for a declared setting.
+    pub(crate) fn set_extension_setting(
+        &mut self,
+        owner: &str,
+        key: &str,
+        value: Option<Value>,
+        cx: &mut Context<Self>,
+    ) -> gpui::Task<Result<(), String>> {
+        let (owner, key) = (owner.to_owned(), key.to_owned());
+        self.change_extensions(
+            move |state| {
+                let extension = state
+                    .registry
+                    .extensions
+                    .get(&owner)
+                    .ok_or_else(|| tr!("extension is not installed").to_string())?;
+                state.settings.set(extension, &key, value).map(|_| ())
+            },
+            cx,
+        )
+    }
+
+    pub(crate) fn reset_extension_permissions(
+        &mut self,
+        owner: &str,
+        cx: &mut Context<Self>,
+    ) -> gpui::Task<Result<(), String>> {
+        let owner = owner.to_owned();
+        self.change_extensions(
+            move |state| {
+                state
+                    .grants
+                    .as_mut()
+                    .map_err(|error| error.clone())?
+                    .clear(&owner)
+            },
+            cx,
+        )
+    }
+
+    pub(crate) fn remove_extension(
+        &mut self,
+        owner: &str,
+        cx: &mut Context<Self>,
+    ) -> gpui::Task<Result<(), String>> {
+        let owner = owner.to_owned();
+        self.change_extensions(
+            move |state| {
+                state.registry.set_enabled(&owner, false)?;
+                state
+                    .grants
+                    .as_mut()
+                    .map_err(|error| error.clone())?
+                    .clear(&owner)?;
+                state.registry.remove(&owner)
+            },
+            cx,
+        )
+    }
+
+    /// Reloading stops everything extensions started, including background
+    /// scripts and their runtime shortcuts and item changes.
+    pub(super) fn stop_extensions(&mut self, cx: &mut Context<Self>) {
+        self.stop_extension_tasks(cx);
+        self.stop_backgrounds(None);
+        self.extensions.shortcuts.clear();
+        self.extensions.items.clear(None);
+        self.invalidate_webview_shortcuts();
+        self.remove_extension_surfaces(cx);
+    }
+
+    /// Cancels in-flight work, as when the server connection ends. Background
+    /// scripts keep running, as open pages do.
+    pub(super) fn stop_extension_tasks(&mut self, cx: &mut Context<Self>) {
+        self.extensions.epoch = self.extensions.epoch.wrapping_add(1);
+        for owner in self.extensions.registry.extensions.keys() {
+            *self.extensions.epochs.entry(owner.clone()).or_default() += 1;
+        }
+        self.extensions.sheet = None;
+        for waiting in self.extensions.waiting.drain(..).collect::<Vec<_>>() {
+            self.fail_waiting(waiting, "extension runtime stopped", cx);
+        }
+        let jobs: Vec<_> = self.extensions.jobs.drain().map(|(_, job)| job).collect();
+        for job in jobs {
+            let error = Err("extension runtime stopped".into());
+            if job.call.verb == "exec.start" {
+                self.extension_evaluate(
+                    &job.call.reply,
+                    &format!(
+                        "globalThis.__muxyResolveExec?.({}, {});",
+                        job.call.args["id"],
+                        envelope(error)
+                    ),
+                    cx,
+                );
+            } else {
+                job.call.reply.send(error, cx);
+            }
+            if let Some(client) = self.call_client(&job.call) {
+                cx.spawn(async move |_, _| {
+                    let _ = client.cancel_exec_async(job.id).await;
+                })
+                .detach();
+            }
+        }
+        let backgrounds: HashSet<u64> = self
+            .extensions
+            .backgrounds
+            .values()
+            .map(|background| background.script)
+            .collect();
+        self.extensions
+            .scripts
+            .retain(|id, _| backgrounds.contains(id));
+        self.extensions.cancelled_jobs.clear();
+        if self.extensions.native_modal.take().is_some()
+            && matches!(
+                self.overlay,
+                Some(crate::views::overlays::Overlay::Native(_))
+            )
+        {
+            self.overlay = None;
+        }
+    }
+
+    /// Appends to an extension's log; an empty owner is the runtime's own log.
+    pub(super) fn extension_log(&mut self, owner: &str, line: String) {
+        let root = self
+            .extensions
+            .registry
+            .extensions
+            .get(owner)
+            .map(|extension| extension.directory.clone());
+        self.extensions.logs.append(owner, root.as_deref(), line);
+    }
+
+    pub(super) fn authorize_page(
+        &self,
+        owner: &str,
+        verb: &str,
+        args: &Value,
+    ) -> Result<(), String> {
+        if owner == "foundation" && cfg!(debug_assertions) {
+            return Ok(());
+        }
+        let extension = self
+            .extensions
+            .registry
+            .enabled(owner)
+            .ok_or("extension is disabled or unloaded")?;
+        if let Some(permission) = required_permission(verb, args)
+            && !extension.allows(permission)
+        {
+            return Err(format!("permission denied ({permission})"));
+        }
+        Ok(())
+    }
+
+    /// Every live extension webview: tabs, panels, the modal, the popover, and the sidebar.
+    pub(super) fn extension_views(&self) -> Vec<&Entity<Webview>> {
+        self.webviews
+            .panes
+            .values()
+            .map(|surface| &surface.view)
+            .chain(
+                self.webviews
+                    .panels
+                    .values()
+                    .map(|panel| &panel.surface.view),
+            )
+            .chain(self.webviews.modal.iter().map(|modal| &modal.surface.view))
+            .chain(
+                self.webviews
+                    .popover
+                    .iter()
+                    .map(|popover| &popover.surface.view),
+            )
+            .chain(
+                self.webviews
+                    .sidebar
+                    .iter()
+                    .map(|sidebar| &sidebar.surface.view),
+            )
+            .collect()
+    }
+
+    pub(super) fn extension_page_request(
+        &mut self,
+        view: &Entity<Webview>,
+        request: &PageRequest,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let owner = view.read(cx).source.owner.clone();
+        let args = request.body["args"].clone();
+        let project = self.extension_project(&args, self.page_project(view, cx));
+        match project {
+            Ok(project) => self.extension_call(
+                Call {
+                    owner: owner.clone(),
+                    epoch: self.extensions.epoch_for(&owner),
+                    generation: self.project_generation(project),
+                    project,
+                    verb: request.body["verb"].as_str().unwrap_or("").into(),
+                    args,
+                    reply: Reply::Page(view.downgrade(), request.clone()),
+                    approved: false,
+                },
+                window,
+                cx,
+            ),
+            Err(error) => view.read(cx).reply(request, Err(error)),
+        }
+    }
+
+    fn page_project(&self, view: &Entity<Webview>, _cx: &gpui::App) -> ProjectId {
+        self.state
+            .projects()
+            .iter()
+            .find(|project| {
+                project.tabs.iter().flat_map(|tab| &tab.panes).any(|pane| {
+                    self.webviews
+                        .panes
+                        .get(&pane.id)
+                        .is_some_and(|surface| surface.view == *view)
+                })
+            })
+            .map_or_else(|| self.state.current_project().id, |project| project.id)
+    }
+
+    /// The project a call acts on: the `project` selector (a project's active
+    /// worktree, like main) or the caller's default.
+    fn extension_project(&self, args: &Value, default: ProjectId) -> Result<ProjectId, String> {
+        let Some(identifier) = args["project"].as_str().filter(|id| !id.is_empty()) else {
+            return Ok(default);
+        };
+        let project = self
+            .find_project(identifier)
+            .ok_or_else(|| format!("project not found {identifier}"))?;
+        Ok(if project.parent_id.is_some() {
+            project.id
+        } else {
+            self.preferred_worktree(project.id)
+        })
+    }
+
+    fn call_live(&self, call: &Call, cx: &gpui::App) -> bool {
+        call.epoch == self.extensions.epoch_for(&call.owner)
+            && call.generation == self.project_generation(call.project)
+            && self.extensions.registry.enabled(&call.owner).is_some()
+            && match &call.reply {
+                Reply::Page(view, request) => view
+                    .upgrade()
+                    .is_some_and(|view| view.read(cx).native.generation() == request.generation),
+                Reply::Script(id, _) => self.extensions.scripts.contains_key(id),
+            }
+    }
+
+    /// Checks main does before prompting, so users are never asked about calls
+    /// that would fail anyway.
+    fn consent_request(&self, call: &Call) -> Result<Option<Request>, String> {
+        match call.verb.as_str() {
+            "exec" | "exec.start" => {
+                calls::exec_request(call, 1)?;
+            }
+            "panes.send" | "panes.sendKeys" | "panes.readScreen" => {
+                Self::check_pane_request(&call.args)?;
+            }
+            "tabs.open" => self.check_tab_request(&call.args)?,
+            "projects.delete" => {
+                let project = self
+                    .find_project(call.args["identifier"].as_str().unwrap_or(""))
+                    .ok_or_else(|| {
+                        format!(
+                            "project not found {}",
+                            call.args["identifier"].as_str().unwrap_or("")
+                        )
+                    })?;
+                if project.home {
+                    return Err("the home project cannot be deleted".into());
+                }
+                return Ok(Some(Request::project_delete(
+                    &project.name,
+                    &project.directory.display().to_string(),
+                )));
+            }
+            "projects.create" => {
+                let path = verbs::standardized(call.args["path"].as_str().unwrap_or(""));
+                return Ok((call.args["createIfMissing"].as_bool() == Some(true)
+                    && !path.exists())
+                .then(|| Request::file("mkdir", &path.display().to_string())));
+            }
+            _ => (),
+        }
+        let location = self
+            .state
+            .project(call.project)
+            .map(|project| project.directory.display().to_string())
+            .unwrap_or_default();
+        Ok(Request::for_call(
+            &call.owner,
+            &call.verb,
+            &call.args,
+            &location,
+        ))
+    }
+
+    fn extension_call(&mut self, call: Call, window: &mut Window, cx: &mut Context<Self>) {
+        if !self.call_live(&call, cx) {
+            call.reply.send(Err("extension call expired".into()), cx);
+            return;
+        }
+        if let Err(error) = self.authorize_page(&call.owner, &call.verb, &call.args) {
+            call.reply.send(Err(error), cx);
+            return;
+        }
+        if call.approved {
+            self.dispatch_extension(call, window, cx);
+            return;
+        }
+        if call.verb == "http.fetch" {
+            self.check_http(call, cx);
+            return;
+        }
+        match self.consent_request(&call) {
+            Ok(Some(request)) => self.gate(call, request, window, cx),
+            Ok(None) => self.dispatch_extension(call, window, cx),
+            Err(error) => call.reply.send(Err(error), cx),
+        }
+    }
+}

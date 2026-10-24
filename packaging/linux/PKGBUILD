@@ -1,0 +1,63 @@
+# Maintainer: teomurgi <teomurgi@users.noreply.github.com>
+pkgname=murvix
+pkgver=2.3.0.beta.1189
+pkgrel=1
+pkgdesc="GPU-accelerated terminal multiplexer with GUI, CLI and server components (Omarchy-integrated fork of muxy)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/teomurgi/Murvix"
+license=('MIT')
+depends=('glibc' 'gcc-libs' 'libxcb' 'libxkbcommon' 'libxkbcommon-x11' 'vulkan-icd-loader')
+optdepends=('vulkan-intel: Vulkan driver for Intel GPUs'
+            'vulkan-radeon: Vulkan driver for AMD GPUs'
+            'nvidia-utils: Vulkan driver for NVIDIA GPUs'
+            'vulkan-swrast: software Vulkan fallback')
+makedepends=('rustup' 'git' 'pkgconf' 'python')
+conflicts=('muxy' 'muxy-bin' 'muxy-git' 'murvix-bin' 'murvix-git')
+options=('!lto')  # -flto=auto breaks bundled C deps (sqlite3) linked by rust-lld
+_zigver=0.15.2
+source=("git+https://github.com/teomurgi/Murvix.git#branch=main"
+        "murvix-app.desktop")
+source_x86_64=("https://ziglang.org/download/${_zigver}/zig-x86_64-linux-${_zigver}.tar.xz")
+source_aarch64=("https://ziglang.org/download/${_zigver}/zig-aarch64-linux-${_zigver}.tar.xz")
+sha256sums=('SKIP'
+            'SKIP')
+sha256sums_x86_64=('02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239')
+sha256sums_aarch64=('958ed7d1e00d0ea76590d27666efbf7a932281b3d7ba0c6b01b0ff26498f667f')
+
+pkgver() {
+  cd Murvix
+  cat BETA_VERSION
+}
+
+prepare() {
+  cd Murvix
+  # Stamp the real beta version (release CI does the same); the repo's
+  # "2.0.0-beta-0" is an unstamped-checkout sentinel the update feed outranks.
+  local version
+  version="$(python3 scripts/release.py version | sed -n 's/^version=//p')"
+  python3 scripts/release.py stamp "${version}"
+  rustup toolchain install 1.92.0 --profile minimal
+  export RUSTUP_TOOLCHAIN=1.92.0
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd Murvix
+  export RUSTUP_TOOLCHAIN=1.92.0
+  # ghostty (vendored dep) requires zig 0.15.2 exactly; Arch ships newer.
+  export PATH="${srcdir}/zig-${CARCH}-linux-${_zigver}:${PATH}"
+  cargo build --release --locked --workspace
+}
+
+# No check(): parts of the test suite need extras a minimal build env lacks
+# (netcat for fake-SSH tests) and a headless WebKit teardown aborts one
+# webview test pair. Run `cargo test --workspace` manually on a dev machine.
+
+package() {
+  cd Murvix
+  install -Dm755 "target/release/murvix"        "${pkgdir}/usr/bin/murvix"
+  install -Dm755 "target/release/murvix-server" "${pkgdir}/usr/bin/murvix-server"
+  install -Dm755 "target/release/murvix-app"    "${pkgdir}/usr/bin/murvix-app"
+  install -Dm644 "${srcdir}/murvix-app.desktop" "${pkgdir}/usr/share/applications/murvix-app.desktop"
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

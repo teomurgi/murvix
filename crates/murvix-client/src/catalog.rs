@@ -1,0 +1,313 @@
+use crate::{Client, ClientError};
+use murvix_protocol::{
+    CatalogPage, ErrorCode, MAX_PROJECTS, ProjectId, ProjectIntent, ProjectSessions, ReplyBody,
+    RequestBody, SessionId,
+};
+
+pub(crate) fn git_timeout(action: &murvix_protocol::GitAction) -> std::time::Duration {
+    let hooks = match action {
+        murvix_protocol::GitAction::Worktree(intent) => intent
+            .options
+            .as_ref()
+            .and_then(|options| options.hooks.as_ref())
+            .is_some_and(|hooks| !hooks.is_empty()),
+        _ => false,
+    };
+    // Hooks have their own five-minute server budget, in addition to Git work.
+    // Leave reply headroom so the UI receives the final lifecycle result.
+    std::time::Duration::from_secs(if hooks { 610 } else { 300 })
+}
+
+impl Client {
+    pub fn exec(
+        &self,
+        request: murvix_protocol::ExecRequest,
+    ) -> Result<murvix_protocol::ExecResult, ClientError> {
+        let timeout = std::time::Duration::from_millis(u64::from(request.timeout_ms) + 10_000);
+        match self.request_with_timeout(RequestBody::Exec(request), timeout)? {
+            ReplyBody::Exec(result) => Ok(result),
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
+
+    pub fn cancel_exec(&self, job: u64) -> Result<(), ClientError> {
+        match self.request(RequestBody::CancelExec(job))? {
+            ReplyBody::ExecCancelled => Ok(()),
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
+
+    pub fn activity(&self) -> Result<murvix_protocol::ActivitySnapshot, ClientError> {
+        match self.request(RequestBody::ReadActivity)? {
+            ReplyBody::Activity(snapshot) => Ok(snapshot),
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
+
+    pub fn acknowledge_activity(&self, events: Vec<u64>) -> Result<(), ClientError> {
+        match self.request(RequestBody::AcknowledgeActivity(events))? {
+            ReplyBody::ActivityAcknowledged => Ok(()),
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
+
+    pub fn claim_activity(&self, events: Vec<u64>) -> Result<Vec<u64>, ClientError> {
+        match self.request(RequestBody::ClaimActivity(events))? {
+            ReplyBody::ActivityClaimed(events) => Ok(events),
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
+
+    pub fn files(
+        &self,
+        request: murvix_protocol::FilesRequest,
+    ) -> Result<murvix_protocol::FilesReply, ClientError> {
+        match self.request_with_timeout(
+            RequestBody::Files(request),
+            std::time::Duration::from_secs(300),
+        )? {
+            ReplyBody::Files(reply) => Ok(reply),
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
+
+    /// The folders directly inside `directory`, an absolute path on the
+    /// server's computer. Servers from before this request answer
+    /// `Unsupported`.
+    pub fn list_folders(
+        &self,
+        directory: murvix_protocol::ServerPath,
+    ) -> Result<Vec<murvix_protocol::ServerPath>, ClientError> {
+        match self.request(RequestBody::ListFolders(directory))? {
+            ReplyBody::Folders(names) => Ok(names),
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
+
+    /// Sends `bytes` as a file named `name` for `session` to keep on the
+    /// server's computer, in chunks, and returns its absolute path there.
+    /// Servers from before uploads answer `Unsupported`.
+    pub fn upload(
+        &self,
+        session: SessionId,
+        name: &str,
+        bytes: &[u8],
+    ) -> Result<murvix_protocol::ServerPath, ClientError> {
+        if u64::try_from(bytes.len())
+            .ok()
+            .is_none_or(|length| length > murvix_protocol::MAX_UPLOAD_BYTES)
+        {
+            return Err(ClientError::Invalid(ErrorCode::BadRequest));
+        }
+        let upload = murvix_protocol::OperationId::new();
+        let mut chunks = bytes.chunks(murvix_protocol::MAX_UPLOAD_CHUNK).peekable();
+        let mut offset = 0;
+        loop {
+            let chunk = chunks.next().unwrap_or_default();
+            let last = chunks.peek().is_none();
+            let reply = self.request_with_timeout(
+                RequestBody::Upload(murvix_protocol::UploadChunk {
+                    session,
+                    upload,
+                    name: name.into(),
+                    offset,
+                    bytes: chunk.to_vec(),
+                    last,
+                }),
+                std::time::Duration::from_secs(60),
+            )?;
+            offset += chunk.len() as u64;
+            match (reply, last) {
+                (ReplyBody::Uploaded(Some(path)), true) => return Ok(path),
+                (ReplyBody::Uploaded(None), false) => {}
+                (body, _) => return Err(ClientError::UnexpectedReply(Box::new(body))),
+            }
+        }
+    }
+
+    pub fn git(
+        &self,
+        request: murvix_protocol::GitRequest,
+    ) -> Result<murvix_protocol::GitReply, ClientError> {
+        let timeout = git_timeout(&request.action);
+        match self.request_with_timeout(RequestBody::Git(request), timeout)? {
+            ReplyBody::Git(reply) => Ok(reply),
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
+
+    pub fn cancel_creation(
+        &self,
+        operation: murvix_protocol::OperationId,
+    ) -> Result<(), ClientError> {
+        match self.request(RequestBody::CancelCreation(operation))? {
+            ReplyBody::CreationCancelled => Ok(()),
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
+
+    pub fn catalog_page(
+        &self,
+        after: Option<ProjectId>,
+        revision: Option<u64>,
+    ) -> Result<CatalogPage, ClientError> {
+        match self.request(RequestBody::ReadCatalog { after, revision })? {
+            ReplyBody::Catalog(page)
+                if revision.is_none_or(|revision| page.revision == revision)
+                    && page
+                        .projects
+                        .first()
+                        .is_none_or(|project| after.is_none_or(|after| project.id > after)) =>
+            {
+                Ok(page)
+            }
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
+
+    /// Fetches one revision, retrying a bounded number of times if it changes between pages.
+    pub fn catalog(&self) -> Result<CatalogPage, ClientError> {
+        for _ in 0..8 {
+            match self.catalog_snapshot() {
+                Err(ClientError::Server(error)) if error.code == ErrorCode::CatalogChanged => {}
+                result => return result,
+            }
+        }
+        Err(ClientError::Timeout)
+    }
+
+    fn catalog_snapshot(&self) -> Result<CatalogPage, ClientError> {
+        let mut result = self.catalog_page(None, None)?;
+        while let Some(after) = result.next {
+            let page = self.catalog_page(Some(after), Some(result.revision))?;
+            if page.server != result.server
+                || page.home != result.home
+                || page.next.is_some_and(|next| next <= after)
+                || page
+                    .projects
+                    .first()
+                    .is_some_and(|project| project.id <= after)
+                || result.projects.len() + page.projects.len() > MAX_PROJECTS
+            {
+                return Err(ClientError::Protocol("invalid catalog pagination".into()));
+            }
+            result.projects.extend(page.projects);
+            result.next = page.next;
+        }
+        Ok(result)
+    }
+
+    pub fn mutate_project(&self, intent: ProjectIntent) -> Result<u64, ClientError> {
+        match self.request(RequestBody::MutateProject(intent))? {
+            ReplyBody::ProjectMutated { revision } => Ok(revision),
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
+
+    pub fn available_project_sessions(
+        &self,
+        project: ProjectId,
+    ) -> Result<ProjectSessions, ClientError> {
+        for _ in 0..8 {
+            match self.available_sessions_snapshot(project) {
+                Err(ClientError::Server(error)) if error.code == ErrorCode::CatalogChanged => {}
+                result => return result,
+            }
+        }
+        Err(ClientError::Timeout)
+    }
+
+    fn available_sessions_snapshot(
+        &self,
+        project: ProjectId,
+    ) -> Result<ProjectSessions, ClientError> {
+        let mut result = self.project_sessions(project, None, None)?;
+        let available = |session: &murvix_protocol::ProjectSession| {
+            !session.attached
+                && matches!(
+                    session.status,
+                    murvix_protocol::SessionStatus::Live | murvix_protocol::SessionStatus::Starting
+                )
+        };
+        result.sessions.retain(available);
+        while let Some(after) = result.next {
+            let page = self.project_sessions(project, Some(after), Some(result.revision))?;
+            if page.next.is_some_and(|next| next <= after) {
+                return Err(ClientError::Protocol("invalid session pagination".into()));
+            }
+            result
+                .sessions
+                .extend(page.sessions.into_iter().filter(available));
+            if result.sessions.len() > 16_384 {
+                return Err(ClientError::Protocol("too many available terminals".into()));
+            }
+            result.next = page.next;
+        }
+        Ok(result)
+    }
+
+    pub fn project_sessions(
+        &self,
+        project: ProjectId,
+        after: Option<SessionId>,
+        revision: Option<u64>,
+    ) -> Result<ProjectSessions, ClientError> {
+        match self.request(RequestBody::ListProjectSessions {
+            project,
+            after,
+            revision,
+        })? {
+            ReplyBody::ProjectSessions(page)
+                if revision.is_none_or(|revision| page.revision == revision)
+                    && page
+                        .sessions
+                        .iter()
+                        .all(|session| session.info.project == project)
+                    && page.sessions.first().is_none_or(|session| {
+                        after.is_none_or(|after| session.info.id > after)
+                    }) =>
+            {
+                Ok(page)
+            }
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use murvix_protocol::{
+        GitAction, OperationId, ServerPath, WorktreeAction, WorktreeHook, WorktreeIntent,
+        WorktreeOptions,
+    };
+    use std::time::Duration;
+
+    #[test]
+    fn worktree_request_budget_covers_git_hooks_and_reply_headroom() {
+        let normal = git_timeout(&GitAction::Summary);
+        let mut intent = WorktreeIntent {
+            operation: OperationId::new(),
+            action: WorktreeAction::Create {
+                project: ProjectId::new(),
+                directory: ServerPath(b"/tmp/worktree".to_vec()),
+                branch: "feature".into(),
+                base: Some("main".into()),
+            },
+            options: None,
+        };
+        assert_eq!(git_timeout(&GitAction::Worktree(intent.clone())), normal);
+        for hooks in [None, Some(vec![])] {
+            intent.options = Some(WorktreeOptions { name: None, hooks });
+            assert_eq!(git_timeout(&GitAction::Worktree(intent.clone())), normal);
+        }
+        intent.options.as_mut().expect("options").hooks = Some(vec![WorktreeHook {
+            command: "sleep 295".into(),
+            name: None,
+            project: true,
+        }]);
+        let budget = git_timeout(&GitAction::Worktree(intent));
+        assert!(budget > normal + Duration::from_secs(300));
+        assert!(budget > Duration::from_secs(10 + 295));
+    }
+}

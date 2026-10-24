@@ -1,0 +1,41 @@
+[package]
+name = "murvix-app"
+description = "The Murvix app executable"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+zip = { version = "=8.6.0", default-features = false, features = ["deflate-flate2"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "ico"] }
+murvix-core = { path = "../murvix-core" }
+murvix-ui = { path = "../murvix-ui" }
+async-channel = "2"
+reqwest = { package = "zed-reqwest", version = "=0.12.15-zed", default-features = false, features = ["blocking", "rustls-tls-native-roots"] }
+serde_json.workspace = true
+tempfile = "3"
+gpui = { version = "=0.2.2", default-features = false, features = ["font-kit"] }
+murvix-app-core = { path = "../murvix-app-core" }
+murvix-client = { path = "../murvix-client" }
+murvix-protocol = { path = "../murvix-protocol" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gpui = { version = "=0.2.2", default-features = false, features = ["x11", "wayland"] }
+notify = "8"
+
+[dev-dependencies]
+murvix-core = { path = "../murvix-core", features = ["test-support"] }
+murvix-ui = { path = "../murvix-ui", features = ["test-support"] }
+murvix-server = { path = "../murvix-server" }
+murvix-terminal = { path = "../murvix-terminal" }
+gpui = { version = "=0.2.2", default-features = false, features = ["test-support"] }
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+xim-ctext = "0.3"
+
+[lints]
+workspace = true

@@ -1,0 +1,184 @@
+use super::*;
+use murvix_protocol::ChannelId;
+
+mod close_behavior;
+
+fn terminal_state() -> (AppState, PaneId) {
+    let mut state = AppState::bootstrap().expect("state");
+    state.open_terminal_tab(state.home().id).expect("tab");
+    let pane = state.window().active_pane.expect("pane");
+    state.prepare_creation(pane, std::path::Path::new("/tmp"));
+    state
+        .set_pane_session(pane, SessionId::new(71))
+        .expect("session");
+    (state, pane)
+}
+
+fn attach_pane(model: &mut AppModel, pane: PaneId, channel: u32, cx: &mut Context<AppModel>) {
+    let mut attached = attachment();
+    attached.channel = ChannelId(channel);
+    attached.process = Some(murvix_protocol::ForegroundProcess {
+        name: "sleep".into(),
+        is_shell: false,
+    });
+    model.receive_attached(
+        ServerId::local(),
+        pane,
+        model.pane_session(pane).expect("session"),
+        attached,
+        false,
+        cx,
+    );
+}
+
+fn non_destructive(work: &Work) -> bool {
+    !matches!(
+        work,
+        Work::Discard(..) | Work::CancelCreation(_) | Work::CheckClose { .. } | Work::EndAll(_)
+    )
+}
+
+#[gpui::test]
+fn late_attachment_replies_after_detach_never_discard_the_existing_session(
+    cx: &mut TestAppContext,
+) {
+    for succeeds in [false, true] {
+        let (state, pane) = terminal_state();
+        let (boot, requests) = stub_boot(state);
+        let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
+        view.update(cx, |model, cx| {
+            model.servers.local.connection = ConnectionState::Ready;
+            let session = model.pane_session(pane).expect("session");
+            model.pending.insert(pane, ServerId::local());
+            requests.try_iter().for_each(drop);
+            model.detach_terminal(pane, cx);
+            if succeeds {
+                model.receive_attached(ServerId::local(), pane, session, attachment(), false, cx);
+            } else {
+                model.receive_attach_failed(
+                    ServerId::local(),
+                    pane,
+                    Some(session),
+                    false,
+                    &murvix_client::ClientError::Timeout,
+                    cx,
+                );
+            }
+            assert!(model.state.home().tabs.is_empty());
+            assert!(model.state.pending_discards(ServerId::local()).is_empty());
+            assert!(
+                model
+                    .state
+                    .pending_cancellations(ServerId::local())
+                    .is_empty()
+            );
+            let work: Vec<_> = requests.try_iter().map(|(_, work)| work).collect();
+            assert!(work.iter().all(non_destructive));
+            if succeeds {
+                assert!(work.iter().any(|work| matches!(work, Work::Detach(_))));
+            }
+        });
+    }
+}
+
+pub(super) fn verify_live_detach(
+    cx: &mut VisualTestContext,
+    view: &Entity<AppModel>,
+    probe: &Client,
+) -> Result {
+    verify_live_detach_mode(cx, view, probe, false)?;
+    verify_live_detach_mode(cx, view, probe, true)
+}
+
+fn verify_live_detach_mode(
+    cx: &mut VisualTestContext,
+    view: &Entity<AppModel>,
+    probe: &Client,
+    close_tab: bool,
+) -> Result {
+    view.update(cx, AppModel::new_tab);
+    wait_live(cx, view)?;
+    shell(cx, "printf '\\nDETACH_READY\\n'");
+    wait_text(cx, view, "DETACH_READY")?;
+    let session = active_session(view, cx)?;
+    let project = view.read_with(cx, |model, _| model.state.current_project().id);
+    let observer = probe.identify(murvix_protocol::ClientKind::Tui)?;
+    let attached = probe.attach(session, Size { cols: 80, rows: 24 })?;
+    shell(cx, "sleep 30");
+    wait(cx, view, |model, cx| {
+        model
+            .active_pane()
+            .and_then(|pane| model.terminal(&pane))
+            .and_then(|pane| pane.view.read(cx).process.as_ref())
+            .is_some_and(|process| process.name == "sleep")
+    })?;
+    view.update(cx, |model, cx| {
+        if close_tab {
+            model.settings.window.close_behavior = murvix_app_core::settings::CloseBehavior::Detach;
+            model.close_tab(model.active_tab().expect("live tab"), cx);
+        } else {
+            model.detach_terminal(model.active_pane().expect("live terminal"), cx);
+        }
+    });
+    wait(cx, view, |model, _| {
+        !model
+            .state
+            .session_references(ServerId::local())
+            .contains(&session)
+            && model.existing_terminal_count() > 0
+            && probe
+                .project_sessions(project, None, None)
+                .is_ok_and(|page| {
+                    page.sessions
+                        .iter()
+                        .any(|entry| entry.info.id == session && entry.owner == Some(observer))
+                })
+    })?;
+    probe.detach(attached.channel)?;
+    wait(cx, view, |_, _| {
+        probe
+            .project_sessions(project, None, None)
+            .is_ok_and(|page| {
+                page.sessions
+                    .iter()
+                    .any(|entry| entry.info.id == session && entry.owner.is_none())
+            })
+    })?;
+    let available = probe
+        .available_project_sessions(project)?
+        .sessions
+        .into_iter()
+        .find(|entry| entry.info.id == session)
+        .ok_or("detached terminal missing")?;
+    view.update(cx, |model, cx| {
+        model.open_existing_session(project, &available, cx);
+    });
+    wait_live(cx, view)?;
+    assert_eq!(active_session(view, cx)?, session);
+    let running = probe.attach(session, Size { cols: 80, rows: 24 })?;
+    assert!(
+        running
+            .process
+            .is_some_and(|process| process.name == "sleep")
+    );
+    probe.send_input(running.channel, b"\x03")?;
+    probe.detach(running.channel)?;
+    shell(cx, "printf '\\nDETACH_REATTACHED\\n'");
+    wait_text(cx, view, "DETACH_REATTACHED")?;
+    view.update(cx, |model, cx| {
+        model.settings.window.close_behavior =
+            murvix_app_core::settings::CloseBehavior::CloseSession;
+        model.close_tab(model.active_tab().expect("reattached tab"), cx);
+    });
+    wait(cx, view, |model, _| {
+        model.state.pending_discards(ServerId::local()).is_empty()
+            && probe
+                .list_sessions()
+                .is_ok_and(|sessions| !sessions.iter().any(|info| info.id == session))
+    })?;
+    report(if close_tab {
+        "Configured tab close detaches, transfers ownership, and reopens the running session: PASS"
+    } else {
+        "Desktop detach preserves a running program, transfers ownership, remains discoverable, and reattaches to the same session: PASS"
+    })
+}

@@ -1,0 +1,80 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/murvix-core",
+    "crates/murvix-protocol",
+    "crates/murvix-terminal",
+    "crates/murvix-server",
+    "crates/murvix-cli",
+    "crates/murvix-app-core",
+    "crates/murvix-client",
+    "crates/murvix-app",
+    "crates/murvix-ui",
+]
+
+# Current boundary policy, not a permanent crate list. Structural changes update
+# this table and the affected crate-level documentation together.
+[workspace.metadata.architecture.allowed-dependencies]
+murvix-core = []
+murvix-protocol = []
+murvix-terminal = ["murvix-protocol"]
+murvix-server = ["murvix-core", "murvix-protocol", "murvix-terminal"]
+murvix-app-core = ["murvix-core", "murvix-protocol"]
+murvix-client = ["murvix-core", "murvix-protocol"]
+murvix-cli = ["murvix-core", "murvix-protocol", "murvix-client", "murvix-app-core"]
+murvix-app = ["murvix-core", "murvix-app-core", "murvix-client", "murvix-protocol", "murvix-ui"]
+murvix-ui = ["murvix-core"]
+
+[workspace.metadata.architecture.allowed-dev-dependencies]
+murvix-app = ["murvix-server", "murvix-terminal"]
+murvix-client = ["murvix-server"]
+murvix-cli = ["murvix-terminal"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+license = "MIT"
+repository = "https://github.com/teomurgi/Murvix"
+authors = ["teomurgi", "Saeed Vaziry"]
+publish = false
+
+[workspace.dependencies]
+serde_json = "1.0"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+debug = 1
+
+[profile.bench]
+inherits = "release"
+
+[patch.crates-io]
+libghostty-vt = { path = "vendor/libghostty-vt" }
+libghostty-vt-sys = { path = "vendor/libghostty-vt-sys" }
+core-text = { path = "vendor/core-text" }
+xim-ctext = { path = "vendor/xim-ctext" }
+gpui = { git = "https://github.com/muxy-app/gpui", rev = "0f0fecb8f3b125df633598973d78cd81a7880e87" }

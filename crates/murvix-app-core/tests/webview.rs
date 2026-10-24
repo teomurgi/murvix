@@ -1,0 +1,50 @@
+use murvix_app_core::{
+    AppState, Direction, PaneContent, ServerId, restore, webview::WebviewDescriptor,
+};
+use serde_json::json;
+
+fn descriptor() -> WebviewDescriptor {
+    WebviewDescriptor {
+        owner: "test".into(),
+        kind: "editor".into(),
+        data: json!({"file":"main.rs"}),
+    }
+}
+
+#[test]
+fn webview_round_trip_singleton_and_terminal_cleanup() -> Result<(), Box<dyn std::error::Error>> {
+    let mut state = AppState::bootstrap()?;
+    let home = state.home().id;
+    let (tab, pane) = state.open_webview(home, descriptor(), "Editor", false)?;
+    let terminal = state.split_pane(pane, Direction::Right)?;
+    assert_ne!(pane, terminal);
+    let plan = restore::plan(&state, ServerId::local(), &[]);
+    assert_eq!(plan.create, vec![terminal]);
+    assert!(plan.attach.is_empty());
+    assert!(state.session_references(ServerId::local()).is_empty());
+    let mut updated = descriptor();
+    updated.data = json!({"file":"other.rs"});
+    assert_eq!(
+        state.open_webview(home, updated.clone(), "Editor", true)?,
+        (tab, pane)
+    );
+    assert_eq!(state.window().active_pane, Some(pane));
+    let saved = serde_json::to_vec(&state)?;
+    let mut restored: AppState = serde_json::from_slice(&saved)?;
+    assert_eq!(restored, state);
+    restored.clear_terminal_panes(ServerId::local())?;
+    assert_eq!(restored.home().tabs.len(), 1);
+    assert_eq!(restored.home().tabs[0].panes.len(), 1);
+    assert_eq!(
+        restored.home().tabs[0].panes[0].content,
+        PaneContent::Webview(updated)
+    );
+    assert!(
+        restore::plan(&restored, ServerId::local(), &[])
+            .create
+            .is_empty()
+    );
+    restored.close_pane(pane)?;
+    assert!(restored.home().tabs.is_empty());
+    Ok(())
+}

@@ -1,0 +1,439 @@
+use gpui::prelude::FluentBuilder;
+use gpui::{
+    AnyElement, AppContext, Context, InteractiveElement, IntoElement, ParentElement, SharedString,
+    StatefulInteractiveElement, Styled, Window, div, list, px,
+};
+use murvix_ui::components::{ButtonInteraction, IconGlyph, Tooltip};
+use murvix_ui::icon::Icon;
+use murvix_ui::l10n::{tr_key, translate};
+use murvix_ui::{controls, navigation, tr};
+
+use super::{Category, SettingsEvent, SettingsView};
+use crate::views::titlebar;
+
+impl Category {
+    fn sections(self) -> &'static [&'static str] {
+        match self {
+            Self::QuickTerminal => &[
+                tr_key!("General"),
+                tr_key!("Shortcut"),
+                tr_key!("Size"),
+                tr_key!("Appearance"),
+            ],
+            Self::Composer => &[tr_key!("Behavior"), tr_key!("Text"), tr_key!("Voice")],
+            Self::Browser => &[tr_key!("General"), tr_key!("Browsing"), tr_key!("Profiles")],
+            Self::Ai => &[tr_key!("Commit"), tr_key!("Create Pull Request")],
+            Self::General => &[
+                tr_key!("Closing terminals"),
+                tr_key!("Files"),
+                tr_key!("Window size"),
+                tr_key!("Worktrees"),
+            ],
+            Self::Appearance => &[
+                tr_key!("Language"),
+                tr_key!("Themes"),
+                tr_key!("Interface"),
+                tr_key!("Agents Panel"),
+            ],
+            Self::Keyboard => &[tr_key!("Shortcuts")],
+            Self::Terminal => super::terminal::SECTIONS,
+            Self::Server => &[
+                tr_key!("Connection"),
+                tr_key!("Sessions"),
+                tr_key!("Server control"),
+            ],
+            Self::Mobile => &[tr_key!("Access"), tr_key!("Pairing"), tr_key!("Devices")],
+            Self::Extensions | Self::Commands => &[],
+            Self::Backup => &[
+                tr_key!("Backup & Restore"),
+                tr_key!("Migration"),
+                tr_key!("Configuration"),
+            ],
+        }
+    }
+}
+
+impl SettingsView {
+    fn select_category(
+        &mut self,
+        category: Category,
+        section: Option<&'static str>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.finish_terminal_slider(cx);
+        self.recording = None;
+        self.cancel_quick_recording(cx);
+        if section.is_none()
+            && self.category == category
+            && self.query.is_empty()
+            && !self.expanded.remove(&category)
+        {
+            self.expanded.insert(category);
+        }
+        self.category = category;
+        self.section = section;
+        self.query.clear();
+        self.results.reset();
+        self.search.update(cx, |search, cx| search.set_text("", cx));
+        self.focus.focus(window);
+        if category == Category::Server {
+            cx.emit(SettingsEvent::ReadServer);
+        }
+        if category == Category::Mobile {
+            cx.emit(SettingsEvent::ReadMobile);
+        }
+        cx.notify();
+    }
+
+    fn disclosure(&self, category: Category, cx: &mut Context<Self>) -> AnyElement {
+        navigation::disclosure(
+            self.layout_style(),
+            SharedString::from(format!("settings-disclosure-{}", category.label())),
+            self.expanded.contains(&category),
+            cx.listener(move |view, _, _, cx| {
+                if !view.expanded.remove(&category) {
+                    view.expanded.insert(category);
+                }
+                cx.notify();
+            }),
+        )
+        .debug_selector(move || format!("settings-disclosure-{}", category.label()))
+        .into_any_element()
+    }
+
+    fn categories(&self, cx: &mut Context<Self>) -> AnyElement {
+        let mut categories = div().flex().gap(px(2.0)).map(|nav| {
+            if self.compact {
+                nav.flex_wrap()
+            } else {
+                nav.flex_col()
+            }
+        });
+        for category in Category::ALL {
+            let selected = self.query.is_empty() && self.category == category;
+            let expanded = self.expanded.contains(&category);
+            categories = categories.child(
+                navigation::item(
+                    self.layout_style(),
+                    SharedString::from(format!("settings-category-{}", category.label())),
+                    selected,
+                    cx.listener(move |view, _, window, cx| {
+                        view.select_category(category, None, window, cx);
+                    }),
+                )
+                .debug_selector(move || format!("settings-category-{}", category.label()))
+                .when(category == Category::General, |row| {
+                    row.track_focus(&self.navbar_focus)
+                })
+                .child(self.disclosure(category, cx))
+                .child(translate(category.label())),
+            );
+            if expanded && !self.compact {
+                for &section in category.sections() {
+                    if category == Category::Terminal
+                        && section == tr_key!("Migration")
+                        && self.snapshot.terminal.diagnostics.is_empty()
+                    {
+                        continue;
+                    }
+                    categories = categories.child(
+                        navigation::subitem(
+                            self.layout_style(),
+                            SharedString::from(format!("settings-subcategory-{section}")),
+                            selected && self.section == Some(section),
+                            cx.listener(move |view, _, window, cx| {
+                                view.select_category(category, Some(section), window, cx);
+                            }),
+                        )
+                        .debug_selector(move || format!("settings-subcategory-{section}"))
+                        .child(translate(section)),
+                    );
+                }
+            }
+        }
+        categories.into_any_element()
+    }
+
+    fn titlebar(&self, id: &'static str) -> gpui::Stateful<gpui::Div> {
+        let focus = self.focus.clone();
+        titlebar::background(id).on_mouse_down(gpui::MouseButton::Left, move |_, window, _| {
+            focus.focus(window);
+        })
+    }
+
+    pub(super) fn navigation(&self, window: &Window, cx: &mut Context<Self>) -> AnyElement {
+        div()
+            .debug_selector(|| "settings-navigation".into())
+            .flex_none()
+            .map(|nav| {
+                if self.compact {
+                    nav.w_full().border_b_1()
+                } else {
+                    nav.w(px(248.0)).h_full().border_r_1()
+                }
+            })
+            .flex()
+            .flex_col()
+            .bg(self.theme.raised())
+            .map(|nav| titlebar::top_corners(nav, window, true, self.compact))
+            .border_color(self.theme.border)
+            .child(
+                self.titlebar("settings-sidebar-titlebar")
+                    .h(px(if cfg!(target_os = "linux") && !self.compact {
+                        12.0
+                    } else {
+                        40.0
+                    }))
+                    .flex_none(),
+            )
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .min_h(px(0.0))
+                    .flex_1()
+                    .px(px(12.0))
+                    .gap(px(12.0))
+                    .child(
+                        controls::search_field(
+                            self.layout_style(),
+                            "settings-search",
+                            &self.search,
+                        )
+                        .debug_selector(|| "settings-search".into()),
+                    )
+                    .child(
+                        div()
+                            .id("settings-categories")
+                            .min_h(px(0.0))
+                            .overflow_y_scroll()
+                            .child(self.categories(cx)),
+                    )
+                    .when(!self.compact, |nav| nav.child(div().flex_1()))
+                    .when(!self.compact, |nav| {
+                        nav.child(
+                            div()
+                                .border_t_1()
+                                .border_color(self.theme.border)
+                                .py(px(14.0))
+                                .px(px(8.0))
+                                .text_size(px(11.0))
+                                .text_color(self.theme.fg_dim)
+                                .child(tr!(
+                                    "%@  Focus navbar",
+                                    self.snapshot
+                                        .settings
+                                        .keymap
+                                        .binding("settings.focus_navbar")
+                                        .map_or(String::new(), ToString::to_string)
+                                )),
+                        )
+                    })
+                    .when(self.compact, |nav| nav.pb(px(12.0))),
+            )
+            .into_any_element()
+    }
+
+    fn header(&self, cx: &mut Context<Self>) -> AnyElement {
+        self.titlebar("settings-content-titlebar")
+            .h(px(76.0))
+            .when(cfg!(target_os = "linux"), |header| header.pt(px(28.0)))
+            .flex_none()
+            .flex()
+            .items_center()
+            .justify_between()
+            .gap(px(12.0))
+            .child(
+                div()
+                    .rounded(px(4.0))
+                    .px(px(7.0))
+                    .py(px(4.0))
+                    .text_size(px(14.0))
+                    .text_color(self.theme.accent)
+                    .bg(self.theme.accent_soft)
+                    .child(
+                        if matches!(self.category, Category::Server | Category::Mobile) {
+                            tr!("Current device")
+                        } else {
+                            tr!("User")
+                        },
+                    ),
+            )
+            .when_some(self.configuration_file(), |header, file| {
+                header.child(
+                    div()
+                        .id("settings-open-configuration")
+                        .debug_selector(|| "settings-open-configuration".into())
+                        .px(px(9.0))
+                        .py(px(4.0))
+                        .rounded(px(4.0))
+                        .border_1()
+                        .border_color(self.theme.border)
+                        .text_size(px(13.0))
+                        .text_color(self.theme.fg_muted)
+                        .cursor_pointer()
+                        .hover(|button| button.bg(self.theme.hover).text_color(self.theme.fg))
+                        .focus(|button| button.border_color(self.theme.accent))
+                        .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                        .button_interaction(cx.listener(move |_, _, _, cx| {
+                            cx.emit(SettingsEvent::OpenConfiguration(file));
+                        }))
+                        .child(tr!("Edit in %@", file)),
+                )
+            })
+            .into_any_element()
+    }
+
+    fn dismissible_error(
+        &self,
+        id: &'static str,
+        error: &str,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let tooltip_theme = self.theme.clone();
+        div()
+            .debug_selector(move || format!("settings-{id}-error"))
+            .flex()
+            .items_center()
+            .gap(px(8.0))
+            .child(self.note(error, true).flex_1().min_w(px(0.0)))
+            .child(
+                div()
+                    .id(SharedString::from(format!("settings-dismiss-{id}-error")))
+                    .debug_selector(move || format!("settings-dismiss-{id}-error"))
+                    .flex()
+                    .flex_none()
+                    .items_center()
+                    .justify_center()
+                    .size(self.metrics.control_small())
+                    .rounded(self.metrics.radius_sm())
+                    .cursor_pointer()
+                    .hover(|button| button.bg(self.theme.hover))
+                    .focus(|button| button.bg(self.theme.hover))
+                    .tooltip(move |_, cx| {
+                        cx.new(|_| {
+                            Tooltip::new(
+                                tr!("Dismiss"),
+                                tooltip_theme.raised(),
+                                tooltip_theme.fg,
+                                tooltip_theme.border,
+                                tooltip_theme.bg,
+                            )
+                        })
+                        .into()
+                    })
+                    .button_interaction(cx.listener(move |view, _, _, cx| {
+                        view.dismiss_error(id, cx);
+                    }))
+                    .child(IconGlyph::new(
+                        Icon::X,
+                        self.metrics.icon_sm(),
+                        self.theme.fg_muted,
+                    )),
+            )
+            .into_any_element()
+    }
+
+    pub(super) fn content(&self, cx: &mut Context<Self>) -> AnyElement {
+        for anchor in self.picker_anchors.values() {
+            anchor.set(None);
+        }
+        if self.category == Category::Extensions
+            && self.query.is_empty()
+            && let Some(extensions) = &self.extensions
+        {
+            return div()
+                .w_full()
+                .min_w_0()
+                .min_h_0()
+                .h_full()
+                .px(px(if self.compact { 20.0 } else { 32.0 }))
+                .when(cfg!(target_os = "linux"), |content| content.pt(px(32.0)))
+                .child(extensions.clone())
+                .into_any_element();
+        }
+        let view = cx.entity();
+        div()
+            .relative()
+            .w_full()
+            .min_w(px(0.0))
+            .min_h(px(0.0))
+            .h_full()
+            .flex()
+            .flex_col()
+            .px(px(if self.compact { 20.0 } else { 32.0 }))
+            .child(self.header(cx))
+            .children(
+                ["application", "configuration"]
+                    .into_iter()
+                    .filter_map(|id| {
+                        self.errors
+                            .get(id)
+                            .map(|error| self.dismissible_error(id, error, cx))
+                    }),
+            )
+            .child(
+                div()
+                    .id("settings-sections")
+                    .debug_selector(|| "settings-sections".into())
+                    .flex_1()
+                    .min_w(px(0.0))
+                    .min_h(px(0.0))
+                    .overflow_hidden()
+                    .child(
+                        list(self.results.state.clone(), move |index, window, cx| {
+                            view.update(cx, |view, cx| view.result(index, window, cx))
+                        })
+                        .size_full(),
+                    ),
+            )
+            .child(
+                div()
+                    .debug_selector(|| "settings-scrollbar".into())
+                    .absolute()
+                    .right(px(3.0))
+                    .top(px(76.0))
+                    .bottom(px(8.0))
+                    .child(
+                        self.scrollbar
+                            .element(&self.results.state, self.theme.fg_alpha(0.18)),
+                    ),
+            )
+            .into_any_element()
+    }
+
+    pub(super) fn layout_content(
+        &mut self,
+        size: gpui::Size<gpui::Pixels>,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        self.compact = size.width < px(660.0);
+        self.refresh_results(size.height, window, cx);
+        div()
+            .debug_selector(|| "settings-container".into())
+            .size_full()
+            .flex()
+            .when(self.compact, Styled::flex_col)
+            .child(if self.compact {
+                self.navigation(window, cx)
+            } else {
+                gpui::AnyView::from(self.navigation_view.clone())
+                    .cached(div().w(px(248.0)).h_full().flex_none().style().clone())
+                    .into_any_element()
+            })
+            .child(
+                gpui::AnyView::from(self.content_view.clone()).cached(
+                    div()
+                        .flex_1()
+                        .min_w(px(0.0))
+                        .min_h(px(0.0))
+                        .h_full()
+                        .style()
+                        .clone(),
+                ),
+            )
+            .into_any_element()
+    }
+}
