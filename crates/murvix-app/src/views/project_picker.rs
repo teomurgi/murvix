@@ -714,21 +714,17 @@ impl AppModel {
                     });
                     return;
                 }
-                let created = response.is_ok_and(|confirmed| confirmed);
-                if !created {
-                    let _ = model.update(cx, |model, cx| {
-                        model.finish_confirmation(cx);
-                        cx.notify();
-                    });
+                let confirmed = response.is_ok_and(|confirmed| confirmed);
+                let creation = model.update(cx, |model, cx| {
+                    model.apply_workspace_creation(project, picker.clone(), confirmed, path, cx)
+                });
+                let Ok(creation) = creation else {
                     return;
-                }
-                let created_path = path;
-                let result =
-                    cx.background_executor()
-                        .spawn(async move {
-                            std::fs::create_dir_all(&created_path).map(|()| created_path)
-                        })
-                        .await;
+                };
+                let Some(task) = creation else {
+                    return;
+                };
+                let result: Result<PathBuf, std::io::Error> = task.await;
                 let _ = model.update(cx, |model, cx| {
                     model.finish_confirmation(cx);
                     match result {
@@ -749,6 +745,28 @@ impl AppModel {
                 cx,
             );
         }
+    }
+
+    /// Applies a confirmed folder creation: `Ok(false)` (cancel) finishes
+    /// without mutating or erroring; `Ok(true)` creates the folder first.
+    /// Returns the task creating the folder, or `None` when done.
+    pub(crate) fn apply_workspace_creation(
+        &mut self,
+        _project: murvix_app_core::ProjectId,
+        _picker: Entity<ProjectPicker>,
+        confirmed: bool,
+        path: PathBuf,
+        cx: &mut Context<Self>,
+    ) -> Option<gpui::Task<Result<PathBuf, std::io::Error>>> {
+        if !confirmed {
+            self.finish_confirmation(cx);
+            cx.notify();
+            return None;
+        }
+        Some(
+            cx.background_executor()
+                .spawn(async move { std::fs::create_dir_all(&path).map(|()| path) }),
+        )
     }
     #[allow(
         clippy::needless_pass_by_value,

@@ -2,6 +2,58 @@ use super::*;
 use murvix_protocol::ErrorCode;
 
 #[gpui::test]
+fn workspace_folder_cancel_finishes_without_mutating_or_erroring(cx: &mut TestAppContext) {
+    let root = std::env::temp_dir().join(format!("murvix-workspace-cancel-{}", ProjectId::new()));
+    std::fs::create_dir_all(root.join("primary")).expect("mkdir");
+    let mut state = AppState::bootstrap().expect("state");
+    let id = state
+        .add_project(ServerId::local(), root.join("primary"))
+        .expect("project");
+    let (boot, _requests) = stub_boot(state);
+    let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
+    let missing = root.join("missing");
+    view.update_in(cx, |model, window, cx| {
+        use crate::views::overlays::Overlay;
+        model.open_workspace_folder_picker(id, window, cx);
+        let picker = match &model.overlay {
+            Some(Overlay::Projects(picker)) => picker.clone(),
+            _ => panic!("workspace picker not open"),
+        };
+        // Cancel: no folder is created, no error surfaces, no intent queues.
+        assert!(
+            model
+                .apply_workspace_creation(id, picker, false, missing.clone(), cx)
+                .is_none()
+        );
+        assert!(model.error.is_none());
+        assert!(!missing.exists());
+    });
+    view.update(cx, |model, _| {
+        assert!(model.error.is_none());
+        assert!(
+            model
+                .state
+                .project(id)
+                .expect("project")
+                .extra_directories
+                .is_empty()
+        );
+        // Only the add_project create intent exists; no workspace patch queued.
+        assert!(
+            model
+                .state
+                .project_intents(ServerId::local())
+                .iter()
+                .all(|intent| !matches!(
+                    &intent.mutation,
+                    murvix_protocol::ProjectMutation::Patch { .. }
+                ))
+        );
+    });
+    std::fs::remove_dir_all(root).expect("cleanup");
+}
+
+#[gpui::test]
 fn logo_picker_uses_the_target_project_directory_and_cancel_keeps_its_logo(
     cx: &mut TestAppContext,
 ) {

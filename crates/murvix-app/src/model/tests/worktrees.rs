@@ -460,8 +460,39 @@ fn workspace_menu_lists_extra_roots_and_queues_its_mutations(cx: &mut TestAppCon
             .iter()
             .any(|command| matches!(command, Command::AddWorkspaceFolder(target) if *target == id))
     );
+    // Remove targets a root that is already gone from disk: the row is still
+    // offered (the server only checks existence on apply) and carries the raw
+    // path for the retain filter.
+    assert!(
+        commands.iter().any(
+            |command| matches!(command, Command::RemoveWorkspaceFolder(target, folder) if *target == id && folder.as_ref() == &gone)
+        )
+    );
+    assert!(
+        commands.iter().any(
+            |command| matches!(command, Command::ClearWorkspaceFolders(target) if *target == id)
+        )
+    );
     let (boot, _requests) = stub_boot(state);
     let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
+    // The dispatched Remove command resolves to the same roots the direct
+    // state call produces: extras minus the removed root.
+    let from_command = view.update(cx, |model, _| {
+        let remove = Command::RemoveWorkspaceFolder(id, Box::new(gone.clone()));
+        let Command::RemoveWorkspaceFolder(target, folder) = remove else {
+            panic!("remove command");
+        };
+        assert_eq!(target, id);
+        let mut roots = model
+            .state
+            .project(id)
+            .expect("project")
+            .extra_directories
+            .clone();
+        roots.retain(|root| root != &*folder);
+        roots
+    });
+    assert_eq!(from_command, vec![extra.clone()]);
     assert!(view.update(cx, |model, cx| {
         model.edit_project(
             |state| state.set_project_extra_directories(id, vec![extra.clone()]),
@@ -492,20 +523,6 @@ fn workspace_menu_lists_extra_roots_and_queues_its_mutations(cx: &mut TestAppCon
             .expect("workspace intent")
             .clone()
     });
-    assert!(view.update(cx, |model, cx| {
-        model.edit_project(
-            |state| {
-                let mut roots = state
-                    .project(id)
-                    .ok_or(murvix_app_core::AppError::UnknownProject(id))?
-                    .extra_directories
-                    .clone();
-                roots.retain(|root| root != &gone);
-                state.set_project_extra_directories(id, roots)
-            },
-            cx,
-        )
-    }));
     drop(intent);
     std::fs::remove_dir_all(&root).expect("cleanup");
 }
