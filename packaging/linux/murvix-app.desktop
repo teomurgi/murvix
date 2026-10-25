@@ -3,6 +3,7 @@ Type=Application
 Name=Murvix
 Comment=GPU-accelerated terminal multiplexer
 Exec=murvix-app
+Icon=com.murvix.app
 Terminal=false
 Categories=System;TerminalEmulator;
 Keywords=terminal;multiplexer;

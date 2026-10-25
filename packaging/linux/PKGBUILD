@@ -59,5 +59,6 @@ package() {
   install -Dm755 "target/release/murvix-server" "${pkgdir}/usr/bin/murvix-server"
   install -Dm755 "target/release/murvix-app"    "${pkgdir}/usr/bin/murvix-app"
   install -Dm644 "${srcdir}/murvix-app.desktop" "${pkgdir}/usr/share/applications/murvix-app.desktop"
+  install -Dm644 "packaging/macos/AppIcon.png" "${pkgdir}/usr/share/pixmaps/com.murvix.app.png"
   install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 }

@@ -97,6 +97,7 @@ pub enum Icon {
     Quote,
     Stop,
     TriangleAlert,
+    Logo,
 }
 
 impl Icon {
@@ -187,6 +188,7 @@ impl Icon {
             Self::Quote => "text-quote",
             Self::Stop => "square",
             Self::TriangleAlert => "triangle-alert",
+            Self::Logo => "logo",
         };
         SharedString::from(format!("icons/{name}.svg"))
     }
@@ -367,8 +369,9 @@ impl Icon {
             Self::Pencil => "pencil",
             Self::Play => "play.fill",
             Self::Quote => "text.quote",
-            Self::Stop => "stop.fill",
             Self::TriangleAlert => "exclamationmark.triangle.fill",
+            Self::Stop => "stop.fill",
+            Self::Logo => "terminal",
         }
     }
 }
