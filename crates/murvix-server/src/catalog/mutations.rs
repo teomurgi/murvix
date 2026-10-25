@@ -25,39 +25,8 @@ impl Catalog {
             .map_err(|_| bad("invalid project mutation"))?;
         self.update(|state| {
             let result = match &intent.mutation {
-                ProjectMutation::Create(project) => {
-                    if state.projects.contains_key(&project.id)
-                        || state.projects.len() == MAX_PROJECTS
-                    {
-                        Err(bad("project identity already exists or catalog is full"))
-                    } else if !Path::new(OsStr::from_bytes(&project.directory.0)).is_dir() {
-                        Err(ServerError::new(
-                            murvix_protocol::ErrorCode::BadPath,
-                            "project folder does not exist",
-                        ))
-                    } else {
-                        state.validate_parent(project).and_then(|()| {
-                            if project
-                                .parent_id
-                                .is_some_and(|id| state.deleting.contains(&id))
-                            {
-                                return Err(unknown());
-                            }
-                            state.projects.insert(project.id, project.clone());
-                            Ok(())
-                        })
-                    }
-                }
-                ProjectMutation::Patch { project, patch } => {
-                    if state.deleting.contains(project) {
-                        Err(unknown())
-                    } else if let Some(project) = state.projects.get_mut(project) {
-                        patch.apply(project);
-                        Ok(())
-                    } else {
-                        Err(unknown())
-                    }
-                }
+                ProjectMutation::Create(project) => create(state, project),
+                ProjectMutation::Patch { project, patch } => patch_project(state, project, patch),
                 ProjectMutation::Delete(project) => {
                     if *project == state.home {
                         Err(bad("Home cannot be deleted"))
@@ -132,6 +101,70 @@ impl Catalog {
             Ok(())
         })
     }
+}
+
+fn create(
+    state: &mut State,
+    project: &murvix_protocol::ProjectDescriptor,
+) -> Result<(), ServerError> {
+    if state.projects.contains_key(&project.id) || state.projects.len() == MAX_PROJECTS {
+        return Err(bad("project identity already exists or catalog is full"));
+    }
+    if !Path::new(OsStr::from_bytes(&project.directory.0)).is_dir() {
+        return Err(ServerError::new(
+            murvix_protocol::ErrorCode::BadPath,
+            "project folder does not exist",
+        ));
+    }
+    if project
+        .extra_directories
+        .iter()
+        .any(|path| !Path::new(OsStr::from_bytes(&path.0)).is_dir())
+    {
+        return Err(ServerError::new(
+            murvix_protocol::ErrorCode::BadPath,
+            "workspace folder does not exist",
+        ));
+    }
+    state.validate_parent(project).and_then(|()| {
+        if project
+            .parent_id
+            .is_some_and(|id| state.deleting.contains(&id))
+        {
+            return Err(unknown());
+        }
+        state.projects.insert(project.id, project.clone());
+        Ok(())
+    })
+}
+
+fn patch_project(
+    state: &mut State,
+    id: &ProjectId,
+    patch: &murvix_protocol::ProjectPatch,
+) -> Result<(), ServerError> {
+    if state.deleting.contains(id) {
+        return Err(unknown());
+    }
+    let Some(project) = state.projects.get_mut(id) else {
+        return Err(unknown());
+    };
+    let previous = project.extra_directories.clone();
+    patch.apply(project);
+    if let murvix_protocol::ProjectPatch::ExtraDirectories(_) = patch
+        && (project.validate().is_err()
+            || project
+                .extra_directories
+                .iter()
+                .any(|path| !Path::new(OsStr::from_bytes(&path.0)).is_dir()))
+    {
+        project.extra_directories = previous;
+        return Err(ServerError::new(
+            murvix_protocol::ErrorCode::BadPath,
+            "workspace folder does not exist",
+        ));
+    }
+    Ok(())
 }
 
 impl State {

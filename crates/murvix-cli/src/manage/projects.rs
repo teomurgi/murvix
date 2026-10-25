@@ -54,8 +54,18 @@ fn select(
 }
 
 pub(super) fn record(project: &ProjectDescriptor) -> Value {
+    let workspace: Vec<_> = std::iter::once(&project.directory)
+        .chain(project.extra_directories.iter())
+        .map(path_text)
+        .collect();
+    let workspace_bytes: Vec<_> = std::iter::once(project.directory.0.clone())
+        .chain(project.extra_directories.iter().map(|path| path.0.clone()))
+        .collect();
     json!({"id":project.id, "name":project.name, "directory":path_text(&project.directory),
-        "directory_bytes":project.directory.0, "home":project.home, "parent_id":project.parent_id,
+        "directory_bytes":project.directory.0, "workspace":workspace, "workspace_bytes":workspace_bytes,
+        "extra_directories":project.extra_directories.iter().map(path_text).collect::<Vec<_>>(),
+        "extra_directory_bytes":project.extra_directories.iter().map(|path| path.0.clone()).collect::<Vec<_>>(),
+        "home":project.home, "parent_id":project.parent_id,
         "kind":project.kind, "color":project.color, "icon":project.icon})
 }
 
@@ -100,6 +110,36 @@ pub(super) fn run(command: Project, client: &Client, output: &Output, paths: Pat
             mutate(client, ProjectMutation::Create(project.clone()))?;
             output.record(&record(&project), &["id", "name"])
         }
+        Project::Workspace {
+            project,
+            directories,
+        } => {
+            let target = resolve(client, &project, paths)?;
+            let mut roots = Vec::with_capacity(directories.len());
+            for directory in &directories {
+                let directory = paths.directory(directory)?;
+                let directory = if paths == Paths::Local {
+                    directory.canonicalize()?
+                } else {
+                    directory
+                };
+                roots.push(server_path(&directory));
+            }
+            patch(
+                client,
+                &target.id.to_string(),
+                ProjectPatch::ExtraDirectories(roots),
+                output,
+                paths,
+            )
+        }
+        Project::ClearWorkspace { project } => patch(
+            client,
+            &project,
+            ProjectPatch::ExtraDirectories(Vec::new()),
+            output,
+            paths,
+        ),
         Project::Delete(selector) => {
             mutate(
                 client,
@@ -492,6 +532,7 @@ mod tests {
             color: "#808080".into(),
             kind: None,
             parent_id: None,
+            extra_directories: Vec::new(),
         }
     }
 
@@ -536,6 +577,23 @@ mod tests {
         );
         assert!(existing(&projects[..1], &target, Paths::Remote).is_none());
         Ok(())
+    }
+
+    #[test]
+    fn workspace_records_carry_byte_faithful_roots() {
+        use murvix_protocol::ServerPath;
+        let mut descriptor = project("Example", "/tmp");
+        descriptor.extra_directories = vec![ServerPath(vec![b'/', 0xFF, b'x'])];
+        let value = record(&descriptor);
+        assert_eq!(
+            value["extra_directory_bytes"],
+            serde_json::json!([[47, 255, 120]])
+        );
+        assert_eq!(value["workspace"], serde_json::json!(["/tmp", "/�x"]));
+        assert_eq!(
+            value["workspace_bytes"],
+            serde_json::json!([[47, 116, 109, 112], [47, 255, 120]])
+        );
     }
 
     #[test]

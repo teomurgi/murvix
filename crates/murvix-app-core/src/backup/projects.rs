@@ -181,6 +181,16 @@ impl AppState {
                     .map(|previous| (project, previous))
             })
             .flat_map(|(project, previous)| {
+                let extras = project
+                    .descriptor()
+                    .extra_directories
+                    .ne(&previous.descriptor().extra_directories)
+                    .then(|| {
+                        (
+                            project.id,
+                            ProjectPatch::ExtraDirectories(project.descriptor().extra_directories),
+                        )
+                    });
                 [
                     (project.name != previous.name)
                         .then(|| (project.id, ProjectPatch::Name(project.name.clone()))),
@@ -190,6 +200,7 @@ impl AppState {
                         .then(|| (project.id, ProjectPatch::Color(project.color.to_string()))),
                     (project.logo != previous.logo)
                         .then(|| (project.id, ProjectPatch::Logo(project.logo.clone()))),
+                    extras,
                 ]
                 .into_iter()
                 .flatten()
@@ -408,6 +419,7 @@ fn legacy_project(
         home: false,
         name: name.into(),
         directory,
+        extra_directories: Vec::new(),
         created_at: None,
         icon: None,
         logo: None,
@@ -567,6 +579,7 @@ fn legacy_worktree(id: ProjectId, value: &Value, parent: &Project) -> Result<Pro
         home: false,
         name: value["name"].as_str().ok_or("missing name")?.into(),
         directory,
+        extra_directories: Vec::new(),
         created_at: None,
         icon: None,
         logo: None,

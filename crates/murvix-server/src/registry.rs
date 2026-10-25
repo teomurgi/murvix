@@ -475,7 +475,7 @@ impl Registry {
         let info = SessionInfo {
             id,
             project,
-            directory: directory_bytes,
+            directory: directory_bytes.clone(),
         };
         if let Err(error) = self.catalog.reserve(operation, &info) {
             lock(&self.sessions).starting.remove(&id);
@@ -489,12 +489,14 @@ impl Registry {
         let completed = Arc::clone(&self.completed);
         let catalog = Arc::clone(&self.catalog);
         let saved = self.archive.clone();
+        let workspace = workspace_roots(&self.catalog, project, directory_bytes);
         let handle = spawn_shell(
             &settings,
             self.shell_integration.as_ref(),
             directory,
             size.into(),
             (self.catalog.identity(), id),
+            &workspace,
         )
         .and_then(|pty| {
             session::start(
@@ -529,6 +531,17 @@ impl Registry {
                 return Err(error);
             }
         };
+        self.publish_started(id, handle, requester)?;
+        log::info!("session created: {}", id.get());
+        Ok(info)
+    }
+
+    fn publish_started(
+        &self,
+        id: SessionId,
+        handle: SessionHandle,
+        requester: Option<&crate::connection::Outbox>,
+    ) -> Result<(), ServerError> {
         let published = self
             .catalog
             .set_status(id, murvix_protocol::SessionStatus::Live);
@@ -549,9 +562,8 @@ impl Registry {
             self.wait_ended(id)?;
             return Err(error);
         }
-        log::info!("session created: {}", id.get());
         self.attach_creator(id, requester);
-        Ok(info)
+        Ok(())
     }
 
     fn attach_creator(&self, id: SessionId, requester: Option<&crate::connection::Outbox>) {
@@ -915,4 +927,23 @@ fn session_directory(directory: &Path) -> Result<ServerPath, ServerError> {
         ));
     }
     Ok(ServerPath(bytes.into()))
+}
+
+/// The roots a new session inherits: the project's directory first, then its
+/// extra workspace roots. Falls back to the session directory when the
+/// project is gone, so terminal spawn never depends on catalog timing.
+fn workspace_roots(
+    catalog: &crate::catalog::Catalog,
+    project: murvix_protocol::ProjectId,
+    directory: ServerPath,
+) -> Vec<ServerPath> {
+    match catalog.project(project) {
+        Ok(descriptor) => {
+            let mut roots = Vec::with_capacity(descriptor.extra_directories.len() + 1);
+            roots.push(descriptor.directory);
+            roots.extend(descriptor.extra_directories);
+            roots
+        }
+        Err(_) => vec![directory],
+    }
 }

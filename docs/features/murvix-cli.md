@@ -46,9 +46,7 @@ murvix --help          # all commands; murvix <command> --help for details
 | `murvix` | Opens the [terminal UI](terminal-ui.md). |
 | `murvix <folder>` | Opens the folder as a project in the desktop app. On Linux, over SSH, or without the desktop app, opens it in the terminal UI. |
 | `murvix server start\|status\|stop` | Starts, inspects, or stops the server. `stop` refuses while terminals run; add `--force` to end them. |
-| `murvix project list\|add\|rename\|set-color\|set-icon\|delete` | Manages projects. Deleting ends its terminals but keeps files on disk. |
-| `murvix session list\|create\|send\|send-keys\|read-screen\|history\|search\|wait\|end\|discard` | Creates terminals, sends input, reads output, and waits for text or exit. |
-| `murvix worktree list\|create\|checkout-pr\|register\|remove` | Manages Git worktree projects, including checking out pull requests. |
+| `murvix project list\|add\|rename\|set-color\|set-icon\|workspace\|clear-workspace\|delete` | Manages projects. Deleting ends its terminals but keeps files on disk. `workspace` sets the extra roots every agent in its terminals sees, alongside the project directory. JSON lists carry `workspace`/`extra_directories` text plus `workspace_bytes`/`extra_directory_bytes` byte arrays. |
 | `murvix settings get\|set` | Reads or changes [server settings](server.md#settings). |
 | `murvix activity list\|ack` | Reads or clears [AI agent](ai-agents.md) activity. |
 | `murvix browser open\|list\|read\|click\|…` | Drives browser tabs in the desktop app on this computer. See [Browser control](#browser-control). |

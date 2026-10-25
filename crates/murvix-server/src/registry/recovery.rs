@@ -254,6 +254,7 @@ fn deletion_and_cancellation_resume_after_their_durable_marker() -> TestResult {
             directory: ServerPath(profile.0.as_os_str().as_bytes().into()),
             kind: None,
             parent_id: None,
+            extra_directories: Vec::new(),
         };
         registry.mutate_project(&ProjectIntent {
             operation: OperationId::new(),

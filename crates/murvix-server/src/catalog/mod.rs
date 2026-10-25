@@ -316,7 +316,13 @@ impl Catalog {
             let Some(project) = entries.peek() else {
                 break;
             };
-            let size = project.logo.as_ref().map_or(0, |logo| logo.len()) + 8192;
+            let size = project.logo.as_ref().map_or(0, |logo| logo.len())
+                + project
+                    .extra_directories
+                    .iter()
+                    .map(|path| path.0.len())
+                    .sum::<usize>()
+                + 8192;
             if bytes + size > 4 * 1024 * 1024 {
                 break;
             }

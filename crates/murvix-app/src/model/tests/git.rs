@@ -221,6 +221,7 @@ fn worktree_form_reviews_hooks_validates_templates_and_saves_the_submitted_locat
         color: "#ffffff".into(),
         kind: Some(murvix_protocol::ProjectKind::Worktree),
         parent_id: Some(project),
+        extra_directories: Vec::new(),
     };
     view.update(cx, |model, cx| {
         assert!(

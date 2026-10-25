@@ -102,12 +102,17 @@ pub(crate) const PROJECT: &str = "Usage: murvix project <action> [--json]
   rename <project> <name>
   set-color <project> <#RRGGBB>
   set-icon <project> [icon]        Omit icon to clear it
+  workspace <project> <directory>...   Set the extra workspace roots
+  clear-workspace <project>
   delete <project> --yes          Ends its terminals and deletes child projects;
                                  files and worktree folders stay on disk
 
 Add creates a distinct project even when its directory is already registered;
 --reuse prints the existing one instead. --create makes the directory first.
-Text list columns: id, name, directory (tab-separated).";
+Workspace roots plus the project directory form the workspace every agent in
+its terminals sees; at most 16 extra roots. JSON lists carry them as workspace
+and extra_directories text plus workspace_bytes and extra_directory_bytes
+byte arrays. Text list columns: id, name, directory (tab-separated).";
 pub(crate) const SESSION: &str = "Usage: murvix session <action> [--json]
   list [--project PROJECT] [--all]  Live sessions; --all includes saved/ended ones
   create [project] [--directory PATH] [--cols N] [--rows N] [-- COMMAND...]

@@ -70,6 +70,7 @@ fn git_round_trips_while_slow_hooks_leave_control_requests_responsive() -> TestR
             color: "#ffffff".into(),
             kind: None,
             parent_id: None,
+            extra_directories: Vec::new(),
         }),
     })?;
     let worker = client.clone();

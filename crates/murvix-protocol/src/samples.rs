@@ -442,6 +442,10 @@ fn changed_samples() -> [Message; 2] {
         .map(|(topic, revision)| Message::Changed { topic, revision })
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "Canonical wire samples stay in one fn"
+)]
 fn project_samples() -> Vec<Message> {
     use crate::{
         CatalogPage, OperationId, ProjectDescriptor, ProjectId, ProjectIntent, ProjectMutation,
@@ -457,6 +461,7 @@ fn project_samples() -> Vec<Message> {
         color: "#808080".into(),
         kind: None,
         parent_id: None,
+        extra_directories: Vec::new(),
     };
     let operation = OperationId::from_u128(2);
     let mut samples = vec![

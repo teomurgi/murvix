@@ -35,6 +35,17 @@ titles are unchanged.
 Tabs, worktrees, and projects show the agent's icon and state. When several
 agents run, "waiting" wins.
 
+## Workspace
+
+A project is a workspace: its directory plus the extra roots set with
+`murvix project workspace`, or right-click → Workspace → Add Folder… in the
+desktop app. Every terminal in the project inherits all of them as
+`MUXY_WORKSPACE_COUNT` with `MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so
+on — index 0 is the project directory. Any agent reads the same variables, so
+the directory set in scope never depends on which agent runs there. Roots are
+captured when the terminal starts; existing terminals keep theirs. Files,
+search, exec, and Git still target the project folder.
+
 ## Notifications
 
 The desktop app sends a macOS notification when an agent needs your attention

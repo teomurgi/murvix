@@ -41,6 +41,9 @@ pub(crate) fn items(project: &Project, worktrees: Option<bool>) -> Vec<Item> {
     {
         items.push(Item::submenu(tr!("Worktrees"), worktree_toggle_items(id, visible)).separated());
     }
+    if !project.home && project.parent_id.is_none() && project.server_id.is_local() {
+        items.push(Item::submenu(tr!("Workspace"), workspace_items(project)).separated());
+    }
     items.extend(path_items(project));
     items.extend(removal(project).into_iter().map(Item::separated));
     items
@@ -99,6 +102,30 @@ fn worktree_toggle_items(id: ProjectId, visible: bool) -> Vec<Item> {
     if visible {
         items.push(Item::action(tr!("New Worktree…"), Command::NewWorktree(id)).separated());
     }
+    items
+}
+
+/// The folders an agent sees in `project` besides its own, each removable,
+/// plus adding another and clearing them all.
+fn workspace_items(project: &Project) -> Vec<Item> {
+    let id = project.id;
+    let mut items = vec![Item::action(
+        tr!("Add Folder…"),
+        Command::AddWorkspaceFolder(id),
+    )];
+    if project.extra_directories.is_empty() {
+        return items;
+    }
+    let mut roots = project.extra_directories.clone();
+    roots.sort();
+    for root in roots {
+        items.push(Item::action(
+            root.to_string_lossy().into_owned(),
+            Command::RemoveWorkspaceFolder(id, Box::new(root)),
+        ));
+    }
+    items
+        .push(Item::action(tr!("Clear Workspace"), Command::ClearWorkspaceFolders(id)).separated());
     items
 }
 

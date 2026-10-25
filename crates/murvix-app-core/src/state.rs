@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap, HashSet};
-use std::os::unix::ffi::OsStringExt;
+use std::os::unix::ffi::{OsStrExt, OsStringExt};
 use std::path::PathBuf;
 
 use murvix_protocol::SessionId;
@@ -375,6 +375,38 @@ impl AppState {
         Ok(())
     }
 
+    /// Replaces the extra roots in `id`'s workspace, without touching its
+    /// primary directory. Empty clears back to just the project folder.
+    pub fn set_project_extra_directories(
+        &mut self,
+        id: ProjectId,
+        extra: Vec<PathBuf>,
+    ) -> Result<(), AppError> {
+        let project = self.project_mut(id)?;
+        project.require_available()?;
+        if project.kind == Some(murvix_protocol::ProjectKind::Worktree) {
+            return Err(AppError::InvalidState(
+                "worktrees keep the single folder they checked out".into(),
+            ));
+        }
+        if project.server_id.is_local() && extra.iter().any(|path| !path.is_dir()) {
+            return Err(AppError::InvalidState(
+                "workspace folders must exist".into(),
+            ));
+        }
+        let paths: Vec<murvix_protocol::ServerPath> = extra
+            .iter()
+            .map(|path| murvix_protocol::ServerPath(path.as_os_str().as_bytes().into()))
+            .collect();
+        murvix_protocol::validate_extra_directories(
+            &murvix_protocol::ServerPath(project.directory.as_os_str().as_bytes().into()),
+            &paths,
+        )
+        .map_err(|_| AppError::InvalidState("workspace folders must be absolute folders".into()))?;
+        self.patch_project(id, murvix_protocol::ProjectPatch::ExtraDirectories(paths))?;
+        self.project_mut(id)?.extra_directories = extra;
+        Ok(())
+    }
     pub fn move_project(&mut self, id: ProjectId, to: usize) -> Result<(), AppError> {
         let project = self.project_mut(id)?;
         project.require_available()?;

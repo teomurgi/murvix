@@ -38,7 +38,7 @@ pub(crate) fn register_shortcuts(registry: &mut murvix_ui::shortcuts::Registry<'
 /// How long the pointer may cross other rows on its way into an open submenu.
 const SUBMENU_GRACE: Duration = Duration::from_millis(250);
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub(crate) enum Command {
     Tab(murvix_app_core::TabId, super::tab_menu::Action),
     Layout(murvix_app_core::settings::AppLayout),
@@ -70,6 +70,11 @@ pub(crate) enum Command {
     ProjectLogo(murvix_app_core::ProjectId),
     RemoveProjectLogo(murvix_app_core::ProjectId),
     RemoveProject(murvix_app_core::ProjectId),
+    AddWorkspaceFolder(murvix_app_core::ProjectId),
+    /// Removes one extra root from the project's workspace.
+    RemoveWorkspaceFolder(murvix_app_core::ProjectId, Box<std::path::PathBuf>),
+    /// Clears the project's extra workspace roots.
+    ClearWorkspaceFolders(murvix_app_core::ProjectId),
     AddProject,
     AddRemoteProject(murvix_app_core::ServerId),
     ManageRemoteDevices,
@@ -145,13 +150,13 @@ impl Item {
     }
 
     pub(crate) fn command(&self) -> Option<Command> {
-        match self.kind {
-            Kind::Action(command) => Some(command),
+        match &self.kind {
+            Kind::Action(command) => Some(command.clone()),
             Kind::Submenu(_) => None,
         }
     }
 
-    fn submenu_items(&self) -> Option<&[Item]> {
+    pub(crate) fn children(&self) -> Option<&[Item]> {
         match &self.kind {
             Kind::Action(_) => None,
             Kind::Submenu(items) => Some(items),
@@ -234,7 +239,7 @@ impl Menu {
             items = opened
                 .highlighted
                 .and_then(|index| items.get(index))
-                .and_then(Item::submenu_items)?;
+                .and_then(Item::children)?;
         }
         Some(items)
     }
@@ -300,7 +305,7 @@ impl Menu {
         let Some(first) = self
             .highlighted_item()
             .filter(|item| !item.disabled)
-            .and_then(Item::submenu_items)
+            .and_then(Item::children)
             .map(|items| items.iter().position(|item| !item.disabled))
         else {
             return false;
@@ -329,7 +334,7 @@ impl Menu {
             return false;
         };
         let enabled = !item.disabled;
-        let submenu = enabled && item.submenu_items().is_some();
+        let submenu = enabled && item.children().is_some();
         let highlighted = enabled.then_some(index);
         let open = self.levels.len() > level + 1;
         if self.levels[level].highlighted == highlighted && open == submenu {
@@ -498,23 +503,29 @@ impl AppModel {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let Some(Overlay::Menu(menu)) = &mut self.overlay else {
-            return;
-        };
-        let Some(item) = menu.item(level, index).filter(|item| !item.disabled) else {
-            return;
-        };
-        if let Some(command) = item.command() {
-            self.perform_menu(command, window, cx);
-        } else {
+        let command = {
+            let Some(Overlay::Menu(menu)) = &mut self.overlay else {
+                return;
+            };
+            let Some(item) = menu.item(level, index).filter(|item| !item.disabled) else {
+                return;
+            };
+            let command = item.command();
             menu.pending = None;
             if menu.point_at(level, index) {
                 cx.notify();
             }
+            command
+        };
+        if let Some(command) = command {
+            self.perform_menu(command, window, cx);
         }
     }
-
     #[allow(clippy::too_many_lines, reason = "Exhaustive menu command dispatch")]
+    #[allow(
+        clippy::needless_pass_by_value,
+        reason = "Callers hold an owned menu command"
+    )]
     fn perform_menu(&mut self, command: Command, window: &mut Window, cx: &mut Context<Self>) {
         let position = match &self.overlay {
             Some(Overlay::Menu(menu)) => menu.position,
@@ -625,6 +636,31 @@ impl AppModel {
                     self.edit_project(|state| state.set_project_color(id, color), cx);
                 }
             }
+            Command::AddWorkspaceFolder(id) => {
+                self.open_workspace_folder_picker(id, window, cx);
+                return;
+            }
+            Command::RemoveWorkspaceFolder(id, folder) => {
+                let folder = folder.clone();
+                self.edit_project(
+                    |state| {
+                        let mut roots = state
+                            .project(id)
+                            .ok_or(murvix_app_core::AppError::UnknownProject(id))?
+                            .extra_directories
+                            .clone();
+                        roots.retain(|root| root != &*folder);
+                        state.set_project_extra_directories(id, roots)
+                    },
+                    cx,
+                );
+            }
+            Command::ClearWorkspaceFolders(id) => {
+                self.edit_project(
+                    |state| state.set_project_extra_directories(id, Vec::new()),
+                    cx,
+                );
+            }
             Command::ProjectLogo(id) => self.choose_project_logo(id, cx),
             Command::RemoveProjectLogo(id) => {
                 self.edit_project(|state| state.set_project_logo(id, None), cx);
@@ -670,6 +706,10 @@ impl AppModel {
         self.focus_active(window, cx);
     }
 
+    #[allow(
+        clippy::needless_pass_by_value,
+        reason = "Callers hold an owned menu command"
+    )]
     fn perform_pane_menu(
         &mut self,
         id: murvix_app_core::PaneId,
