@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - run: brew install neovim
       - run: python3 scripts/protocol_fixtures.py append-only --base "$PROTOCOL_BASE"
         env:
           PROTOCOL_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -56,7 +57,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config zsh fish binutils vim-tiny less
+      - run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config zsh fish binutils vim-tiny less neovim
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.92.0
@@ -88,7 +89,7 @@ jobs:
           build-essential pkg-config clang cmake libssl-dev libfontconfig1-dev libfreetype-dev
           libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libxcb1-dev libvulkan-dev
           libwebkit2gtk-4.1-0 xvfb
-          zsh fish binutils vim-tiny less unzip
+          zsh fish binutils vim-tiny less unzip neovim
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.92.0

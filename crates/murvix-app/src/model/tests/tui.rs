@@ -2,18 +2,22 @@ use super::*;
 use murvix_protocol::ChannelId;
 
 #[gpui::test]
-#[ignore = "requires MUXY_TEST_TUI and a fresh MUXY_DIR under /tmp/muxy-tui-desktop-"]
+#[ignore = "requires MUXY_TEST_TUI and a fresh MUXY_DIR under /tmp/murvix-tui-desktop-"]
 fn nested_tui_and_desktop_share_a_session_with_independent_layouts(cx: &mut TestAppContext) {
     walkthrough(cx).expect("desktop/TUI coexistence");
 }
 
 fn walkthrough(cx: &mut TestAppContext) -> Result {
     let directory = PathBuf::from(std::env::var("MUXY_DIR")?);
-    assert!(
-        directory
-            .to_string_lossy()
-            .starts_with("/tmp/muxy-tui-desktop-")
-    );
+    // /tmp is a symlink on macOS; compare the final component so the guard
+    // holds wherever the smoke script's temp dir resolves.
+    let name = std::fs::canonicalize(&directory)
+        .unwrap_or_else(|_| directory.clone())
+        .file_name()
+        .ok_or("profile directory")?
+        .to_string_lossy()
+        .into_owned();
+    assert!(name.starts_with("murvix-tui-desktop-"));
     let executable = PathBuf::from(std::env::var("MUXY_TEST_TUI")?).canonicalize()?;
     let boot = Boot::load()?;
     cx.update(|cx| crate::views::workspace::bind_keys(&boot.settings.keymap, cx));
