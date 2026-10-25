@@ -43,53 +43,23 @@ jobs:
       - run: python3 scripts/check-desktop-macos.py
       - run: python3 scripts/protocol_fixtures.py last-release
       - run: python3 scripts/smoke-desktop-tui.py
-
-  linux:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-          - runner: ubuntu-22.04-arm
-            target: aarch64-unknown-linux-gnu
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config zsh fish binutils vim-tiny less neovim
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.92.0
-          components: clippy
-      - uses: mlugg/setup-zig@v2
-        with:
-          version: 0.15.2
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-      - run: python3 scripts/check-headless.py --target "${{ matrix.target }}"
-
-  linux-desktop:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: ubuntu-24.04
-            target: x86_64-unknown-linux-gnu
-          - runner: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
+  omarchy:
+    # Native Arch check: Omarchy's distro, running the same full desktop
+    # verification as linux-desktop. GitHub has no Arch runner, so this uses
+    # an archlinux container (x86_64). Ubuntu jobs were removed in favor of
+    # testing on the distro Murvix targets.
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - run: >-
-          sudo apt-get update && sudo apt-get install -y
-          build-essential pkg-config clang cmake libssl-dev libfontconfig1-dev libfreetype-dev
-          libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libxcb1-dev libvulkan-dev
-          libwebkit2gtk-4.1-0 xvfb
-          zsh fish binutils vim-tiny less unzip neovim
+          pacman -Syu --noconfirm
+          base-devel pkgconf clang cmake openssl fontconfig freetype2 git python
+          libxkbcommon libxkbcommon-x11 wayland libxcb vulkan-headers mesa vulkan-swrast
+          webkit2gtk-4.1 xorg-server-xvfb
+          zsh fish binutils vim less unzip neovim
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.92.0
@@ -101,4 +71,4 @@ jobs:
         with:
           cache-on-failure: true
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - run: xvfb-run -a python3 scripts/check-desktop-linux.py --target "${{ matrix.target }}"
+      - run: xvfb-run -a python3 scripts/check-desktop-linux.py --target "x86_64-unknown-linux-gnu"
