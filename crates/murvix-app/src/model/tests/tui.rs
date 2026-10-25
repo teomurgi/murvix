@@ -2,7 +2,7 @@ use super::*;
 use murvix_protocol::ChannelId;
 
 #[gpui::test]
-#[ignore = "requires MUXY_TEST_TUI and a fresh MUXY_DIR under /tmp/muxy-tui-desktop-"]
+#[ignore = "requires MUXY_TEST_TUI and a fresh MUXY_DIR under /tmp/murvix-tui-desktop-"]
 fn nested_tui_and_desktop_share_a_session_with_independent_layouts(cx: &mut TestAppContext) {
     walkthrough(cx).expect("desktop/TUI coexistence");
 }
@@ -17,7 +17,7 @@ fn walkthrough(cx: &mut TestAppContext) -> Result {
         .ok_or("profile directory")?
         .to_string_lossy()
         .into_owned();
-    assert!(name.starts_with("muxy-tui-desktop-"));
+    assert!(name.starts_with("murvix-tui-desktop-"));
     let executable = PathBuf::from(std::env::var("MUXY_TEST_TUI")?).canonicalize()?;
     let boot = Boot::load()?;
     cx.update(|cx| crate::views::workspace::bind_keys(&boot.settings.keymap, cx));
