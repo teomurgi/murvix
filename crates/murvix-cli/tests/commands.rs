@@ -1,7 +1,6 @@
 mod support;
 
 use murvix_client::Client;
-use murvix_protocol::OperationId;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -12,9 +11,15 @@ type Result<T = ()> = std::result::Result<T, Box<dyn std::error::Error>>;
 struct Profile(PathBuf);
 impl Profile {
     fn new() -> Result<Self> {
-        let path = std::env::temp_dir().join(format!("murvix-cli-{}", OperationId::new()));
+        // Short names: macOS unix sockets cap at 104 bytes, and its temp
+        // dirs are long. Canonicalize: macOS temp dirs go through symlinks,
+        // but binaries resolve their own path, so error messages name the
+        // canonical form.
+        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let id = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!("mx-{}-{id}", std::process::id()));
         fs::create_dir(&path)?;
-        Ok(Self(path))
+        Ok(Self(fs::canonicalize(&path)?))
     }
     fn socket(&self) -> PathBuf {
         self.0.join("server.sock")
