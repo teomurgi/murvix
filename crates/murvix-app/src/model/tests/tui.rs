@@ -9,14 +9,17 @@ fn nested_tui_and_desktop_share_a_session_with_independent_layouts(cx: &mut Test
 
 fn walkthrough(cx: &mut TestAppContext) -> Result {
     let directory = PathBuf::from(std::env::var("MUXY_DIR")?);
-    assert!(
-        directory
-            .to_string_lossy()
-            .starts_with("/tmp/muxy-tui-desktop-")
-    );
+    // /tmp is a symlink on macOS; compare the final component so the guard
+    // holds wherever the smoke script's temp dir resolves.
+    let name = std::fs::canonicalize(&directory)
+        .unwrap_or_else(|_| directory.clone())
+        .file_name()
+        .ok_or("profile directory")?
+        .to_string_lossy()
+        .into_owned();
+    assert!(name.starts_with("muxy-tui-desktop-"));
     let executable = PathBuf::from(std::env::var("MUXY_TEST_TUI")?).canonicalize()?;
     let boot = Boot::load()?;
-    cx.update(|cx| crate::views::workspace::bind_keys(&boot.settings.keymap, cx));
     let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
     view.update(cx, AppModel::new_tab);
     wait_live(cx, &view)?;
