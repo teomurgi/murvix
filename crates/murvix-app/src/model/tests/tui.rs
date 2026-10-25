@@ -20,6 +20,7 @@ fn walkthrough(cx: &mut TestAppContext) -> Result {
     assert!(name.starts_with("muxy-tui-desktop-"));
     let executable = PathBuf::from(std::env::var("MUXY_TEST_TUI")?).canonicalize()?;
     let boot = Boot::load()?;
+    cx.update(|cx| crate::views::workspace::bind_keys(&boot.settings.keymap, cx));
     let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
     view.update(cx, AppModel::new_tab);
     wait_live(cx, &view)?;
