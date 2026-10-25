@@ -36,7 +36,10 @@ pub(crate) fn start(themes_dir: PathBuf, changed: async_channel::Sender<()>) -> 
 
     let mut watcher = notify::RecommendedWatcher::new(
         move |event: notify::Result<notify::Event>| {
-            if event.is_err() {
+            let Ok(event) = event else {
+                return;
+            };
+            if !needs_rerender(&event) {
                 return;
             }
             if render(&themes_dir) {
@@ -48,6 +51,14 @@ pub(crate) fn start(themes_dir: PathBuf, changed: async_channel::Sender<()>) -> 
     .ok()?;
     watcher.watch(&current, RecursiveMode::NonRecursive).ok()?;
     Some(Omarchy { _watcher: watcher })
+}
+
+/// Whether an inotify event can change the rendered theme. Reads (`Access`,
+/// including opens and closes) never do — and re-rendering itself reads
+/// `theme.name` and `theme.generation`, so reacting to those would re-trigger
+/// forever on the subscribed `OPEN` mask.
+fn needs_rerender(event: &notify::Event) -> bool {
+    !matches!(event.kind, notify::EventKind::Access(_))
 }
 
 fn state_dir() -> Option<PathBuf> {
@@ -230,5 +241,34 @@ mod tests {
     fn rejects_missing_background_or_foreground() {
         assert!(render_scheme(&colors("foreground = \"#ffffff\"")).is_none());
         assert!(render_scheme(&colors("background = \"#000000\"")).is_none());
+    }
+
+    #[test]
+    fn reads_never_rerender_but_writes_do() {
+        use notify::event::{
+            AccessKind, AccessMode, CreateKind, DataChange, ModifyKind, RemoveKind,
+        };
+        use notify::{Event, EventKind};
+        // The watch subscribes to opens, and re-rendering reads theme.name and
+        // theme.generation: reacting to those reads re-triggers forever.
+        for kind in [
+            EventKind::Access(AccessKind::Open(AccessMode::Read)),
+            EventKind::Access(AccessKind::Open(AccessMode::Write)),
+            EventKind::Access(AccessKind::Close(AccessMode::Read)),
+            EventKind::Access(AccessKind::Close(AccessMode::Write)),
+            EventKind::Access(AccessKind::Read),
+            EventKind::Access(AccessKind::Any),
+        ] {
+            assert!(!needs_rerender(&Event::new(kind)), "{kind:?}");
+        }
+        for kind in [
+            EventKind::Modify(ModifyKind::Data(DataChange::Content)),
+            EventKind::Modify(ModifyKind::Name(notify::event::RenameMode::Any)),
+            EventKind::Create(CreateKind::File),
+            EventKind::Remove(RemoveKind::File),
+            EventKind::Any,
+        ] {
+            assert!(needs_rerender(&Event::new(kind)), "{kind:?}");
+        }
     }
 }
