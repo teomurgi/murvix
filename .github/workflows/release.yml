@@ -1,30 +1,19 @@
 name: Release
 
-# Builds macOS + Omarchy (Linux desktop) artifacts and publishes them on the
-# GitHub release page. Dispatch on main with the next semver version.
+# Push a vX.Y.Z tag to release: the tag's commit is built for macOS +
+# Omarchy (Linux desktop) and published on the GitHub release page with
+# generated notes. To fix notes after the fact, edit them on the release
+# page; pushing the tag again only fills in missing assets.
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Release version (X.Y.Z)"
-        required: true
-        type: string
-      draft:
-        description: "Create the GitHub release as a draft"
-        required: false
-        default: false
-        type: boolean
-      changelog:
-        description: "Markdown release notes; leave empty to generate them from merged pull requests"
-        required: false
-        default: ""
-        type: string
+  push:
+    tags:
+      - "v[0-9]*.[0-9]*.[0-9]*"
 
 permissions:
   contents: read
 
 concurrency:
-  group: murvix-release
+  group: murvix-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -36,24 +25,18 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       build_number: ${{ steps.count.outputs.count }}
     steps:
-      - name: Release only from main
-        if: github.ref != 'refs/heads/main'
-        run: |
-          echo "Error: run Release on main, not ${GITHUB_REF#refs/heads/}" >&2
-          exit 1
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - name: Validate the release version
+      - name: Derive the release version from the tag
         id: version
-        env:
-          VERSION: ${{ inputs.version }}
         run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
           python3 scripts/release.py check-version "$VERSION"
-          if git show-ref --verify --quiet "refs/tags/v$VERSION" \
-            && [[ "$(git rev-parse "refs/tags/v$VERSION^{commit}")" != "$GITHUB_SHA" ]]; then
-            echo "Error: v$VERSION already points to a different commit" >&2
+          if [[ "$(git rev-parse "$TAG^{commit}")" != "$GITHUB_SHA" ]]; then
+            echo "Error: $TAG does not point to the pushed commit" >&2
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -94,30 +77,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.prepare.outputs.version }}
-          DRAFT: ${{ inputs.draft }}
-          RELEASE_NOTES: ${{ inputs.changelog }}
         run: bash scripts/publish-release.sh "$VERSION" artifacts
-
-  # Runs main's script: the promoted checkout may predate it.
-  notify-discord:
-    needs: release
-    if: ${{ !inputs.draft }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - name: Notify Discord
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          GH_TOKEN: ${{ github.token }}
-          TAG: v${{ needs.prepare.outputs.version }}
-        run: python3 scripts/notify-discord.py "$TAG"
-
-  update-homebrew-tap:
-    needs: release
-    if: ${{ !inputs.draft }}
-    uses: ./.github/workflows/update-homebrew-tap.yml
-    with:
-      tag: v${{ needs.prepare.outputs.version }}
-    secrets: inherit

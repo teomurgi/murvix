@@ -39,9 +39,9 @@ def git(root, *args):
 
 
 def checkout_version(root):
-    # Releases are versioned as plain X.Y.Z. The BETA_VERSION file holds the
-    # current version (kept under its historic name; workflows read it too).
-    version = (root / "BETA_VERSION").read_text().strip()
+    # The VERSION file holds the version being prepared; the pushed vX.Y.Z tag
+    # is what a release is actually built from.
+    version = (root / "VERSION").read_text().strip()
     return check_version(version)
 
 

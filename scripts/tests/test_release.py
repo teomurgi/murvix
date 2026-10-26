@@ -18,10 +18,10 @@ class SemverVersionTests(unittest.TestCase):
     def test_version_is_beta_version_file_contents(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            (root / "BETA_VERSION").write_text("2.1.0\n")
+            (root / "VERSION").write_text("2.1.0\n")
             self.assertEqual(release.checkout_version(root), "2.1.0")
             for invalid in ("", "2.1", "v2.1.0", "2.1.0-beta", "2.1.0-beta.7"):
-                (root / "BETA_VERSION").write_text(invalid)
+                (root / "VERSION").write_text(invalid)
                 with self.subTest(base=invalid), self.assertRaises(ValueError):
                     release.checkout_version(root)
 

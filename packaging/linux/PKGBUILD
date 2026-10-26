@@ -26,7 +26,7 @@ sha256sums_aarch64=('958ed7d1e00d0ea76590d27666efbf7a932281b3d7ba0c6b01b0ff26498
 
 pkgver() {
   cd Murvix
-  cat BETA_VERSION
+  cat VERSION
 }
 
 prepare() {
