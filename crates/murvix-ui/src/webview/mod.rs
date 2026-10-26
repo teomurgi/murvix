@@ -24,15 +24,15 @@ pub(crate) mod linux;
 mod macos;
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 mod unsupported;
+pub use backend::CAPABILITY;
+#[cfg(target_os = "linux")]
+pub use backend::prime_javascript;
 #[cfg(target_os = "linux")]
 use linux as backend;
 #[cfg(target_os = "macos")]
 use macos as backend;
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 use unsupported as backend;
-
-pub use backend::CAPABILITY;
-
 /// Premultiplied BGRA pixels of a page at the display's scale.
 pub struct Snapshot {
     pub width: u32,

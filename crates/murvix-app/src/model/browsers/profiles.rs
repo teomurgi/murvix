@@ -194,6 +194,11 @@ impl AppModel {
         let parsed = parse_id(id)?;
         #[cfg(target_os = "linux")]
         {
+            // The built-in browser is off (notably in the test harness):
+            // its engine never ran, so there is no context to retire.
+            if !self.browser_enabled() {
+                return self.finish_profile_delete(parsed, cx);
+            }
             let profile = self.browser_profile(Some(id))?;
             self.browsers.retiring.insert(id.to_owned());
             let (sender, closed) = async_channel::bounded(1);

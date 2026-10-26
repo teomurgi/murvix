@@ -182,6 +182,11 @@ fn agents_panel_settings_toggle_applies_and_persists_without_changing_placement(
 fn deleted_browser_profiles_are_removed_from_the_settings_snapshot(cx: &mut TestAppContext) {
     use crate::views::settings::BrowserChange;
 
+    if std::env::var_os("MURVIX_TEST_WEBVIEW").is_none() {
+        eprintln!("skipped: needs MURVIX_TEST_WEBVIEW=1 (real WebKit sandbox)");
+        return;
+    }
+
     let (boot, _requests) = stub_boot(AppState::bootstrap().expect("state"));
     let (model, settings) = settings_window(boot, cx);
     let work = model.update(settings, |model, cx| {

@@ -219,7 +219,8 @@ fn enabled_with<'a>(
         std::fs::create_dir_all(path.parent().expect("package folder")).expect("package folder");
         std::fs::write(path, contents).expect("package file");
     }
-    let (boot, requests) = stub_boot(state);
+    let (mut boot, requests) = stub_boot(state);
+    boot.settings.browser.enabled = true;
     let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
     finish_extension(
         view.update(cx, |model, cx| {
@@ -288,6 +289,10 @@ fn script_call(
 
 #[gpui::test]
 fn browser_tabs_opened_by_extensions_are_driven_by_their_tab_id(cx: &mut TestAppContext) {
+    if std::env::var_os("MURVIX_TEST_WEBVIEW").is_none() {
+        eprintln!("skipped: needs MURVIX_TEST_WEBVIEW=1 (real WebKit sandbox)");
+        return;
+    }
     let (view, cx, _package, _requests) = enabled(
         cx,
         "driver",

@@ -35,6 +35,11 @@ fn browser_pane(model: &AppModel) -> Option<PaneId> {
 fn topbar_opens_browser_tabs_after_layout_and_group_changes(cx: &mut TestAppContext) {
     use murvix_app_core::{Direction, settings::AppLayout};
 
+    if std::env::var_os("MURVIX_TEST_WEBVIEW").is_none() {
+        eprintln!("skipped: needs MURVIX_TEST_WEBVIEW=1 (real WebKit sandbox)");
+        return;
+    }
+
     let mut state = AppState::bootstrap().expect("state");
     let first = state.open_terminal_tab(state.home().id).expect("first tab");
     let second = state
@@ -89,6 +94,10 @@ fn topbar_opens_browser_tabs_after_layout_and_group_changes(cx: &mut TestAppCont
 
 #[gpui::test]
 fn new_browser_tabs_open_on_the_start_page_and_requests_drive_them(cx: &mut TestAppContext) {
+    if std::env::var_os("MURVIX_TEST_WEBVIEW").is_none() {
+        eprintln!("skipped: needs MURVIX_TEST_WEBVIEW=1 (real WebKit sandbox)");
+        return;
+    }
     let (boot, _requests) = stub_boot(AppState::bootstrap().expect("state"));
     let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
     view.update(cx, AppModel::new_browser_tab);
@@ -155,8 +164,13 @@ fn new_browser_tabs_open_on_the_start_page_and_requests_drive_them(cx: &mut Test
 
 #[gpui::test]
 fn opening_in_another_project_leaves_the_view_and_split_opens_beside(cx: &mut TestAppContext) {
+    if std::env::var_os("MURVIX_TEST_WEBVIEW").is_none() {
+        eprintln!("skipped: needs MURVIX_TEST_WEBVIEW=1 (real WebKit sandbox)");
+        return;
+    }
     let (state, first, second, first_pane, _) = projects::two_projects();
-    let (boot, _requests) = stub_boot(state);
+    let (mut boot, _requests) = stub_boot(state);
+    boot.settings.browser.enabled = true;
     let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
     view.update(cx, |model, cx| model.select_project(first, cx));
     cx.run_until_parked();
@@ -226,6 +240,10 @@ fn a_disabled_browser_opens_nothing_and_lists_nothing(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn urls_open_in_a_new_browser_tab_of_the_current_project(cx: &mut TestAppContext) {
+    if std::env::var_os("MURVIX_TEST_WEBVIEW").is_none() {
+        eprintln!("skipped: needs MURVIX_TEST_WEBVIEW=1 (real WebKit sandbox)");
+        return;
+    }
     let (boot, _requests) = stub_boot(AppState::bootstrap().expect("state"));
     let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
     view.update(cx, |model, cx| {
@@ -251,6 +269,10 @@ fn saved_profile(model: &AppModel, pane: PaneId) -> Option<String> {
 
 #[gpui::test]
 fn tabs_keep_the_profile_they_opened_with_when_the_default_changes(cx: &mut TestAppContext) {
+    if std::env::var_os("MURVIX_TEST_WEBVIEW").is_none() {
+        eprintln!("skipped: needs MURVIX_TEST_WEBVIEW=1 (real WebKit sandbox)");
+        return;
+    }
     let (boot, _requests) = stub_boot(AppState::bootstrap().expect("state"));
     let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
     let opened = call(&view, cx, "browser.open", &json!({})).expect("open");
@@ -279,6 +301,11 @@ fn tabs_keep_the_profile_they_opened_with_when_the_default_changes(cx: &mut Test
 #[gpui::test]
 fn browser_cancellation_does_not_show_a_copy_notice(cx: &mut TestAppContext) {
     use crate::views::browser::BrowserViewEvent;
+
+    if std::env::var_os("MURVIX_TEST_WEBVIEW").is_none() {
+        eprintln!("skipped: needs MURVIX_TEST_WEBVIEW=1 (real WebKit sandbox)");
+        return;
+    }
 
     let (boot, _requests) = stub_boot(AppState::bootstrap().expect("state"));
     let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
