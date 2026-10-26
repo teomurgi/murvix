@@ -520,7 +520,7 @@ mod tests {
             .args(["--force", "--sign", "-"])
             .arg(&app))?;
         verify_code(&app, "identifier \"com.murvix.app\"")?;
-        assert!(verify_code(&app, "identifier \"com.murvix.app\"").is_err());
+        assert!(verify_code(&app, "identifier \"com.example.other\"").is_err());
         let installation = Installation {
             bundle: app.clone(),
             team: "TESTTEAM00".into(),
