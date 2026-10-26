@@ -128,7 +128,7 @@ impl PreparedUpdate {
     pub(crate) fn fixture() -> Result<Self> {
         let root = tempfile::tempdir()?.keep();
         Ok(Self {
-            version: "2.0.0-beta.1234".into(),
+            version: "2.0.0".into(),
             build: Some(murvix_protocol::BuildInfo::current()),
             installation: Installation {
                 installer: root.join("install.py"),

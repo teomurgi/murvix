@@ -33,7 +33,7 @@ pub(crate) fn desktop_app(folder: Option<&Path>) -> bool {
         Some(app) => open.arg("-a").arg(app),
         None => open.args([
             "-b",
-            murvix_core::release::Channel::current().bundle_identifier(),
+            murvix_core::release::BUNDLE_ID,
         ]),
     };
     open.args(folder)
