@@ -88,7 +88,11 @@ pub(super) fn legacy_root() -> Option<PathBuf> {
 
 pub(super) fn enabled_in_legacy(name: &str) -> bool {
     std::process::Command::new("/usr/bin/defaults")
-        .args(["read", "com.murvix.app", &format!("murvix.ext.enabled.{name}")])
+        .args([
+            "read",
+            "com.murvix.app",
+            &format!("murvix.ext.enabled.{name}"),
+        ])
         .output()
         .is_ok_and(|output| output.status.success() && output.stdout.trim_ascii() == b"1")
 }

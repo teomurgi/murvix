@@ -70,27 +70,43 @@ fn restore(profile: &Path, pending: &Path) -> Result<()> {
     }
     super::normalize_terminal(&mut files)?;
     validate_effective(profile, &files, restore)?;
-    if let Some(bytes) = files.get("desktop-state.json") {
-        let imported: murvix_app_core::AppState = serde_json::from_slice(bytes)?;
-        let current = murvix_app_core::store::load(profile.join("desktop-state.json"))?;
-        let restored = if restore == Restore::Merge {
-            imported.merge_configuration(&current)?
-        } else {
-            imported.restore_configuration(&current)?
-        };
-        let settings = murvix_app_core::backup::remap_settings(
-            std::str::from_utf8(&files["settings.toml"])?,
-            &imported,
-            &restored,
-        )?;
-        files.insert("settings.toml".into(), settings.into_bytes());
-        files.insert(
-            "desktop-state.json".into(),
-            serde_json::to_vec_pretty(&restored)?,
-        );
-    }
+    remap_restored_state(profile, &mut files, restore)?;
+    snapshot_and_swap(profile, pending, &files, restore)?;
+    Ok(())
+}
+
+fn remap_restored_state(profile: &Path, files: &mut super::Files, restore: Restore) -> Result<()> {
+    let Some(bytes) = files.get("desktop-state.json") else {
+        return Ok(());
+    };
+    let imported: murvix_app_core::AppState = serde_json::from_slice(bytes)?;
+    let current = murvix_app_core::store::load(profile.join("desktop-state.json"))?;
+    let restored = if restore == Restore::Merge {
+        imported.merge_configuration(&current)?
+    } else {
+        imported.restore_configuration(&current)?
+    };
+    let settings = murvix_app_core::backup::remap_settings(
+        std::str::from_utf8(&files["settings.toml"])?,
+        &imported,
+        &restored,
+    )?;
+    files.insert("settings.toml".into(), settings.into_bytes());
+    files.insert(
+        "desktop-state.json".into(),
+        serde_json::to_vec_pretty(&restored)?,
+    );
+    Ok(())
+}
+
+fn snapshot_and_swap(
+    profile: &Path,
+    pending: &Path,
+    files: &super::Files,
+    restore: Restore,
+) -> Result<()> {
     let staging = tempfile::tempdir_in(profile)?;
-    archive::materialize(staging.path(), &files)?;
+    archive::materialize(staging.path(), files)?;
     let roots: Vec<_> = ROOTS
         .iter()
         .copied()
@@ -141,7 +157,11 @@ fn restore(profile: &Path, pending: &Path) -> Result<()> {
     } else {
         Restore::Partial
     };
-    archive::write(&recovery.join("recovery.murvix"), &portable, recovery_restore)?;
+    archive::write(
+        &recovery.join("recovery.murvix"),
+        &portable,
+        recovery_restore,
+    )?;
     fs::write(recovery.join("roots.json"), serde_json::to_vec(&roots)?)?;
     fs::write(
         recovery.join("extensions.json"),

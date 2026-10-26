@@ -9,7 +9,10 @@ use crate::settings::{CustomCommand, KeyChord, Keymap, Settings};
 const MAPPINGS: &[(&str, &[&str])] = &[
     ("murvix.theme.dark", &["appearance", "dark_theme"]),
     ("murvix.theme.light", &["appearance", "light_theme"]),
-    ("murvix.showStatusBar", &["appearance", "status_bar_visible"]),
+    (
+        "murvix.showStatusBar",
+        &["appearance", "status_bar_visible"],
+    ),
     ("murvix.tips.visible", &["appearance", "tips_visible"]),
     (
         "murvix.general.autoExpandWorktreesOnProjectSwitch",
@@ -51,7 +54,10 @@ const MAPPINGS: &[(&str, &[&str])] = &[
         &["composer", "image_strategy"],
     ),
     ("murvix.richInput.floating", &["composer", "pinned"]),
-    ("murvix.quickTerminal.enabled", &["quick_terminal", "enabled"]),
+    (
+        "murvix.quickTerminal.enabled",
+        &["quick_terminal", "enabled"],
+    ),
     ("murvix.quickTerminal.width", &["quick_terminal", "width"]),
     ("murvix.quickTerminal.height", &["quick_terminal", "height"]),
     (
@@ -80,7 +86,10 @@ const MAPPINGS: &[(&str, &[&str])] = &[
         "editor.richInputLineHeightMultiplier",
         &["composer", "line_height"],
     ),
-    ("murvix.recording.autoSend", &["composer", "voice_auto_send"]),
+    (
+        "murvix.recording.autoSend",
+        &["composer", "voice_auto_send"],
+    ),
     ("murvix.recording.language", &["composer", "language"]),
     (
         "murvix.ai.repositoryActions.commit.provider",

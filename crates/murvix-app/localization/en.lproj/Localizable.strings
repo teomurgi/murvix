@@ -857,6 +857,9 @@
 "Murvix %@ is downloaded from GitHub and installed in ~/.local/bin on %@. It needs curl and glibc 2.35 or newer there." = "Murvix %@ is downloaded from GitHub and installed in ~/.local/bin on %@. It needs curl and glibc 2.35 or newer there.";
 "Murvix %@ requires a server restart. You can update automatically when all terminal sessions end, or end them now. Terminal panes will close. App-only panes and settings will remain." = "Murvix %@ requires a server restart. You can update automatically when all terminal sessions end, or end them now. Terminal panes will close. App-only panes and settings will remain.";
 "Murvix %@ will install and restart the app when all terminal sessions end. Currently %lld sessions are running, including idle shells and detached sessions." = "Murvix %@ will install and restart the app when all terminal sessions end. Currently %lld sessions are running, including idle shells and detached sessions.";
+"Murvix 1.x has no projects to import." = "Murvix 1.x has no projects to import.";
+"Murvix 1.x was imported. Check these items:" = "Murvix 1.x was imported. Check these items:";
+"Murvix 1.x was not imported. Try again from Settings → Backup & Restore. %@" = "Murvix 1.x was not imported. Try again from Settings → Backup & Restore. %@";
 "Murvix Quick Terminal" = "Murvix Quick Terminal";
 "Murvix Settings" = "Murvix Settings";
 "Murvix Update" = "Murvix Update";
@@ -877,9 +880,6 @@
 "Murvix will stage all changes, ask %@ for a branch name, title, and summary, then create the branch, commit, push, and open the pull request on GitHub." = "Murvix will stage all changes, ask %@ for a branch name, title, and summary, then create the branch, commit, push, and open the pull request on GitHub.";
 "Murvix will update and restart when all %lld terminal session end, including idle and detached sessions. Keep Murvix open to finish the update." = "Murvix will update and restart when all %lld terminal session end, including idle and detached sessions. Keep Murvix open to finish the update.";
 "Murvix will update and restart when all %lld terminal sessions end, including idle and detached sessions. Keep Murvix open to finish the update." = "Murvix will update and restart when all %lld terminal sessions end, including idle and detached sessions. Keep Murvix open to finish the update.";
-"Murvix 1.x has no projects to import." = "Murvix 1.x has no projects to import.";
-"Murvix 1.x was imported. Check these items:" = "Murvix 1.x was imported. Check these items:";
-"Murvix 1.x was not imported. Try again from Settings → Backup & Restore. %@" = "Murvix 1.x was not imported. Try again from Settings → Backup & Restore. %@";
 "Name" = "Name";
 "Name (A–Z)" = "Name (A–Z)";
 "Name (Z–A)" = "Name (Z–A)";

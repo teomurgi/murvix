@@ -474,7 +474,8 @@ fn project_removal_requires_confirmation_and_persists_offline_cleanup(cx: &mut T
 
 #[gpui::test]
 fn missing_folder_hides_its_terminal_until_refresh_finds_it_again(cx: &mut TestAppContext) {
-    let directory = std::env::temp_dir().join(format!("murvix-project-status-{}", ProjectId::new()));
+    let directory =
+        std::env::temp_dir().join(format!("murvix-project-status-{}", ProjectId::new()));
     std::fs::create_dir(&directory).expect("mkdir");
     let mut state = AppState::bootstrap().expect("state");
     let project = state

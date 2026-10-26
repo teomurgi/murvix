@@ -85,6 +85,15 @@ On Linux, CI runs the whole workspace natively on Arch (Omarchy's distro) via
 [experimental desktop app](docs/tech/constraints.md), under xvfb. macOS runs
 `scripts/check-desktop-macos.py`.
 
+TUI regression tests run the real CLI and server under a PTY. Synchronize tab
+interactions on displayed shortcut numbers or session state, not shell-generated
+tab titles: a shell may replace a directory title with a host-qualified title
+after startup. To exercise session exit during a blocked resize:
+
+```bash
+cargo test --locked -p murvix-cli --test tui exit_during_resize_keeps_tab_selection_bound_to_the_displayed_pane
+```
+
 ## Pull Request Guidelines
 
 - Keep PRs focused on a single change

@@ -581,8 +581,10 @@ mod tests {
 
     #[test]
     fn cancelled_scans_are_not_cached_and_dependency_trees_are_skipped() -> std::io::Result<()> {
-        let root =
-            std::env::temp_dir().join(format!("murvix-index-{}", murvix_app_core::ProjectId::new()));
+        let root = std::env::temp_dir().join(format!(
+            "murvix-index-{}",
+            murvix_app_core::ProjectId::new()
+        ));
         for directory in [
             "Projects/Alpha",
             "node_modules/alpha-noise",
