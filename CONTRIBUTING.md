@@ -2,17 +2,16 @@
 
 Thank you for your interest in contributing to Murvix! This guide will help you get started.
 
-## Humans Only Policy
+## AI Welcome Policy
 
-Murvix is a community project and we want communication to stay between humans. You are welcome to use AI to help you write code, but **only humans may**:
+AI-assisted and AI-generated contributions are welcome, including code, documentation, commits, issues, pull requests, comments, and reviews. AI agents may participate on behalf of contributors.
 
-- Create commits and push changes
-- Open issues or pull requests
-- Interact with issues or pull requests, including comments, reviews, and replies
+The same standards apply to every contribution, regardless of how it was created:
 
-These actions must be done without AI assistance. AI agents must not perform them, even when a human asks. Write commit messages and all GitHub text yourself, in your own words, without AI help. This includes issue and PR titles, descriptions, summaries, comments, discussion replies, and code review comments.
-
-Issues and PRs opened by AI or containing AI-generated text will be closed without review.
+- Review contributions for correctness, security, and relevance before submitting.
+- Verify changes with the appropriate checks and describe what was actually tested.
+- Take responsibility for submitted work and address review feedback.
+- Do not submit secrets, private data, fabricated results, or content you do not have permission to share.
 
 ## Getting Started
 
