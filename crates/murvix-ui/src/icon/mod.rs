@@ -331,7 +331,7 @@ impl Icon {
             Self::Search => "magnifyingglass",
             Self::Settings => "gearshape",
             Self::TerminalStack => "square.stack",
-            Self::Terminal => "terminal",
+            Self::Terminal | Self::Logo => "terminal",
             Self::Trash => "trash",
             Self::X => "xmark",
             Self::Book => "text.book.closed",
@@ -371,7 +371,6 @@ impl Icon {
             Self::Quote => "text.quote",
             Self::TriangleAlert => "exclamationmark.triangle.fill",
             Self::Stop => "stop.fill",
-            Self::Logo => "terminal",
         }
     }
 }
