@@ -283,6 +283,7 @@ fn projects_existing_terminals_and_other_client_changes_share_sessions_without_s
             color: "#123456".into(),
             kind: None,
             parent_id: None,
+            extra_directories: Vec::new(),
         }),
     })?;
     let size = Size { cols: 80, rows: 24 };

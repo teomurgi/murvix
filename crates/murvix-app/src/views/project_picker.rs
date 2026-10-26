@@ -626,6 +626,232 @@ impl AppModel {
             .collect()
     }
 
+    pub(crate) fn open_workspace_folder_picker(
+        &mut self,
+        project: murvix_app_core::ProjectId,
+        window: &mut gpui::Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(record) = self.state.project(project) else {
+            return;
+        };
+        if !record.server_id.is_local() || record.parent_id.is_some() {
+            return;
+        }
+        let root = self
+            .settings
+            .projects
+            .search_root
+            .as_ref()
+            .unwrap_or(&self.state.home().directory)
+            .to_string_lossy()
+            .into_owned();
+        let paths = self.project_paths(ServerId::local());
+        let picker = cx.new(|cx| {
+            ProjectPicker::new(
+                self.picker_search.clone(),
+                &root,
+                paths,
+                self.theme.clone(),
+                self.metrics,
+                cx,
+            )
+        });
+        picker.focus_handle(cx).focus(window);
+        self.focus_later(picker.focus_handle(cx), cx);
+        self.overlay_subscription =
+            Some(
+                cx.subscribe(&picker, move |model, picker, event, cx| match event {
+                    PickerEvent::Confirm {
+                        path,
+                        create_if_missing,
+                    } => model.confirm_workspace_folder(
+                        project,
+                        picker,
+                        path,
+                        *create_if_missing,
+                        cx,
+                    ),
+                    PickerEvent::ChooseFinder { directory } => {
+                        model.choose_workspace_folder(directory.clone(), project, cx);
+                    }
+                    PickerEvent::EditSearchLocation { directory } => {
+                        model.choose_project_folder(directory.clone(), true, cx);
+                    }
+                    PickerEvent::Dismiss => model.dismiss_overlay(cx),
+                }),
+            );
+        self.overlay = Some(Overlay::Projects(picker));
+        cx.notify();
+    }
+
+    fn confirm_workspace_folder(
+        &mut self,
+        project: murvix_app_core::ProjectId,
+        picker: Entity<ProjectPicker>,
+        path: &str,
+        allow_create: bool,
+        cx: &mut Context<Self>,
+    ) {
+        if self.close_prompt.is_some() {
+            return;
+        }
+        let path = PathBuf::from(path_service::standardize(path));
+        if !path.exists() && allow_create {
+            let window = self.window;
+            let message = tr!(
+                "Murvix will create \"%@\" and add it to the workspace.",
+                path.display().to_string()
+            )
+            .to_string();
+            self.close_prompt = Some(cx.spawn(async move |model, cx| {
+                let response = create_prompt(window, message, cx).await;
+                if let Err(error) = response {
+                    let _ = model.update(cx, |model, cx| {
+                        model.finish_confirmation(cx);
+                        model.project_picker_error(error, cx);
+                        cx.notify();
+                    });
+                    return;
+                }
+                let confirmed = response.is_ok_and(|confirmed| confirmed);
+                let creation = model.update(cx, |model, cx| {
+                    model.apply_workspace_creation(project, picker.clone(), confirmed, path, cx)
+                });
+                let Ok(creation) = creation else {
+                    return;
+                };
+                let Some(task) = creation else {
+                    return;
+                };
+                let result: Result<PathBuf, std::io::Error> = task.await;
+                let _ = model.update(cx, |model, cx| {
+                    model.finish_confirmation(cx);
+                    match result {
+                        Ok(path) => model.add_workspace_folder(project, picker, path, cx),
+                        Err(error) => model.project_picker_error(
+                            tr!("Could not create folder: %@", error.to_string()).to_string(),
+                            cx,
+                        ),
+                    }
+                    cx.notify();
+                });
+            }));
+        } else if path.is_dir() {
+            self.add_workspace_folder(project, picker, path, cx);
+        } else {
+            self.project_picker_error(
+                tr!("Choose an existing folder, or use Create & Add Project.").to_string(),
+                cx,
+            );
+        }
+    }
+
+    /// Applies a confirmed folder creation: `Ok(false)` (cancel) finishes
+    /// without mutating or erroring; `Ok(true)` creates the folder first.
+    /// Returns the task creating the folder, or `None` when done.
+    pub(crate) fn apply_workspace_creation(
+        &mut self,
+        _project: murvix_app_core::ProjectId,
+        _picker: Entity<ProjectPicker>,
+        confirmed: bool,
+        path: PathBuf,
+        cx: &mut Context<Self>,
+    ) -> Option<gpui::Task<Result<PathBuf, std::io::Error>>> {
+        if !confirmed {
+            self.finish_confirmation(cx);
+            cx.notify();
+            return None;
+        }
+        Some(
+            cx.background_executor()
+                .spawn(async move { std::fs::create_dir_all(&path).map(|()| path) }),
+        )
+    }
+    #[allow(
+        clippy::needless_pass_by_value,
+        reason = "Picker handle is moved into the folder flow"
+    )]
+    fn add_workspace_folder(
+        &mut self,
+        project: murvix_app_core::ProjectId,
+        picker: Entity<ProjectPicker>,
+        path: PathBuf,
+        cx: &mut Context<Self>,
+    ) {
+        let generation = picker.read(cx).generation;
+        let mut roots = self
+            .state
+            .project(project)
+            .map(|record| record.extra_directories.clone())
+            .unwrap_or_default();
+        if !roots.contains(&path) {
+            roots.push(path);
+        }
+        if self.edit_project(
+            |state| state.set_project_extra_directories(project, roots.clone()),
+            cx,
+        ) {
+            if current_picker(self, &picker, generation, cx) {
+                self.dismiss_overlay(cx);
+            }
+        } else if let Some(error) = self.error.clone() {
+            self.project_picker_error(error, cx);
+        }
+    }
+
+    fn choose_workspace_folder(
+        &mut self,
+        directory: String,
+        project: murvix_app_core::ProjectId,
+        cx: &mut Context<Self>,
+    ) {
+        if self.close_prompt.is_some() {
+            return;
+        }
+        self.dismiss_overlay(cx);
+        let window = self.window;
+        self.close_prompt = Some(cx.spawn(async move |model, cx| {
+            let response = folder_prompt(window, directory.into(), false, cx).await;
+            let _ = model.update(cx, |model, cx| {
+                model.finish_confirmation(cx);
+                match response {
+                    Ok(Some(path)) => model.add_confirmed_workspace_folder(project, path, cx),
+                    Ok(None) => {}
+                    Err(error) => model.fail(error, cx),
+                }
+                cx.notify();
+            });
+        }));
+    }
+
+    fn add_confirmed_workspace_folder(
+        &mut self,
+        project: murvix_app_core::ProjectId,
+        path: PathBuf,
+        cx: &mut Context<Self>,
+    ) {
+        if !path.is_dir() {
+            self.fail(
+                tr!("Choose an existing folder for the workspace.").to_string(),
+                cx,
+            );
+            return;
+        }
+        let mut roots = self
+            .state
+            .project(project)
+            .map(|record| record.extra_directories.clone())
+            .unwrap_or_default();
+        if !roots.contains(&path) {
+            roots.push(path);
+        }
+        self.edit_project(
+            |state| state.set_project_extra_directories(project, roots.clone()),
+            cx,
+        );
+    }
+
     pub(crate) fn show_project_picker(
         &mut self,
         server: ServerId,

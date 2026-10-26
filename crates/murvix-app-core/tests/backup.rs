@@ -157,6 +157,52 @@ fn legacy_projects_import_and_skip_remote_data() {
 }
 
 #[test]
+fn restore_queues_extra_directory_patches_for_matching_projects() {
+    use murvix_protocol::ServerPath;
+    let primary = tempfile::tempdir().unwrap();
+    let extra = tempfile::tempdir().unwrap();
+    let mut current = AppState::bootstrap().unwrap();
+    let current_id = current
+        .add_project(ServerId::local(), primary.path().into())
+        .unwrap();
+    let mut backup = AppState::bootstrap().unwrap();
+    let backup_id = backup
+        .add_project(ServerId::local(), primary.path().into())
+        .unwrap();
+    // `extra_directories` has no public setter; round-trip through JSON, the
+    // same shape the backup file carries.
+    let mut value = serde_json::to_value(&backup).unwrap();
+    let projects = value["projects"].as_array_mut().unwrap();
+    let entry = projects
+        .iter_mut()
+        .find(|project| project["id"] == backup_id.to_string())
+        .unwrap();
+    entry["extra_directories"] = serde_json::json!([extra.path()]);
+    let backup: AppState = serde_json::from_value(value).unwrap();
+    let extra_bytes = ServerPath(extra.path().as_os_str().as_encoded_bytes().into());
+    let state = backup.restore_configuration(&current).unwrap();
+    let intents = state.project_intents(ServerId::local());
+    let patched = intents.iter().any(|intent| {
+        let murvix_protocol::ProjectMutation::Patch { project, patch } = &intent.mutation else {
+            return false;
+        };
+        if *project != current_id {
+            return false;
+        }
+        let murvix_protocol::ProjectPatch::ExtraDirectories(roots) = patch else {
+            return false;
+        };
+        roots.as_slice() == [extra_bytes.clone()]
+    });
+    assert!(patched, "missing ExtraDirectories patch, got {intents:?}");
+    // The restored app state carries the backup's set, not the server's old one.
+    assert_eq!(
+        state.project(current_id).unwrap().extra_directories,
+        vec![extra.path().to_path_buf()]
+    );
+}
+
+#[test]
 fn matching_project_directories_keep_local_identity_and_remap_project_preferences() {
     let directory = tempfile::tempdir().unwrap();
     let mut current = AppState::bootstrap().unwrap();

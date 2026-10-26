@@ -90,6 +90,62 @@ fn removed_tab_groups_load_as_ordinary_tabs_without_losing_panes() -> TestResult
     assert_eq!(store::load(fixture.path())?, state);
     Ok(())
 }
+#[test]
+fn non_utf8_workspace_roots_survive_a_save_and_reload() -> TestResult {
+    use std::os::unix::ffi::OsStringExt;
+    let fixture = Fixture::new()?;
+    let primary = fixture.0.join("primary");
+    let extra = fixture.0.join("extra");
+    fs::create_dir_all(&primary)?;
+    fs::create_dir_all(&extra)?;
+    let mut state = AppState::bootstrap()?;
+    let id = state.add_project(ServerId::local(), primary.clone())?;
+    state.set_project_extra_directories(id, vec![extra.clone()])?;
+    // A non-UTF8 root must serialize as bytes, not fail or lossy text.
+    let mut value = serde_json::to_value(&state)?;
+    let projects = value["projects"].as_array_mut().ok_or("projects")?;
+    let entry = projects
+        .iter_mut()
+        .find(|project| project["id"] == id.to_string())
+        .ok_or("project")?;
+    entry["extra_directories"] =
+        json!([[47, 115, 114, 118, 47, 255, 58, 119, 101, 10, 105, 114, 100]]);
+    fixture.write(&value)?;
+    let restored = store::load(fixture.path())?;
+    assert_eq!(
+        restored.project(id).ok_or("project")?.extra_directories,
+        vec![PathBuf::from(std::ffi::OsString::from_vec(
+            b"/srv/\xff:we\nird".to_vec()
+        ))]
+    );
+    // Text arrays from older backups still read.
+    let mut text = serde_json::to_value(&state)?;
+    text["projects"]
+        .as_array_mut()
+        .ok_or("projects")?
+        .iter_mut()
+        .find(|project| project["id"] == id.to_string())
+        .ok_or("project")?["extra_directories"] = json!([extra.to_string_lossy()]);
+    fixture.write(&text)?;
+    let restored = store::load(fixture.path())?;
+    assert_eq!(
+        restored.project(id).ok_or("project")?.extra_directories,
+        vec![extra.clone()]
+    );
+    // And the live state (UTF-8 extras) round-trips byte-exact.
+    store::save(fixture.path(), &state)?;
+    let saved: Value = serde_json::from_slice(&fs::read(fixture.path())?)?;
+    let saved_extras = saved["projects"]
+        .as_array()
+        .ok_or("projects")?
+        .iter()
+        .find(|project| project["id"] == id.to_string())
+        .ok_or("project")?["extra_directories"]
+        .clone();
+    assert_eq!(saved_extras, json!([extra.as_os_str().as_bytes().to_vec()]));
+    assert_eq!(store::load(fixture.path())?, state);
+    Ok(())
+}
 
 #[test]
 fn removed_workspaces_load_as_a_plain_project_list() -> TestResult {

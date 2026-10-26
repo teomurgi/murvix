@@ -422,6 +422,111 @@ fn a_missing_worktree_kept_for_its_tabs_can_still_be_removed() {
     );
 }
 
+#[gpui::test]
+fn workspace_menu_lists_extra_roots_and_queues_its_mutations(cx: &mut TestAppContext) {
+    use crate::views::menu::{Command, Item};
+    use crate::views::project_menu;
+    let root = std::env::temp_dir().join(format!("murvix-workspace-{}", ProjectId::new()));
+    let primary = root.join("primary");
+    let extra = root.join("extra");
+    let gone = root.join("gone");
+    for folder in [&primary, &extra, &gone] {
+        std::fs::create_dir_all(folder).expect("mkdir");
+    }
+    let mut state = AppState::bootstrap().expect("state");
+    let id = state
+        .add_project(ServerId::local(), primary.clone())
+        .expect("project");
+    state
+        .set_project_extra_directories(id, vec![extra.clone(), gone.clone()])
+        .expect("workspace");
+    while !state.project_intents(ServerId::local()).is_empty() {
+        let intent = state.project_intents(ServerId::local())[0].clone();
+        state
+            .complete_project_intent(ServerId::local(), intent.operation)
+            .expect("ack");
+    }
+    std::fs::remove_dir_all(&gone).expect("delete");
+    state.refresh_project_statuses();
+    let project = state.project(id).expect("project");
+    let root_items = project_menu::items(project, None);
+    let commands: Vec<_> = root_items
+        .iter()
+        .filter_map(|item| item.children())
+        .flat_map(|children| children.iter().filter_map(Item::command))
+        .collect();
+    assert!(
+        commands
+            .iter()
+            .any(|command| matches!(command, Command::AddWorkspaceFolder(target) if *target == id))
+    );
+    // Remove targets a root that is already gone from disk: the row is still
+    // offered (the server only checks existence on apply) and carries the raw
+    // path for the retain filter.
+    assert!(
+        commands.iter().any(
+            |command| matches!(command, Command::RemoveWorkspaceFolder(target, folder) if *target == id && folder.as_ref() == &gone)
+        )
+    );
+    assert!(
+        commands.iter().any(
+            |command| matches!(command, Command::ClearWorkspaceFolders(target) if *target == id)
+        )
+    );
+    let (boot, _requests) = stub_boot(state);
+    let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
+    // The dispatched Remove command resolves to the same roots the direct
+    // state call produces: extras minus the removed root.
+    let from_command = view.update(cx, |model, _| {
+        let remove = Command::RemoveWorkspaceFolder(id, Box::new(gone.clone()));
+        let Command::RemoveWorkspaceFolder(target, folder) = remove else {
+            panic!("remove command");
+        };
+        assert_eq!(target, id);
+        let mut roots = model
+            .state
+            .project(id)
+            .expect("project")
+            .extra_directories
+            .clone();
+        roots.retain(|root| root != &*folder);
+        roots
+    });
+    assert_eq!(from_command, vec![extra.clone()]);
+    assert!(view.update(cx, |model, cx| {
+        model.edit_project(
+            |state| state.set_project_extra_directories(id, vec![extra.clone()]),
+            cx,
+        )
+    }));
+    assert_eq!(
+        view.update(cx, |model, _| model
+            .state
+            .project(id)
+            .expect("project")
+            .extra_directories
+            .clone()),
+        vec![extra.clone()]
+    );
+    let intent = view.update(cx, |model, _| {
+        model
+            .state
+            .project_intents(ServerId::local())
+            .iter()
+            .find(|intent| {
+                matches!(
+                    &intent.mutation,
+                    ProjectMutation::Patch { patch, .. }
+                    if matches!(patch, murvix_protocol::ProjectPatch::ExtraDirectories(_))
+                )
+            })
+            .expect("workspace intent")
+            .clone()
+    });
+    drop(intent);
+    std::fs::remove_dir_all(&root).expect("cleanup");
+}
+
 fn creation(name: &str) -> murvix_protocol::WorktreeIntent {
     murvix_protocol::WorktreeIntent {
         options: Some(murvix_protocol::WorktreeOptions {

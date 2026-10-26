@@ -48,6 +48,7 @@ fn project(path: &Path) -> ProjectDescriptor {
         directory: ServerPath(path.as_os_str().as_bytes().into()),
         kind: None,
         parent_id: None,
+        extra_directories: Vec::new(),
     }
 }
 fn intent(mutation: ProjectMutation) -> ProjectIntent {
@@ -106,6 +107,61 @@ fn exact_identity_duplicate_paths_private_catalog_and_idempotent_mutations() -> 
         reopened
             .mutate_project(&intent(ProjectMutation::Delete(after.home)))
             .is_err()
+    );
+    Ok(())
+}
+
+#[test]
+fn workspace_patch_sets_indexed_roots_and_rejects_missing_folders() -> Result {
+    let fixture = Fixture::new()?;
+    let registry = fixture.registry(LegacyImport::default())?;
+    let extra = fixture.0.join("api");
+    fs::create_dir(&extra)?;
+    let mut descriptor = project(&fixture.0);
+    descriptor.extra_directories = vec![ServerPath(extra.as_os_str().as_bytes().into())];
+    registry.mutate_project(&intent(ProjectMutation::Create(descriptor.clone())))?;
+    let page = registry.read_catalog(None, None)?;
+    let stored = page
+        .projects
+        .iter()
+        .find(|project| project.id == descriptor.id)
+        .ok_or("workspace project missing")?;
+    assert_eq!(stored.extra_directories, descriptor.extra_directories);
+
+    // Clearing and re-setting through the patch path keeps create semantics.
+    registry.mutate_project(&intent(ProjectMutation::Patch {
+        project: descriptor.id,
+        patch: ProjectPatch::ExtraDirectories(Vec::new()),
+    }))?;
+    assert!(
+        registry
+            .read_catalog(None, None)?
+            .projects
+            .iter()
+            .find(|project| project.id == descriptor.id)
+            .ok_or("workspace project missing")?
+            .extra_directories
+            .is_empty()
+    );
+    assert!(
+        registry
+            .mutate_project(&intent(ProjectMutation::Patch {
+                project: descriptor.id,
+                patch: ProjectPatch::ExtraDirectories(vec![ServerPath(
+                    b"/no/such/workspace-root".to_vec()
+                )]),
+            }))
+            .is_err()
+    );
+    assert!(
+        registry
+            .read_catalog(None, None)?
+            .projects
+            .iter()
+            .find(|project| project.id == descriptor.id)
+            .ok_or("workspace project missing")?
+            .extra_directories
+            .is_empty()
     );
     Ok(())
 }

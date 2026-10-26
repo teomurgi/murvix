@@ -96,20 +96,24 @@ class DesktopLinuxTests(unittest.TestCase):
         self.assertNotIn(CHECK.PAGE_TESTS, [call.args[0] for call in run.call_args_list])
         self.assertIn("Extension page tests were skipped", output.getvalue())
 
-    def test_ci_runs_desktop_checks_on_both_architectures_beside_the_headless_and_macos_jobs(self):
+    def test_ci_runs_desktop_checks_beside_the_macos_job(self):
         for expected in [
             "python3 scripts/check-desktop-macos.py",
-            'python3 scripts/check-headless.py --target "${{ matrix.target }}"',
-            'python3 scripts/check-desktop-linux.py --target "${{ matrix.target }}"',
+            "archlinux:latest",
+            "xvfb-run -a python3 scripts/check-desktop-linux.py",
+            "webkit2gtk-4.1",
+            "neovim",
+        ]:
+            self.assertIn(expected, WORKFLOW)
+        self.assertNotIn("continue-on-error", WORKFLOW)
+        for retired in [
             "runner: ubuntu-22.04\n",
             "runner: ubuntu-22.04-arm\n",
             "runner: ubuntu-24.04\n",
             "runner: ubuntu-24.04-arm\n",
-            "xvfb-run -a python3 scripts/check-desktop-linux.py",
-            "libwebkit2gtk-4.1-0",
+            'python3 scripts/check-headless.py --target "${{ matrix.target }}"',
         ]:
-            self.assertIn(expected, WORKFLOW)
-        self.assertNotIn("continue-on-error", WORKFLOW)
+            self.assertNotIn(retired, WORKFLOW)
 
 
 if __name__ == "__main__":

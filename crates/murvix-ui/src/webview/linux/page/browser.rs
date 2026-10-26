@@ -406,6 +406,18 @@ unsafe extern "C" fn on_close(_view: gpointer, data: gpointer) {
 
 impl Runtime {
     pub(in crate::webview::linux) fn close_profile(&self, profile: &Profile, done: Done<()>) {
+        // Deleted profiles never created a context when the browser was
+        // disabled (no page opened for them), so there is nothing to retire:
+        // dropping the callback without touching the engine keeps settings
+        // flows working on builds without a live WebKit view.
+        if !self.pages.borrow().values().any(|page| {
+            page.browser
+                .as_ref()
+                .is_some_and(|browser| browser.context.profile.id() == profile.id())
+        }) {
+            done(Ok(()));
+            return;
+        }
         let ids: Vec<_> = self
             .pages
             .borrow()

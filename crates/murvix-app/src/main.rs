@@ -13,6 +13,14 @@ mod model;
 mod navigation;
 #[cfg(target_os = "linux")]
 mod omarchy;
+/// Warms up `WebKitGTK` on the main thread before any test spawns the webview
+/// thread: `cargo test` never runs `main`, but the constructor runs on the
+/// process main thread at startup. Production primes the same way in `run`.
+#[cfg(all(test, target_os = "linux"))]
+#[ctor::ctor]
+fn prime_javascript_for_tests() {
+    let _ = murvix_ui::webview::prime_javascript();
+}
 mod opener;
 mod picker;
 mod profiler;
@@ -125,6 +133,7 @@ fn run_askpass() -> Option<ExitCode> {
     Some(askpass::run(&socket, &prompt))
 }
 
+#[allow(clippy::too_many_lines)]
 fn run() -> ExitCode {
     #[cfg(target_os = "macos")]
     if std::env::args_os()
@@ -157,6 +166,8 @@ fn run() -> ExitCode {
         }
     };
     murvix_ui::browser::polybrowser::init();
+    #[cfg(target_os = "linux")]
+    murvix_ui::webview::prime_javascript();
     let profile = profiler::init();
     let boot = {
         let _span = profiler::span(profiler::Metric::BootLoad);

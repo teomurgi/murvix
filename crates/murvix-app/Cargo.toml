@@ -33,6 +33,7 @@ murvix-ui = { path = "../murvix-ui", features = ["test-support"] }
 murvix-server = { path = "../murvix-server" }
 murvix-terminal = { path = "../murvix-terminal" }
 gpui = { version = "=0.2.2", default-features = false, features = ["test-support"] }
+ctor = "0.4"
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 xim-ctext = "0.3"

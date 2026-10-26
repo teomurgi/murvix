@@ -24,6 +24,7 @@ pub(super) fn descriptor(id: ProjectId, home: bool, name: &str) -> ProjectDescri
         color: "#808080".into(),
         kind: None,
         parent_id: None,
+        extra_directories: Vec::new(),
     }
 }
 

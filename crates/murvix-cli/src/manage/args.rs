@@ -69,6 +69,16 @@ pub(crate) enum Project {
         project: String,
         icon: Option<String>,
     },
+    Workspace {
+        project: String,
+        directories: Vec<PathBuf>,
+    },
+    ClearWorkspace {
+        project: String,
+    },
+    /// Prints the calling terminal's workspace: index 0 is the project
+    /// directory, the rest are its extra roots. No server round-trip.
+    WorkspaceHere,
     Delete(String),
 }
 
@@ -317,6 +327,20 @@ fn project(verb: &str, o: &mut Options<'_>) -> io::Result<Project> {
                 .map(|s| text(s).map(str::to_owned))
                 .transpose()?,
         }),
+        "workspace" if (2..=17).contains(&o.words.len()) => Ok(Project::Workspace {
+            project: o.word(0)?.into(),
+            directories: o.words[1..].iter().map(PathBuf::from).collect(),
+        }),
+        "clear-workspace" => {
+            o.count(1)?;
+            Ok(Project::ClearWorkspace {
+                project: o.word(0)?.into(),
+            })
+        }
+        "here" => {
+            o.count(0)?;
+            Ok(Project::WorkspaceHere)
+        }
         "delete" => {
             o.count(1)?;
             o.confirm()?;
@@ -814,6 +838,25 @@ mod tests {
                 reuse: true,
             })
         );
+        assert_eq!(
+            action(&["project", "workspace", "App", "/srv/api", "/srv/web"])?,
+            Action::Project(Project::Workspace {
+                project: "App".into(),
+                directories: vec!["/srv/api".into(), "/srv/web".into()],
+            })
+        );
+        assert_eq!(
+            action(&["project", "clear-workspace", "App"])?,
+            Action::Project(Project::ClearWorkspace {
+                project: "App".into(),
+            })
+        );
+        assert_eq!(
+            action(&["project", "here"])?,
+            Action::Project(Project::WorkspaceHere)
+        );
+        assert!(action(&["project", "here", "App"]).is_err());
+        assert!(action(&["project", "workspace", "App"]).is_err());
         Ok(())
     }
 }

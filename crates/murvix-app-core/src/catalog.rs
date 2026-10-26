@@ -19,6 +19,11 @@ impl Project {
             directory: ServerPath(self.directory.as_os_str().as_bytes().into()),
             kind: self.kind,
             parent_id: self.parent_id,
+            extra_directories: self
+                .extra_directories
+                .iter()
+                .map(|path| ServerPath(path.as_os_str().as_bytes().into()))
+                .collect(),
         }
     }
     /// `server`'s project as `descriptor` describes it, with no tabs yet.
@@ -36,6 +41,7 @@ impl Project {
             color: crate::Color::default(),
             server_id: server,
             directory: PathBuf::new(),
+            extra_directories: Vec::new(),
             kind: None,
             parent_id: None,
             tabs: Vec::new(),
@@ -55,6 +61,11 @@ impl Project {
         self.color = descriptor.color.parse()?;
         self.directory =
             PathBuf::from(std::ffi::OsString::from_vec(descriptor.directory.0.clone()));
+        self.extra_directories = descriptor
+            .extra_directories
+            .iter()
+            .map(|path| PathBuf::from(std::ffi::OsString::from_vec(path.0.clone())))
+            .collect();
         self.kind = descriptor.kind;
         self.parent_id = descriptor.parent_id;
         self.refresh_status();
@@ -377,5 +388,39 @@ pub(crate) mod directory {
             Directory::Text(text) => PathBuf::from(text),
             Directory::Bytes(bytes) => PathBuf::from(OsString::from_vec(bytes)),
         })
+    }
+}
+
+pub(crate) mod directory_list {
+    use serde::{Deserialize, Deserializer, Serializer, ser::SerializeSeq};
+    use std::ffi::OsString;
+    use std::os::unix::ffi::{OsStrExt, OsStringExt};
+    use std::path::PathBuf;
+    pub(crate) fn serialize<S: Serializer>(
+        directories: &[PathBuf],
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        let mut seq = serializer.serialize_seq(Some(directories.len()))?;
+        for directory in directories {
+            seq.serialize_element(&directory.as_os_str().as_bytes())?;
+        }
+        seq.end()
+    }
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Vec<PathBuf>, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Entry {
+            Text(String),
+            Bytes(Vec<u8>),
+        }
+        Ok(Vec::<Entry>::deserialize(deserializer)?
+            .into_iter()
+            .map(|entry| match entry {
+                Entry::Text(text) => PathBuf::from(text),
+                Entry::Bytes(bytes) => PathBuf::from(OsString::from_vec(bytes)),
+            })
+            .collect())
     }
 }

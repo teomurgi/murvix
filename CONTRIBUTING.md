@@ -80,12 +80,10 @@ cargo test --workspace --all-features
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 ```
 
-On Linux, CI runs two checks. `scripts/check-headless.py` covers the CLI, the
-server, and the crates they depend on. It needs glibc 2.35; elsewhere, run Clippy
-and tests with `-p` for each package that
-`python3 scripts/check-headless.py --packages` lists, instead of `--workspace`.
-`scripts/check-desktop-linux.py` covers the whole workspace, including the
-[experimental desktop app](docs/tech/constraints.md), on Ubuntu 24.04.
+On Linux, CI runs the whole workspace natively on Arch (Omarchy's distro) via
+`scripts/check-desktop-linux.py`, including the
+[experimental desktop app](docs/tech/constraints.md), under xvfb. macOS runs
+`scripts/check-desktop-macos.py`.
 
 ## Pull Request Guidelines
 

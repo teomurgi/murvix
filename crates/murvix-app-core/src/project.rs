@@ -82,6 +82,12 @@ pub struct Project {
     pub server_id: ServerId,
     #[serde(with = "crate::catalog::directory")]
     pub directory: PathBuf,
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::catalog::directory_list"
+    )]
+    pub extra_directories: Vec<PathBuf>,
     pub kind: Option<ProjectKind>,
     pub parent_id: Option<ProjectId>,
     pub tabs: Vec<Tab>,
@@ -116,10 +122,18 @@ pub const PROJECT_COLORS: [(&str, &str); 12] = [
 ];
 
 impl Project {
+    /// The directories in this project's scope, agent-agnostic: the project
+    /// folder first, then its extra roots.
+    pub fn workspace(&self) -> Vec<PathBuf> {
+        let mut roots = Vec::with_capacity(self.extra_directories.len() + 1);
+        roots.push(self.directory.clone());
+        roots.extend(self.extra_directories.iter().cloned());
+        roots
+    }
+
     pub fn status(&self) -> ProjectStatus {
         self.status
     }
-
     /// Another computer's Home, which stands for its server.
     pub fn is_remote_home(&self) -> bool {
         self.home && !self.server_id.is_local()
@@ -131,6 +145,9 @@ impl Project {
         if !self.server_id.is_local() {
             return;
         }
+        // Availability follows the primary directory: extras are agent context,
+        // not storage the project needs open. A missing extra never blocks the
+        // primary's sessions or actions; setting a root validates it exists.
         self.status = if self.directory.is_dir()
             && (self.kind != Some(ProjectKind::Worktree) || self.directory.join(".git").is_file())
         {

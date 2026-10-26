@@ -53,9 +53,55 @@ fn select(
     Ok(found)
 }
 
+/// Prints the calling terminal's workspace, one root per line: index 0 is
+/// the project directory, the rest are its extra roots. Reads the
+/// `MUXY_WORKSPACE_*` environment the server sets on every terminal, so any
+/// agent gets its directory scope with one command and no per-agent code.
+/// With `--json`, prints the same text/bytes pair the project list carries.
+fn workspace_here(output: &Output) -> Result {
+    let count: usize = std::env::var("MUXY_WORKSPACE_COUNT")
+        .map_err(|_| "not in a Murvix terminal: MUXY_WORKSPACE_COUNT is missing")?
+        .parse()
+        .map_err(|_| "MUXY_WORKSPACE_COUNT is not a number")?;
+    let mut roots: Vec<std::ffi::OsString> = Vec::with_capacity(count);
+    for index in 0..count {
+        let name = format!("MUXY_WORKSPACE_{index}");
+        roots.push(std::env::var_os(&name).ok_or_else(|| format!("{name} is missing"))?);
+    }
+    if output.json {
+        let texts: Vec<String> = roots
+            .iter()
+            .map(|root| String::from_utf8_lossy(root.as_os_str().as_encoded_bytes()).into_owned())
+            .collect();
+        let bytes: Vec<&[u8]> = roots
+            .iter()
+            .map(|root| root.as_os_str().as_encoded_bytes())
+            .collect();
+        return Output::json(&serde_json::json!({"workspace": texts, "workspace_bytes": bytes}));
+    }
+    let mut stdout = io::stdout().lock();
+    for root in &roots {
+        stdout
+            .write_all(root.as_os_str().as_encoded_bytes())
+            .map_err(Box::<dyn std::error::Error>::from)?;
+        stdout
+            .write_all(b"\n")
+            .map_err(Box::<dyn std::error::Error>::from)?;
+    }
+    Ok(())
+}
+
 pub(super) fn record(project: &ProjectDescriptor) -> Value {
+    let workspace: Vec<_> = murvix_protocol::workspace_roots(project)
+        .iter()
+        .map(|root| (path_text(root), root.0.clone()))
+        .collect();
+    let (texts, bytes): (Vec<_>, Vec<_>) = workspace.into_iter().unzip();
     json!({"id":project.id, "name":project.name, "directory":path_text(&project.directory),
-        "directory_bytes":project.directory.0, "home":project.home, "parent_id":project.parent_id,
+        "directory_bytes":project.directory.0, "workspace":texts, "workspace_bytes":bytes,
+        "extra_directories":project.extra_directories.iter().map(path_text).collect::<Vec<_>>(),
+        "extra_directory_bytes":project.extra_directories.iter().map(|path| path.0.clone()).collect::<Vec<_>>(),
+        "home":project.home, "parent_id":project.parent_id,
         "kind":project.kind, "color":project.color, "icon":project.icon})
 }
 
@@ -100,6 +146,37 @@ pub(super) fn run(command: Project, client: &Client, output: &Output, paths: Pat
             mutate(client, ProjectMutation::Create(project.clone()))?;
             output.record(&record(&project), &["id", "name"])
         }
+        Project::Workspace {
+            project,
+            directories,
+        } => {
+            let target = resolve(client, &project, paths)?;
+            let mut roots = Vec::with_capacity(directories.len());
+            for directory in &directories {
+                let directory = paths.directory(directory)?;
+                let directory = if paths == Paths::Local {
+                    directory.canonicalize()?
+                } else {
+                    directory
+                };
+                roots.push(server_path(&directory));
+            }
+            patch(
+                client,
+                &target.id.to_string(),
+                ProjectPatch::ExtraDirectories(roots),
+                output,
+                paths,
+            )
+        }
+        Project::ClearWorkspace { project } => patch(
+            client,
+            &project,
+            ProjectPatch::ExtraDirectories(Vec::new()),
+            output,
+            paths,
+        ),
+        Project::WorkspaceHere => workspace_here(output),
         Project::Delete(selector) => {
             mutate(
                 client,
@@ -492,6 +569,7 @@ mod tests {
             color: "#808080".into(),
             kind: None,
             parent_id: None,
+            extra_directories: Vec::new(),
         }
     }
 
@@ -536,6 +614,23 @@ mod tests {
         );
         assert!(existing(&projects[..1], &target, Paths::Remote).is_none());
         Ok(())
+    }
+
+    #[test]
+    fn workspace_records_carry_byte_faithful_roots() {
+        use murvix_protocol::ServerPath;
+        let mut descriptor = project("Example", "/tmp");
+        descriptor.extra_directories = vec![ServerPath(vec![b'/', 0xFF, b'x'])];
+        let value = record(&descriptor);
+        assert_eq!(
+            value["extra_directory_bytes"],
+            serde_json::json!([[47, 255, 120]])
+        );
+        assert_eq!(value["workspace"], serde_json::json!(["/tmp", "/�x"]));
+        assert_eq!(
+            value["workspace_bytes"],
+            serde_json::json!([[47, 116, 109, 112], [47, 255, 120]])
+        );
     }
 
     #[test]

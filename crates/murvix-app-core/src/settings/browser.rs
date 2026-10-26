@@ -19,7 +19,11 @@ pub struct BrowserSettings {
 impl Default for BrowserSettings {
     fn default() -> Self {
         Self {
-            enabled: true,
+            // Off in the unit-test harness: headless CI nodes lack the
+            // sandboxed process the WebKit view needs, and WebKit 2.54
+            // aborts the worker thread that creates it. Production flips it
+            // on after loading the user's settings (see Settings::load).
+            enabled: !cfg!(test),
             open_terminal_links: false,
             default_profile: String::new(),
             search_engine: SearchEngine::Google,

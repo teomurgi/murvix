@@ -74,7 +74,7 @@ pub(crate) fn render(
         let Some((index, children)) = state.highlighted.and_then(|index| {
             items
                 .get(index)
-                .and_then(Item::submenu_items)
+                .and_then(Item::children)
                 .map(|children| (index, children))
         }) else {
             break;
@@ -233,7 +233,7 @@ impl Item {
                     .child(shortcut),
             )
         })
-        .when(self.submenu_items().is_some(), |row| {
+        .when(self.children().is_some(), |row| {
             row.child(self.chevron(highlighted, model))
         })
         .on_mouse_move(cx.listener(move |model, event: &MouseMoveEvent, _, cx| {
@@ -334,7 +334,7 @@ fn dimensions(
         if let Some(shortcut) = shortcut {
             row_width += m.scaled(popover::ROW_PADDING) + measure(shortcut, m.font_footnote());
         }
-        if item.submenu_items().is_some() {
+        if item.children().is_some() {
             row_width += m.scaled(CHEVRON + popover::ROW_PADDING);
         }
         width = width.max(row_width);

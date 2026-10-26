@@ -86,6 +86,7 @@
 "A process is still running in this tab.\nAre you sure you want to close it?" = "A process is still running in this tab.\nAre you sure you want to close it?";
 "A process is still running in this terminal." = "A process is still running in this terminal.";
 "A profile needs a name" = "A profile needs a name";
+"A project is a workspace: every agent in its terminals sees the project folder plus its extra roots. Right-click the project and choose Workspace → Add Folder… to put more folders in scope. Roots apply to terminals started afterward; existing terminals keep theirs. Files, search, exec, and Git still target the project folder." = "A project is a workspace: every agent in its terminals sees the project folder plus its extra roots. Right-click the project and choose Workspace → Add Folder… to put more folders in scope. Roots apply to terminals started afterward; existing terminals keep theirs. Files, search, exec, and Git still target the project folder.";
 "A single-line shell command, such as cargo test or npm run dev." = "A single-line shell command, such as cargo test or npm run dev.";
 "AI" = "AI";
 "AI CLI that drafts commit messages. Auto uses the first installed provider." = "AI CLI that drafts commit messages. Auto uses the first installed provider.";
@@ -104,6 +105,7 @@
 "Active system-wide" = "Active system-wide";
 "Add Binding" = "Add Binding";
 "Add Command" = "Add Command";
+"Add Folder…" = "Add Folder…";
 "Add Font…" = "Add Font…";
 "Add Map" = "Add Map";
 "Add Profile" = "Add Profile";
@@ -280,6 +282,7 @@
 "Choose a readable multilingual GGML voice model in Settings → Composer." = "Choose a readable multilingual GGML voice model in Settings → Composer.";
 "Choose a supported dictation language in Settings → Composer." = "Choose a supported dictation language in Settings → Composer.";
 "Choose a target branch that exists on the remote" = "Choose a target branch that exists on the remote";
+"Choose an existing folder for the workspace." = "Choose an existing folder for the workspace.";
 "Choose an existing folder, or use Create & Add Project." = "Choose an existing folder, or use Create & Add Project.";
 "Choose an extension folder containing package.json or a built dist folder" = "Choose an extension folder containing package.json or a built dist folder";
 "Choose an image smaller than 20 MB." = "Choose an image smaller than 20 MB.";
@@ -291,6 +294,7 @@
 "Clear" = "Clear";
 "Clear After Sending" = "Clear After Sending";
 "Clear Data" = "Clear Data";
+"Clear Workspace" = "Clear Workspace";
 "Clear after sending" = "Clear after sending";
 "Clear all" = "Clear all";
 "Clear data for “%@”?" = "Clear data for “%@”?";
@@ -868,6 +872,7 @@
 "Murvix uses your SSH config, keys, and agent. A password is never saved." = "Murvix uses your SSH config, keys, and agent. A password is never saved.";
 "Murvix will ask the AI provider for a commit message, then commit." = "Murvix will ask the AI provider for a commit message, then commit.";
 "Murvix will create \"%@\" and add it as a project." = "Murvix will create \"%@\" and add it as a project.";
+"Murvix will create \"%@\" and add it to the workspace." = "Murvix will create \"%@\" and add it to the workspace.";
 "Murvix will create \"%@\" on %@ and add it as a project." = "Murvix will create \"%@\" on %@ and add it as a project.";
 "Murvix will stage all changes, ask %@ for a branch name, title, and summary, then create the branch, commit, push, and open the pull request on GitHub." = "Murvix will stage all changes, ask %@ for a branch name, title, and summary, then create the branch, commit, push, and open the pull request on GitHub.";
 "Murvix will update and restart when all %lld terminal session end, including idle and detached sessions. Keep Murvix open to finish the update." = "Murvix will update and restart when all %lld terminal session end, including idle and detached sessions. Keep Murvix open to finish the update.";
@@ -1561,6 +1566,7 @@
 "Work reported an error." = "Work reported an error.";
 "Working" = "Working";
 "Working over SSH? Run muxy on that machine for tabs and splits in the terminal, and press Ctrl-B then ? to see its keys." = "Working over SSH? Run muxy on that machine for tabs and splits in the terminal, and press Ctrl-B then ? to see its keys.";
+"Workspace" = "Workspace";
 "Worktree created, but its location preference could not be saved: %@" = "Worktree created, but its location preference could not be saved: %@";
 "Worktree created, but setup failed" = "Worktree created, but setup failed";
 "Worktrees" = "Worktrees";

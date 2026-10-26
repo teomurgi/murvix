@@ -106,6 +106,13 @@ pub struct ProjectDescriptor {
     pub kind: Option<ProjectKind>,
     #[n(8)]
     pub parent_id: Option<ProjectId>,
+    /// Extra roots in this project's workspace: absolute `ServerPath` values
+    /// beyond `directory`, seen in a running agent's context however that agent
+    /// reads its environment. Empty means the workspace is just `directory`.
+    #[n(9)]
+    #[cbor(default)]
+    #[serde(default)]
+    pub extra_directories: Vec<ServerPath>,
 }
 
 /// The colors a new project picks from.
@@ -159,6 +166,7 @@ impl ProjectDescriptor {
             color: color.into(),
             kind: None,
             parent_id: None,
+            extra_directories: Vec::new(),
         }
     }
 
@@ -167,6 +175,7 @@ impl ProjectDescriptor {
         validate_icon(self.icon.as_deref())?;
         validate_color(&self.color)?;
         validate_logo(self.logo.as_deref())?;
+        validate_extra_directories(&self.directory, &self.extra_directories)?;
         if !self.directory.0.starts_with(b"/")
             || self.directory.0.len() > 4096
             || self.directory.0.contains(&0)
@@ -178,6 +187,51 @@ impl ProjectDescriptor {
         }
         Ok(())
     }
+}
+
+/// How many extra workspace roots a project holds, and their total bytes.
+pub const MAX_EXTRA_DIRECTORIES: usize = 16;
+pub const MAX_EXTRA_DIRECTORIES_BYTES: usize = 16 * 1024;
+
+/// The directories in a project's scope, agent-agnostic: the project's own
+/// directory first, then its extra roots. This is the workspace every agent
+/// running in the project's terminals sees, however that agent reads its
+/// environment; empty extras mean the workspace is just `directory`.
+pub fn workspace_roots(descriptor: &ProjectDescriptor) -> Vec<ServerPath> {
+    let mut roots = Vec::with_capacity(descriptor.extra_directories.len() + 1);
+    roots.push(descriptor.directory.clone());
+    roots.extend(descriptor.extra_directories.iter().cloned());
+    roots
+}
+
+pub fn validate_extra_directories(
+    directory: &ServerPath,
+    extra: &[ServerPath],
+) -> Result<(), ErrorCode> {
+    validate_extra_directory_shapes(extra)?;
+    if extra.iter().any(|path| path == directory)
+        || (1..extra.len()).any(|index| extra[index..].contains(&extra[index - 1]))
+    {
+        return Err(ErrorCode::BadRequest);
+    }
+    Ok(())
+}
+
+fn validate_extra_directory_shapes(extra: &[ServerPath]) -> Result<(), ErrorCode> {
+    if extra.len() > MAX_EXTRA_DIRECTORIES
+        || extra.iter().map(|path| path.0.len()).sum::<usize>() > MAX_EXTRA_DIRECTORIES_BYTES
+    {
+        return Err(ErrorCode::BadRequest);
+    }
+    for path in extra {
+        if !path.0.starts_with(b"/") || path.0.len() > 4096 || path.0.contains(&0) {
+            return Err(ErrorCode::BadRequest);
+        }
+    }
+    if (1..extra.len()).any(|index| extra[index..].contains(&extra[index - 1])) {
+        return Err(ErrorCode::BadRequest);
+    }
+    Ok(())
 }
 
 fn validate_name(name: &str) -> Result<(), ErrorCode> {
@@ -264,6 +318,10 @@ pub enum ProjectPatch {
         #[cbor(with = "crate::wire::cbor::bytes")]
         Option<std::sync::Arc<[u8]>>,
     ),
+    /// Replaces the project's extra workspace roots, without touching
+    /// the primary `directory`.
+    #[n(4)]
+    ExtraDirectories(#[n(0)] Vec<ServerPath>),
 }
 
 impl ProjectPatch {
@@ -273,6 +331,7 @@ impl ProjectPatch {
             Self::Icon(icon) => validate_icon(icon.as_deref()),
             Self::Color(color) => validate_color(color),
             Self::Logo(logo) => validate_logo(logo.as_deref()),
+            Self::ExtraDirectories(extra) => validate_extra_directory_shapes(extra),
         }
     }
     pub fn apply(&self, project: &mut ProjectDescriptor) {
@@ -281,6 +340,7 @@ impl ProjectPatch {
             Self::Icon(icon) => project.icon.clone_from(icon),
             Self::Color(color) => project.color = color.to_ascii_lowercase(),
             Self::Logo(logo) => project.logo.clone_from(logo),
+            Self::ExtraDirectories(extra) => project.extra_directories.clone_from(extra),
         }
     }
 }
