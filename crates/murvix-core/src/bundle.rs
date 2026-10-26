@@ -11,7 +11,7 @@ pub struct BundleLease {
 }
 
 pub fn lock_replacement(directory: &Path) -> io::Result<FileLock> {
-    crate::file_lock::try_lock(&directory.join(".muxy-beta-update.lock"))
+    crate::file_lock::try_lock(&directory.join(".murvix-update.lock"))
 }
 
 /// The app bundle whose `Contents/MacOS` holds `executable`.
@@ -83,7 +83,7 @@ pub fn linux_root(executable: &Path) -> Option<&Path> {
     let versions = version.parent()?;
     let root = versions.parent()?;
     (versions.file_name()? == "versions"
-        && crate::release::Version::parse(version.file_name()?.to_str()?).is_some()
+        && crate::release::parse(version.file_name()?.to_str()?).is_some()
         && root.join("installation.json").is_file())
     .then_some(root)
 }
