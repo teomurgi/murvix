@@ -41,7 +41,11 @@ impl Installation {
             .and_then(Path::parent)
             .filter(|path| path.extension().is_some_and(|extension| extension == "app"))
             .ok_or_else(|| {
-                tr!("Automatic updates require an installed %@.app", release::APP_NAME).to_string()
+                tr!(
+                    "Automatic updates require an installed %@.app",
+                    release::APP_NAME
+                )
+                .to_string()
             })?
             .to_owned();
         if bundle.starts_with("/Volumes")

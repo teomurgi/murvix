@@ -69,8 +69,8 @@ impl Release {
             .ok_or_else(|| tr!("Missing update version").to_string())?;
         let next =
             release::parse(version).ok_or_else(|| tr!("Invalid update version").to_string())?;
-        let current =
-            release::parse(current).ok_or_else(|| tr!("This is not a released version").to_string())?;
+        let current = release::parse(current)
+            .ok_or_else(|| tr!("This is not a released version").to_string())?;
         if next <= current {
             return Ok(None);
         }
@@ -214,7 +214,14 @@ mod tests {
         }
         assert!(parse_from(&feed("2.0.1"), "2.0.0").is_ok_and(|release| release.is_some()));
         assert!(parse_from(&feed("2.0.1"), "local").is_err());
-        for version in ["2.0.0-alpha.99", "2.0-beta.99", "2.0.0.0", "2.x.0", "2.0.0-beta.99", ""] {
+        for version in [
+            "2.0.0-alpha.99",
+            "2.0-beta.99",
+            "2.0.0.0",
+            "2.x.0",
+            "2.0.0-beta.99",
+            "",
+        ] {
             assert!(parse(&feed(version)).is_err(), "{version}");
         }
     }
@@ -257,10 +264,19 @@ mod tests {
             "linux-aarch64": {"url": url, "size": 100, "sha256": "a".repeat(64)}
         }});
         let parse = |data: &serde_json::Value| {
-            Release::parse(data.to_string().as_bytes(), "2.0.9", "linux-aarch64", "arm64")
+            Release::parse(
+                data.to_string().as_bytes(),
+                "2.0.9",
+                "linux-aarch64",
+                "arm64",
+            )
         };
         assert!(parse(&data).is_ok_and(|release| release.is_some()));
-        for checksum in [serde_json::Value::Null, "abcd".into(), "z".repeat(64).into()] {
+        for checksum in [
+            serde_json::Value::Null,
+            "abcd".into(),
+            "z".repeat(64).into(),
+        ] {
             data["platforms"]["linux-aarch64"]["sha256"] = checksum;
             assert!(parse(&data).is_err());
         }

@@ -31,10 +31,7 @@ pub(crate) fn desktop_app(folder: Option<&Path>) -> bool {
     let mut open = Command::new("/usr/bin/open");
     match containing_app(&executable) {
         Some(app) => open.arg("-a").arg(app),
-        None => open.args([
-            "-b",
-            murvix_core::release::BUNDLE_ID,
-        ]),
+        None => open.args(["-b", murvix_core::release::BUNDLE_ID]),
     };
     open.args(folder)
         .stdin(Stdio::null())

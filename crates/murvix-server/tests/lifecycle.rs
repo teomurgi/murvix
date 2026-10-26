@@ -474,7 +474,11 @@ fn default_directory_does_not_touch_other_channels() -> TestResult {
     } else {
         ("Murvix Dev", "Murvix")
     };
-    let current = if cfg!(debug_assertions) { development } else { release };
+    let current = if cfg!(debug_assertions) {
+        development
+    } else {
+        release
+    };
     let others: Vec<&str> = ["Murvix", "Murvix Alpha", development, release]
         .into_iter()
         .filter(|name| *name != current)
