@@ -133,7 +133,15 @@ fn remote_terminal<'a>(
         pane
     });
     wait(cx, &view, |model, cx| model.attachment(pane, cx).is_some())?;
-    wait_text(cx, &view, "$")?;
+    // A prompt ending, whether `$` for a user or `#` for root.
+    wait(cx, &view, |model, cx| {
+        active_grid(model, cx).is_some_and(|grid| {
+            (0..grid.rows.len()).any(|row| {
+                let text = grid.row_text(row);
+                text.contains('$') || text.trim_end().ends_with('#')
+            })
+        })
+    })?;
     Ok((view, cx, remote, pane))
 }
 
