@@ -12,7 +12,7 @@ use crate::server::{ServerUpdate, UpdateMode};
 use crate::updater::{Installation, PreparedUpdate, Release};
 use murvix_app_core::ServerId;
 use murvix_core::capability::{Capability, Feature};
-use murvix_core::release::{Channel, Version};
+use murvix_core::release;
 use murvix_ui::tr;
 
 pub(crate) use status::UpdateAction;
@@ -79,13 +79,13 @@ impl AppModel {
         if !self.supports(Feature::Updates) {
             return;
         }
-        if Version::current().is_none() {
+        if cfg!(debug_assertions) || release::current().is_none() {
             self.capabilities.set(
                 Feature::Updates,
                 Capability::Unavailable(
                     tr!(
                         "Automatic updates are available in installed releases of %@",
-                        Channel::current().app_name()
+                        release::APP_NAME
                     )
                     .to_string(),
                 ),
@@ -431,7 +431,7 @@ impl AppModel {
                         self.update_message(
                             &tr!(
                                 "You’re running the latest version of %@.",
-                                Channel::current().app_name()
+                                release::APP_NAME
                             ),
                             cx,
                         );
@@ -471,7 +471,7 @@ impl AppModel {
         let _ = self.window.update(cx, |_, window, cx| {
             let response = window.prompt(
                 gpui::PromptLevel::Info,
-                &tr!("%@ Updates", Channel::current().app_name()),
+                &tr!("%@ Updates", release::APP_NAME),
                 Some(message),
                 &[tr!("OK").as_ref()],
                 cx,

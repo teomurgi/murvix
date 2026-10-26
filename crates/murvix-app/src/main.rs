@@ -260,17 +260,13 @@ fn restored_bounds(boot: &boot::Boot, cx: &App) -> Bounds<gpui::Pixels> {
 }
 
 fn app_name() -> &'static str {
-    murvix_core::release::Channel::current().app_name()
+    murvix_core::release::APP_NAME
 }
 
 fn window_options() -> WindowOptions {
     WindowOptions {
         #[cfg(target_os = "linux")]
-        app_id: Some(
-            murvix_core::release::Channel::current()
-                .linux_app_id()
-                .into(),
-        ),
+        app_id: Some(murvix_core::release::BUNDLE_ID.into()),
         ..WindowOptions::default()
     }
 }
