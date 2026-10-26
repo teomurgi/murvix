@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write the Homebrew cask (desktop app) and formula (CLI and server) of a stable release.
+"""Write the Homebrew cask (desktop app) and formula (CLI and server) of a release.
 
 Both pin the release's assets by the hashes in its SHA256SUMS.
 """
@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from release import channel  # noqa: E402
+from release import check_version  # noqa: E402
 
 
 def checksums(path):
@@ -113,8 +113,7 @@ end
 
 
 def write(version, sums_path, tap, repository):
-    if channel(version) != "stable":
-        raise ValueError("Homebrew installs stable releases only")
+    check_version(version)
     sums = checksums(sums_path)
     files = {
         tap / "Casks/murvix.rb": cask(version, sums, repository),

@@ -9,11 +9,11 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-from release import ROOT, build_metadata, channel, check_build
+from release import ROOT, build_metadata, check_build, check_version
 
 
 def package(version, arch, binaries, output, native_formats=False, tools=None):
-    release_channel = channel(version)
+    check_version(version)
     output.mkdir(parents=True, exist_ok=True)
     archive = output / f"murvix-desktop-{version}-linux-{arch}.tar.gz"
     if archive.exists():
@@ -24,7 +24,7 @@ def package(version, arch, binaries, output, native_formats=False, tools=None):
             check_build(version, binaries / name)
             shutil.copyfile(binaries / name, directory / name)
             (directory / name).chmod(0o755)
-        icon = "AppIconBeta.png" if release_channel == "beta" else "AppIcon.png"
+        icon = "AppIcon.png"
         shutil.copyfile(ROOT / "packaging/macos" / icon, directory / "icon.png")
         shutil.copyfile(ROOT / "scripts/install-desktop-linux.py", directory / "install.py")
         (directory / "LICENSE").write_text("\n".join(
@@ -39,7 +39,7 @@ def package(version, arch, binaries, output, native_formats=False, tools=None):
                     checksum.update(block)
             files[path.name] = {"size": path.stat().st_size, "sha256": checksum.hexdigest()}
         (directory / "manifest.json").write_text(json.dumps({
-            "schema": 1, "version": version, "channel": release_channel, "arch": arch,
+            "schema": 1, "version": version, "arch": arch,
             "build": {"version": version, **build_metadata()}, "files": files,
             "requirements": {"glibc": "2.39", "webkitgtk": "4.1 >= 2.40", "python": "3.9",
                              "ubuntu_packages": ["libfreetype6", "libfontconfig1", "libxcb1", "libxkbcommon0",

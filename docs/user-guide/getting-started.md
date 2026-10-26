@@ -3,8 +3,7 @@
 Install: [macOS](#macos-desktop-app) · [Linux](#linux-desktop-app) ·
 [CLI and server only](#cli-and-server-only)
 
-After installing: [First steps](#first-steps) · [Upgrading from 1.x](#upgrading-from-murvix-1x) ·
-[Beta builds](#beta)
+After installing: [First steps](#first-steps) · [Upgrading from 1.x](#upgrading-from-murvix-1x)
 
 ## Requirements
 
@@ -109,8 +108,7 @@ or choose **Install Command Line Tool…** in the app to link it into `~/.local/
 
 ### Updates
 
-- **Quick installer:** the app checks automatically; **Check for Updates** checks
-  now. Stable installs stay on stable; beta installs stay on beta.
+- **Quick installer:** the app checks automatically; **Check for Updates** checks now.
 - **Debian package:** stop the server and quit Murvix, then download the newer `.deb`
   and install it with `sudo apt install`. There is no Murvix APT repository, so
   `apt upgrade` alone does not update Murvix.
@@ -126,18 +124,17 @@ Stop the local server in **Settings → Server**, then quit Murvix. Stopping the
 server ends its running terminals. Removal keeps your settings, projects and
 saved session data.
 
-- **Quick installer:** run the command below. For beta, replace `murvix-desktop`
-  with `murvix-desktop-beta`.
+- **Quick installer:** run the command below.
 
   ```sh
   python3 "${XDG_DATA_HOME:-$HOME/.local/share}/murvix-desktop/current/install.py" uninstall
   ```
 
-- **Debian package:** run `sudo apt remove murvix-desktop` (or `murvix-desktop-beta`).
+- **Debian package:** run `sudo apt remove murvix-desktop`.
 - **AppImage:** delete the downloaded file, its matching unpacked copy listed
   above, and any CLI link or Applications entry pointing into that copy. The entry
   is in `${XDG_DATA_HOME:-$HOME/.local/share}/applications/com.murvix.app.desktop`
-  (`com.murvix-beta.app.desktop` for beta). Do not delete a copy still used by
+Do not delete a copy still used by
   another running app or server.
 
 ## CLI and server only
@@ -195,21 +192,6 @@ what you already have.
 Some 1.x features work differently or are not in 2.x yet. Most extensions keep
 working; see [Coming from 1.x](../extensions/get-started.md#coming-from-1x).
 
-## Beta
-
-The beta gets new features first. **Murvix Beta** installs alongside stable,
-with separate settings and session data.
-
-- **macOS:** download the newest `v<version>-beta.<N>` pre-release from the
-  [releases page](https://github.com/teomurgi/murvix/releases). The app updates to
-  each new beta.
-- **Linux:** append `--channel beta` to the [quick-installer command](#quick-installer-with-in-app-updates)
-  (`python3 - install --channel beta`), or download a beta `.deb` or AppImage
-  from the releases page. Use the same [update method](#updates) as stable.
-  The quick installer and Debian package provide `murvix-beta` and `murvix-server-beta`.
-- **CLI and server only:** give the [install script](#install-script) a beta
-  version, such as `2.1.0-beta.1143`.
-
 ## First steps
 
 1. **Add a project.** Choose **Add Project** at the bottom of the sidebar, or
@@ -225,6 +207,5 @@ with separate settings and session data.
 - [How Muxy works](../features/server.md): the server, sessions, and history.
 - [Projects](../features/projects.md), [Terminal](../features/terminal.md), and
   [Keyboard shortcuts](keyboard-shortcuts.md).
-- [Remote servers](../features/remote-servers.md) and
-  [Mobile](../features/mobile.md).
+- [Remote servers](../features/remote-servers.md).
 - [Settings](settings.md) and [Troubleshooting](troubleshooting.md).

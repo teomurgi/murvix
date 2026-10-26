@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Versions and packaging metadata of beta (X.Y.Z-beta.N) and stable (X.Y.Z) releases."""
+"""Versions and packaging metadata of semver (X.Y.Z) releases."""
 import argparse
 import hashlib
 import json
@@ -9,21 +9,18 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BETA_PATTERN = re.compile(r"([0-9]+\.[0-9]+\.[0-9]+)-beta\.([1-9][0-9]*)")
-STABLE_PATTERN = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
-# Each channel installs as its own app.
-APPS = {"beta": ("Murvix Beta", "com.murvix-beta.app"), "stable": ("Murvix", "com.murvix.app")}
+VERSION_PATTERN = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
+APP_NAME = "Murvix"
+APP_IDENTIFIER = "com.murvix.app"
 # Linux is branded as Murvix and uses the same application ID as macOS.
-LINUX_APPS = APPS.copy()
-# Muxy 1.x's Sparkle only installs an update that keeps 1.x's EdDSA public key.
-SPARKLE_PUBLIC_KEY = "X5YPWvD11Qthw+41DPZQRK8aOYBlPjjfeWW2k3510cY="
+LINUX_APPS = {"stable": (APP_NAME, APP_IDENTIFIER)}
 
 
 def build_metadata(root=ROOT):
     """The --build-info every executable of this checkout reports."""
     build = (root / "crates/murvix-protocol/src/build.rs").read_text()
     version = (root / "crates/murvix-protocol/src/version.rs").read_text()
-    current = re.search(r"pub const CURRENT: Version = (V\d+);", version)[1]
+    current = re.search(r"pub const CURRENT: Version = V\d+;", version)[1]
     number = int(re.search(rf"pub const {current}: Version = Version\((\d+)\);", version)[1])
     return {
         "compatibility": int(re.search(r"pub const COMPATIBILITY: u64 = (\d+);", build)[1]),
@@ -31,20 +28,10 @@ def build_metadata(root=ROOT):
     }
 
 
-def channel(version):
-    if BETA_PATTERN.fullmatch(version):
-        return "beta"
-    if STABLE_PATTERN.fullmatch(version):
-        return "stable"
-    raise ValueError("release version must be X.Y.Z or <BETA_VERSION>-beta.<positive commit count>")
-
-
-def build_number(version):
-    """A beta's commit count, which orders betas and becomes the bundle version."""
-    match = BETA_PATTERN.fullmatch(version)
-    if not match:
-        raise ValueError("beta version must be <BETA_VERSION>-beta.<positive commit count>")
-    return match[2]
+def check_version(version):
+    if not VERSION_PATTERN.fullmatch(version or ""):
+        raise ValueError("release version must be X.Y.Z")
+    return version
 
 
 def git(root, *args):
@@ -52,41 +39,14 @@ def git(root, *args):
 
 
 def checkout_version(root):
-    # Betas are versioned as X.Y.Z-beta.<commit-count>. The BETA_VERSION file
-    # holds the X.Y.Z base; the commit count comes from the repository.
-    if git(root, "rev-parse", "--is-shallow-repository") != "false":
-        raise ValueError("full checkout required (fetch-depth: 0)")
-    base = (root / "BETA_VERSION").read_text().strip()
-    if channel(base) != "stable":
-        raise ValueError("BETA_VERSION must be X.Y.Z")
-    count = git(root, "rev-list", "--count", "HEAD")
-    return f"{base}-beta.{count}"
-
-
-def promotion(root, beta_tag, version, next_beta_version):
-    """The build number a stable release of `beta_tag` keeps, after checking the inputs."""
-    if channel(version) != "stable" or channel(next_beta_version) != "stable":
-        raise ValueError("stable and next beta versions must be X.Y.Z")
-    if version_key(next_beta_version) <= version_key(version):
-        raise ValueError("the next beta version must be newer than the stable version")
-    if not beta_tag.startswith("v"):
-        raise ValueError("beta tag must be vX.Y.Z-beta.N")
-    build = build_number(beta_tag[1:])
-    if git(root, "rev-parse", "--is-shallow-repository") != "false":
-        raise ValueError("promotion requires a full checkout (fetch-depth: 0)")
-    try:
-        commit = git(root, "rev-parse", "--verify", "--quiet", f"refs/tags/{beta_tag}^{{commit}}")
-    except subprocess.CalledProcessError:
-        raise ValueError(f"{beta_tag} does not exist") from None
-    if subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", commit, "origin/main"]).returncode:
-        raise ValueError(f"{beta_tag} is not on main")
-    if git(root, "rev-list", "--count", commit) != build:
-        raise ValueError(f"{beta_tag} does not match its commit count")
-    return build
+    # Releases are versioned as plain X.Y.Z. The BETA_VERSION file holds the
+    # current version (kept under its historic name; workflows read it too).
+    version = (root / "BETA_VERSION").read_text().strip()
+    return check_version(version)
 
 
 def version_key(version):
-    return tuple(int(part) for part in version.split("-")[0].split("."))
+    return tuple(int(part) for part in check_version(version).split("."))
 
 
 def replace_once(pattern, replacement, text, label):
@@ -97,7 +57,7 @@ def replace_once(pattern, replacement, text, label):
 
 
 def stamp_version(root, version):
-    channel(version)
+    check_version(version)
     manifest_path = root / "Cargo.toml"
     lock_path = root / "Cargo.lock"
     manifest = manifest_path.read_text()
@@ -129,25 +89,22 @@ def stamp_version(root, version):
 
 
 def bundle_info(version, build):
-    """Info.plist of the app. Its bundle version is the commit count it was built from."""
-    name, identifier = APPS[channel(version)]
-    if not re.fullmatch(r"[1-9][0-9]*", build):
-        raise ValueError("build number must be a positive commit count")
-    if channel(version) == "beta" and build != build_number(version):
-        raise ValueError("a beta's build number is its commit count")
-    sparkle = {"SUPublicEDKey": SPARKLE_PUBLIC_KEY} if channel(version) == "stable" else {}
+    """Info.plist of the app. Its bundle version is the build number passed via --build."""
+    check_version(version)
+    if not re.fullmatch(r"[1-9][0-9]*", build or ""):
+        raise ValueError("build number must be a positive integer")
     return {
         "CFBundleDevelopmentRegion": "en",
-        "CFBundleDisplayName": name,
-        "CFBundleName": name,
+        "CFBundleDisplayName": APP_NAME,
+        "CFBundleName": APP_NAME,
         "CFBundleExecutable": "murvix-app",
-        "CFBundleIdentifier": identifier,
+        "CFBundleIdentifier": APP_IDENTIFIER,
         "CFBundleIconFile": "AppIcon",
         "CFBundleInfoDictionaryVersion": "6.0",
         "CFBundlePackageType": "APPL",
-        "CFBundleShortVersionString": version.split("-")[0],
+        "CFBundleShortVersionString": version,
         "CFBundleVersion": build,
-        "CFBundleGetInfoString": f"{name} {version}",
+        "CFBundleGetInfoString": f"{APP_NAME} {version}",
         "MurvixVersion": version,
         "LSMinimumSystemVersion": "14.0",
         "LSApplicationCategoryType": "public.app-category.developer-tools",
@@ -158,12 +115,11 @@ def bundle_info(version, build):
         "NSSpeechRecognitionUsageDescription": "Murvix transcribes your dictation on this device and inserts it into Composer.",
         "NSLocalNetworkUsageDescription": "Commands you run in Murvix terminals can connect to devices on your local network.",
         "NSAppTransportSecurity": {"NSAllowsArbitraryLoadsInWebContent": True},
-        **sparkle,
     }
 
 
 def update_metadata(version, repository, directory):
-    channel(version)
+    check_version(version)
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
         raise ValueError("invalid GitHub repository")
     platforms = {}
@@ -197,7 +153,7 @@ def update_metadata(version, repository, directory):
 
 
 def check_build(version, executable):
-    channel(version)
+    check_version(version)
     # The first run of an x86_64 build on Apple silicon waits for Rosetta to translate it.
     metadata = json.loads(subprocess.check_output([str(executable), "--build-info"], timeout=60))
     if metadata != {"version": version, **build_metadata()}:
@@ -208,10 +164,6 @@ def main():
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("version")
-    promote = commands.add_parser("promote")
-    promote.add_argument("beta_tag")
-    promote.add_argument("version")
-    promote.add_argument("next_beta_version")
     check = commands.add_parser("check-build")
     check.add_argument("version")
     check.add_argument("executable", type=Path)
@@ -219,39 +171,32 @@ def main():
     metadata.add_argument("version")
     metadata.add_argument("repository")
     metadata.add_argument("directory", type=Path)
-    for command in ("stamp", "check-version", "channel", "app-name", "plist"):
+    for command in ("stamp", "check-version", "app-name", "plist"):
         subparser = commands.add_parser(command)
         subparser.add_argument("version")
         if command == "plist":
             subparser.add_argument("output", type=Path)
-            subparser.add_argument("--build", help="commit count; a beta's is in its version")
+            subparser.add_argument("--build", required=True, help="build number recorded as CFBundleVersion")
     args = parser.parse_args()
     try:
         if args.command == "version":
             version = checkout_version(ROOT)
             print(f"version={version}")
             print(f"tag=v{version}")
-        elif args.command == "promote":
-            build = promotion(ROOT, args.beta_tag, args.version, args.next_beta_version)
-            print(f"build_number={build}")
         elif args.command == "check-build":
             check_build(args.version, args.executable)
         elif args.command == "stamp":
             stamp_version(ROOT, args.version)
         elif args.command == "check-version":
-            channel(args.version)
-        elif args.command == "channel":
-            print(channel(args.version))
+            check_version(args.version)
         elif args.command == "app-name":
-            print(APPS[channel(args.version)][0])
+            check_version(args.version)
+            print(APP_NAME)
         elif args.command == "update":
             metadata = update_metadata(args.version, args.repository, args.directory)
             (args.directory / "update.json").write_text(json.dumps(metadata, indent=2) + "\n")
         else:
-            if args.build is None and channel(args.version) == "stable":
-                raise ValueError("a stable release needs --build <commit count>")
-            build = args.build or build_number(args.version)
-            args.output.write_bytes(plistlib.dumps(bundle_info(args.version, build)))
+            args.output.write_bytes(plistlib.dumps(bundle_info(args.version, args.build)))
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"error: {error}\n")
 

@@ -58,14 +58,6 @@ If `murvix --version` shows 1.x, Muxy 1.x's CLI comes first on your `PATH`.
   `pkill -x murvix-server` there. This ends its terminals.
 - **Terminals end when SSH disconnects (Linux):** run `loginctl enable-linger`.
 
-## A phone can't connect
-
-- Check **Settings → Mobile → Status** says it is listening.
-- On macOS, allow `murvix-server` if the firewall asks.
-- On iOS, allow the Murvix app to use the local network.
-- The phone must reach the computer: same network, a VPN, or an address added
-  with `murvix mobile pair --address`.
-
 ## No agent notifications
 
 - Allow notifications in **System Settings → Notifications → Murvix**.
@@ -98,7 +90,7 @@ terminals. Add this rule to `~/.config/hypr/hyprland.lua`, then run
 `hyprctl reload`:
 
 ```lua
-o.window("com\\.murvix(-beta)?\\.app", { tag = "+terminal" })
+o.window("com\\.murvix\\.app", { tag = "+terminal" })
 ```
 
 This tells Omarchy to send `Ctrl+Shift+C` to Murvix, which is the Linux copy

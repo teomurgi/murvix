@@ -25,10 +25,9 @@ def verify(archive, version):
                    PATH="/usr/bin:/bin", SHELL="/bin/sh", PYTHONDONTWRITEBYTECODE="1")
         env.pop("DISPLAY", None)
         env.pop("WAYLAND_DISPLAY", None)
-        beta = "-beta." in version
         commands = home / ".local/bin"
         commands.mkdir(parents=True)
-        unrelated = commands / ("murvix-beta" if beta else "murvix")
+        unrelated = commands / "murvix"
         unrelated.write_text("existing user command\n")
         checksum = hashlib.sha256()
         with archive.open("rb") as source:
@@ -37,7 +36,7 @@ def verify(archive, version):
         install = [sys.executable, str(ROOT / "scripts/install-desktop-linux.py")]
         subprocess.run([*install, "install", "--version", version, "--archive", str(archive),
                         "--sha256", checksum.hexdigest()], check=True, env=env)
-        directory = home / ".local/share" / ("murvix-desktop-beta" if beta else "murvix-desktop")
+        directory = home / ".local/share" / "murvix-desktop"
         binaries = directory / "current"
         assert not profile.exists(), "Installing or checking build metadata started the app or a server"
         assert unrelated.read_text() == "existing user command\n"

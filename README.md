@@ -43,7 +43,7 @@ If you run Murvix on Omarchy, add the window rule below so Omarchy treats it as 
 
 ```lua
 -- ~/.config/hypr/hyprland.lua
-o.window("com\\.murvix(-beta)?\\.app", { tag = "+terminal" })
+o.window("com\\.murvix\\.app", { tag = "+terminal" })
 ```
 
 After saving, run `hyprctl reload` to apply the rule.
@@ -95,7 +95,7 @@ murvix session read-screen "$id" --lines 20
 - `murvix exec <project> -- <program>` runs a program in the project folder without a shell.
 - `murvix install-skills` installs the CLI reference for supported AI agents.
 
-See the [CLI reference](docs/features/murvix-cli.md) for sessions, worktrees, browser control, mobile pairing, and every other command.
+See the [CLI reference](docs/features/murvix-cli.md) for sessions, worktrees, browser control, and every other command.
 
 ## Terminal UI
 

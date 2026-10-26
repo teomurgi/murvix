@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Announce a published beta or stable release on Discord with its release notes."""
+"""Announce a published release on Discord with its release notes."""
 
 import argparse
 import json
@@ -9,23 +9,19 @@ import subprocess
 import sys
 import urllib.request
 from datetime import datetime, timezone
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from release import channel  # noqa: E402
-
-ANNOUNCEMENTS = {
-    "beta": ("Murvix {version} (beta) released", "Beta channel", 15844367),
-    "stable": ("Murvix v{version} released", "Stable channel", 3066993),
-}
+TITLE = "Murvix v{version} released"
+FOOTER = "Release"
+COLOR = 3066993
 NOTES_LIMIT = 3800
 
 
 def payload(tag, notes, repository, now):
-    if not tag.startswith("v"):
-        raise ValueError("release tag must be vX.Y.Z or vX.Y.Z-beta.N")
-    version = tag[1:]
-    title, footer, color = ANNOUNCEMENTS[channel(version)]
+    match = re.fullmatch(r"v([0-9]+\.[0-9]+\.[0-9]+)", tag or "")
+    if not match:
+        raise ValueError("release tag must be vX.Y.Z")
+    version = match[1]
+    title, footer, color = TITLE, FOOTER, COLOR
     notes = re.sub(r" by @[A-Za-z0-9_-]+ in https://github\.com/\S+/pull/[0-9]+", "", notes)
     if len(notes) > NOTES_LIMIT:
         notes = notes[:NOTES_LIMIT] + "…"
@@ -64,7 +60,7 @@ def announce(tag, repository, webhook):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("tag", help="vX.Y.Z or vX.Y.Z-beta.N")
+    parser.add_argument("tag", help="vX.Y.Z")
     args = parser.parse_args()
     webhook = os.environ.get("DISCORD_WEBHOOK_URL", "")
     repository = os.environ.get("GITHUB_REPOSITORY", "teomurgi/Murvix")
