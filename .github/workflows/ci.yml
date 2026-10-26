@@ -58,7 +58,7 @@ jobs:
           pacman -Syu --noconfirm
           base-devel pkgconf clang cmake openssl fontconfig freetype2 git python
           libxkbcommon libxkbcommon-x11 wayland libxcb vulkan-headers mesa vulkan-swrast
-          webkit2gtk-4.1 xorg-server-xvfb
+          webkit2gtk-4.1 xorg-server-xvfb openbsd-netcat
           zsh fish binutils vim less unzip neovim
       - uses: dtolnay/rust-toolchain@stable
         with:
