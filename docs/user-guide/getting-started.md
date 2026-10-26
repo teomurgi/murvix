@@ -14,15 +14,7 @@ After installing: [First steps](#first-steps) · [Upgrading from 1.x](#upgrading
 
 ## macOS desktop app
 
-Install with [Homebrew](https://brew.sh):
-
-```bash
-brew install --cask muxy-app/tap/muxy
-```
-
-Or download it yourself:
-
-1. From the [latest release](https://github.com/muxy-app/muxy/releases/latest),
+1. From the [latest release](https://github.com/teomurgi/murvix/releases/latest),
    download `Murvix-<version>-arm64.dmg` for Apple Silicon or
    `Murvix-<version>-x86_64.dmg` for Intel.
 2. Drag **Murvix** to `/Applications` and open it.
@@ -30,8 +22,7 @@ Or download it yourself:
 To use [`murvix`](../features/murvix-cli.md) in your shell, choose **Install Command
 Line Tool…** from the app menu. It links `~/.local/bin/murvix`.
 
-The app updates itself, also when installed with Homebrew. Running terminals
-keep going through most updates.
+The app updates itself. Running terminals keep going through most updates.
 
 ## Linux desktop app
 
@@ -141,16 +132,6 @@ Do not delete a copy still used by
 
 For a Linux computer or Mac without the desktop app. This installs `murvix` and
 `murvix-server`.
-
-### Homebrew
-
-```bash
-brew install muxy-app/tap/muxy-cli
-```
-
-Update with `brew upgrade murvix-cli`. On a computer you will reach as a
-[remote server](../features/remote-servers.md), use the install script instead:
-SSH sessions often don't have Homebrew on `PATH`.
 
 ### Install script
 
