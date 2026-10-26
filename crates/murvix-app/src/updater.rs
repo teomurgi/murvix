@@ -15,8 +15,6 @@ use std::io::{Read, Write};
 use std::time::Duration;
 
 use murvix_core::release;
-#[cfg(any(target_os = "macos", target_os = "linux"))]
-use murvix_core::release::Channel;
 #[cfg(any(target_os = "macos", target_os = "linux", test))]
 use murvix_ui::tr;
 
@@ -31,17 +29,10 @@ pub(crate) const RELEASES: &str = "https://github.com/teomurgi/Murvix/releases/d
 #[cfg(any(target_os = "macos", target_os = "linux", test))]
 const MAX_DOWNLOAD: u64 = 2 * 1024 * 1024 * 1024;
 
-/// Betas share a rolling feed; each stable release carries its own, and the latest one wins.
+/// Every release publishes to the same rolling feed; the latest one wins.
 #[cfg(any(target_os = "macos", target_os = "linux"))]
-fn feed(channel: Channel) -> &'static str {
-    match channel {
-        Channel::Beta => {
-            "https://github.com/teomurgi/Murvix/releases/download/beta-2.x/update.json"
-        }
-        Channel::Stable => {
-            "https://github.com/teomurgi/Murvix/releases/latest/download/update.json"
-        }
-    }
+fn feed() -> &'static str {
+    "https://github.com/teomurgi/Murvix/releases/latest/download/update.json"
 }
 
 #[derive(Debug, PartialEq)]
@@ -76,11 +67,11 @@ impl Release {
         let version = metadata["version"]
             .as_str()
             .ok_or_else(|| tr!("Missing update version").to_string())?;
-        let next = release::Version::parse(version)
-            .ok_or_else(|| tr!("Invalid update version").to_string())?;
-        let current = release::Version::parse(current)
-            .ok_or_else(|| tr!("This is not a released version").to_string())?;
-        if !next.is_newer_than(current) {
+        let next =
+            release::parse(version).ok_or_else(|| tr!("Invalid update version").to_string())?;
+        let current =
+            release::parse(current).ok_or_else(|| tr!("This is not a released version").to_string())?;
+        if next <= current {
             return Ok(None);
         }
         let asset = &metadata["platforms"][platform];
@@ -140,7 +131,7 @@ fn latest(
 ) -> Result<Option<Release>> {
     let mut bytes = Vec::new();
     client
-        .get(feed(Channel::current()))
+        .get(feed())
         .header(reqwest::header::CACHE_CONTROL, "no-cache")
         .send()?
         .error_for_status()?
@@ -200,9 +191,8 @@ mod tests {
         }})
     }
 
-    #[cfg(any(target_os = "macos", test))]
     fn parse(feed: &serde_json::Value) -> Result<Option<Release>> {
-        parse_from(feed, "2.0.0-beta.9")
+        parse_from(feed, "2.0.9")
     }
 
     fn parse_from(feed: &serde_json::Value, current: &str) -> Result<Option<Release>> {
@@ -215,56 +205,43 @@ mod tests {
     }
 
     #[test]
-    fn updates_only_to_a_newer_release_of_the_same_channel() {
-        for version in ["2.0.0-beta.10", "2.1.0-beta.10"] {
+    fn updates_only_to_a_newer_release() {
+        for version in ["2.0.10", "2.1.0"] {
             assert!(parse(&feed(version)).is_ok_and(|release| release.is_some()));
         }
-        for version in ["2.0.0-beta.8", "2.0.0-beta.9", "2.0.0", "3.0.0"] {
+        for version in ["2.0.8", "2.0.9", "2.0.0", "1.9.9"] {
             assert!(parse(&feed(version)).is_ok_and(|release| release.is_none()));
         }
         assert!(parse_from(&feed("2.0.1"), "2.0.0").is_ok_and(|release| release.is_some()));
-        for version in ["2.0.0", "1.9.9", "2.0.1-beta.10"] {
-            assert!(parse_from(&feed(version), "2.0.0").is_ok_and(|release| release.is_none()));
-        }
-        assert!(parse_from(&feed("2.0.1"), "2.0.0-beta-0").is_err());
-        for version in [
-            "2.0.0-alpha.99",
-            "2.0-beta.99",
-            "2.0.0.0-beta.99",
-            "2.x.0-beta.99",
-            "2.0.0-beta.0",
-            "2.0.0-beta.01",
-            "2.0.0-beta.+10",
-            "2.0.0-beta.99-beta.100",
-            "2.0.0-beta.999999999999999999999",
-        ] {
+        assert!(parse_from(&feed("2.0.1"), "local").is_err());
+        for version in ["2.0.0-alpha.99", "2.0-beta.99", "2.0.0.0", "2.x.0", "2.0.0-beta.99", ""] {
             assert!(parse(&feed(version)).is_err(), "{version}");
         }
     }
 
     #[test]
     fn rejects_wrong_schema_platform_location_and_size() {
-        let mut data = feed("2.0.0-beta.10");
+        let mut data = feed("2.0.10");
         data["schema"] = 2.into();
         assert!(parse(&data).is_err());
         for url in [
             "http://github.com/file.dmg",
             "https://example.com/file.dmg",
-            "https://github.com/muxy-app/muxy/releases/download/v2.0.0-beta.9/Murvix-2.0.0-beta.9-arm64.dmg",
+            "https://github.com/muxy-app/muxy/releases/download/v2.0.9/Murvix-2.0.9-arm64.dmg",
         ] {
-            let mut data = feed("2.0.0-beta.10");
+            let mut data = feed("2.0.10");
             data["platforms"]["macos-aarch64"]["url"] = url.into();
             assert!(parse(&data).is_err());
         }
         for size in [0, MAX_DOWNLOAD + 1] {
-            let mut data = feed("2.0.0-beta.10");
+            let mut data = feed("2.0.10");
             data["platforms"]["macos-aarch64"]["size"] = size.into();
             assert!(parse(&data).is_err());
         }
         assert!(
             Release::parse(
-                feed("2.0.0-beta.10").to_string().as_bytes(),
-                "2.0.0-beta.9",
+                feed("2.0.10").to_string().as_bytes(),
+                "2.0.9",
                 "windows-x86_64",
                 "x86_64"
             )
@@ -274,25 +251,16 @@ mod tests {
 
     #[test]
     fn linux_updates_require_the_desktop_archive_and_checksum() {
-        let version = "2.0.0-beta.10";
+        let version = "2.0.10";
         let url = format!("{RELEASES}/v{version}/murvix-desktop-{version}-linux-arm64.tar.gz");
         let mut data = serde_json::json!({"schema": 1, "version": version, "platforms": {
             "linux-aarch64": {"url": url, "size": 100, "sha256": "a".repeat(64)}
         }});
         let parse = |data: &serde_json::Value| {
-            Release::parse(
-                data.to_string().as_bytes(),
-                "2.0.0-beta.9",
-                "linux-aarch64",
-                "arm64",
-            )
+            Release::parse(data.to_string().as_bytes(), "2.0.9", "linux-aarch64", "arm64")
         };
         assert!(parse(&data).is_ok_and(|release| release.is_some()));
-        for checksum in [
-            serde_json::Value::Null,
-            "abcd".into(),
-            "z".repeat(64).into(),
-        ] {
+        for checksum in [serde_json::Value::Null, "abcd".into(), "z".repeat(64).into()] {
             data["platforms"]["linux-aarch64"]["sha256"] = checksum;
             assert!(parse(&data).is_err());
         }
