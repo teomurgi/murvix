@@ -102,7 +102,7 @@ fn installed_tool(executable: &Path) -> io::Result<PathBuf> {
         }
         return Ok(root.join("current/murvix"));
     }
-    let app_name = murvix_core::release::Channel::current().app_name();
+    let app_name = murvix_core::release::APP_NAME;
     let temporary = [Path::new("/tmp"), Path::new("/var/tmp")]
         .into_iter()
         .chain([std::env::temp_dir().as_path()])
@@ -126,7 +126,7 @@ fn installed_tool(executable: &Path) -> io::Result<PathBuf> {
 /// The `muxy` inside the app bundle at `executable`.
 #[cfg(target_os = "macos")]
 fn installed_tool(executable: &Path) -> io::Result<PathBuf> {
-    let app_name = murvix_core::release::Channel::current().app_name();
+    let app_name = murvix_core::release::APP_NAME;
     let bundle = executable
         .parent()
         .and_then(Path::parent)

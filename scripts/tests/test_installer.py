@@ -12,7 +12,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-VERSION = '2.0.0-beta.1234'
+VERSION = '2.0.0'
 FAKE = r'''
 import json, os, shutil, subprocess, sys
 from pathlib import Path
@@ -116,8 +116,8 @@ class InstallerTests(unittest.TestCase):
                                for name in (self.asset.name, 'SHA256SUMS')])
 
     def test_only_exact_release_versions_are_downloaded(self):
-        for version in ('2.0.0-beta-1234', '2.0-beta.1234', '2.0.0.0-beta.1234', '2.0.0-beta.0',
-                        '2.0.0-beta.01', '2.0.0-beta.1234/../x', '2.0.0-beta.1-beta.2',
+        for version in ('2.0.0-beta.1234', '2.0.0-beta-1234', '2.0-beta.1234', '2.0.0.0-beta.1234',
+                        '2.0.0-beta.0', '2.0.0-beta.01', '2.0.0-beta.1234/../x', '2.0.0-beta.1-beta.2',
                         '2.0', '2.0.0.0', '2.0.0-rc.1', 'v2.0.0', '2.0.0/../x'):
             with self.subTest(version=version):
                 self.assertNotEqual(self.install(version=version).returncode, 0)

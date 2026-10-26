@@ -8,7 +8,7 @@
 
 - Use Conventional Commits (`type(scope): description`, e.g. `fix(ags): ...`, `feat(ui): ...`).
 - Follow SemVer (`MAJOR.MINOR.PATCH`); do not use `-beta*` (or any pre-release) suffixes — releases are stable versions only.
-- Bump the version in `BETA_VERSION` (and keep `Cargo.toml`/`Cargo.lock` in sync via `scripts/release.py stamp`) whenever a change warrants a new release, choosing the bump level from the conventional commit types (breaking → major, feat → minor, fix/perf/refactor → patch).
+- Bump the version in `VERSION` (and keep `Cargo.toml`/`Cargo.lock` in sync via `scripts/release.py stamp`) whenever a change warrants a new release, choosing the bump level from the conventional commit types (breaking → major, feat → minor, fix/perf/refactor → patch). To release: `git tag v<X.Y.Z>` on the release commit and push the tag — CI builds the tag's commit and publishes the GitHub release with generated notes.
 - Never commit directly to `main` unless asked; work on a branch and open a PR.
 
 ## Main Guides

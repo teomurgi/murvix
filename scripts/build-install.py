@@ -88,7 +88,7 @@ def signing_identity(requested):
 
 
 def package_app(directory, binaries, version, identity):
-    app = directory / "Murvix Beta.app"
+    app = directory / "Murvix.app"
     contents = app / "Contents"
     executables = contents / "MacOS"
     resources = contents / "Resources"
@@ -96,14 +96,14 @@ def package_app(directory, binaries, version, identity):
     resources.mkdir()
     for name in (*BINARIES, "murvix-app"):
         shutil.copy2(binaries / name, executables / name)
-    from release import build_number, bundle_info
-    if version == "2.0.0-beta-0":
-        # Keep unstamped local builds identifiable without stamping the source checkout.
-        info = bundle_info("2.0.0-beta.1", "1")
-        info.update(CFBundleVersion="0", MurvixVersion=version,
-                    CFBundleGetInfoString="Murvix Beta " + version)
-    else:
-        info = bundle_info(version, build_number(version))
+    import re as _re
+    import subprocess as _subprocess
+    from release import bundle_info, check_version
+    check_version(version)
+    build = _subprocess.check_output(["git", "rev-list", "--count", "HEAD"], text=True).strip()
+    if not _re.fullmatch(r"[1-9][0-9]*", build or ""):
+        raise ValueError("build number must be a positive commit count")
+    info = bundle_info(version, build)
     (contents / "Info.plist").write_bytes(plistlib.dumps(info))
     (contents / "PkgInfo").write_bytes(b"APPL????")
     (resources / "LICENSE").write_bytes(b"\n".join((ROOT / path).read_bytes() for path in (
@@ -115,7 +115,7 @@ def package_app(directory, binaries, version, identity):
     for size in (16, 32, 128, 256, 512):
         for scale, suffix in ((1, ""), (2, "@2x")):
             run("sips", "-z", size * scale, size * scale,
-                ROOT / "packaging/macos/AppIconBeta.png", "--out",
+                ROOT / "packaging/macos/AppIcon.png", "--out",
                 iconset / f"icon_{size}x{size}{suffix}.png", stdout=subprocess.DEVNULL)
     run("iconutil", "--convert", "icns", "--output", resources / "AppIcon.icns", iconset)
     sign = ("codesign", "--force", "--sign", identity, "--options", "runtime", "--timestamp")
@@ -140,7 +140,7 @@ def install(artifact, bin_dir, app_dir=None):
     bin_dir.mkdir(parents=True, exist_ok=True)
     with (bin_dir / ".murvix-build-install.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        destination = app_dir / "Murvix Beta.app" if app_dir else bin_dir / ".murvix-local"
+        destination = app_dir / "Murvix.app" if app_dir else bin_dir / ".murvix-local"
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.is_symlink() or (destination.exists() and not destination.is_dir()):
             raise ValueError(f"Expected a regular installation directory: {destination}")

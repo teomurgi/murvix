@@ -36,9 +36,9 @@ class DesktopDistributionTests(unittest.TestCase):
         self.root = self.home / "desktop with spaces"
         self.root.mkdir(mode=0o700)
         (self.root / "versions").mkdir(mode=0o700)
-        INSTALL.atomic_json(self.root / "installation.json", {"schema": 1, "channel": "beta"})
-        self.old = "2.0.0-beta.10"
-        self.new = "2.0.0-beta.11"
+        INSTALL.atomic_json(self.root / "installation.json", {"schema": 1})
+        self.old = "2.0.0"
+        self.new = "2.0.1"
         home = patch.object(Path, "home", return_value=self.home)
         home.start()
         self.addCleanup(home.stop)
@@ -60,7 +60,7 @@ class DesktopDistributionTests(unittest.TestCase):
                 path.write_bytes(value)
                 path.chmod(0o755 if name in INSTALL.BINARIES else 0o644)
                 files[name] = {"size": len(value), "sha256": hashlib.sha256(value).hexdigest()}
-            manifest = {"schema": 1, "version": version, "channel": "beta", "arch": INSTALL.architecture(),
+            manifest = {"schema": 1, "version": version, "arch": INSTALL.architecture(),
                         "build": build, "files": files, **options}
             (directory / "manifest.json").write_text(json.dumps(manifest))
             archive = self.home / f"{version}.tar.gz"
@@ -108,8 +108,8 @@ class DesktopDistributionTests(unittest.TestCase):
             INSTALL.extract(archive, Path(temporary), INSTALL.digest(archive))
         self.assertFalse((self.home / "escaped").exists())
 
-    def test_wrong_architecture_channel_and_mismatched_helpers_are_rejected(self):
-        for options in ({"arch": "unsupported"}, {"channel": "stable"},
+    def test_wrong_architecture_and_mismatched_helpers_are_rejected(self):
+        for options in ({"arch": "unsupported"},
                         {"build": {"version": self.new, "compatibility": 999, "protocol": [99]}}):
             with self.subTest(options=options):
                 archive, checksum = self.package(self.new, **options)
@@ -141,10 +141,10 @@ class DesktopDistributionTests(unittest.TestCase):
             INSTALL.activate(self.root, self.new, self.old, 12345)
 
     def test_prune_keeps_running_helpers_previous_release_and_pending_updates(self):
-        ancient = self.staged("2.0.0-beta.9")
+        ancient = self.staged("1.9.9")
         self.staged(self.old)
         self.staged(self.new)
-        pending = self.staged("2.0.0-beta.12")
+        pending = self.staged("2.0.2")
         INSTALL.switch(self.root, self.new)
         INSTALL.atomic_json(self.root / "previous.json", {"version": self.old})
         with (ancient / ".lease").open() as running:
@@ -203,9 +203,9 @@ class DesktopDistributionTests(unittest.TestCase):
         INSTALL.switch(self.root, self.old)
         commands = self.home / ".local/bin"
         commands.mkdir(parents=True)
-        unrelated = commands / "murvix-beta"
+        unrelated = commands / "murvix-other"
         unrelated.write_text("unrelated CLI")
-        profile = self.home / "data/murvix-beta"
+        profile = self.home / "data/murvix"
         profile.mkdir(parents=True)
         (profile / "settings.toml").write_text("keep me")
         INSTALL.integrate(self.root, self.old)
@@ -214,10 +214,10 @@ class DesktopDistributionTests(unittest.TestCase):
             fcntl.flock(running, fcntl.LOCK_SH)
             with self.assertRaises(BlockingIOError):
                 INSTALL.uninstall(self.root)
-            self.assertTrue((commands / "murvix-server-beta").exists())
+            self.assertTrue((self.root / "versions" / self.old / "murvix").exists())
         INSTALL.uninstall(self.root)
         self.assertFalse(self.root.exists())
-        self.assertFalse((commands / "murvix-server-beta").is_symlink())
+        self.assertFalse((commands / "murvix").is_symlink())
         self.assertEqual(unrelated.read_text(), "unrelated CLI")
         self.assertEqual((profile / "settings.toml").read_text(), "keep me")
 
@@ -232,20 +232,14 @@ class DesktopDistributionTests(unittest.TestCase):
         INSTALL.integrate_appimage(new, self.new)
         self.assertEqual(entry.read_text(), INSTALL.desktop_entry(new, self.new, appimage=True)[1])
         self.assertIn(f'Exec="{new}/usr/bin/murvix-app" %F', entry.read_text())
-        self.assertIn(f"Icon={new}/com.murvix-beta.app.png", entry.read_text())
-        INSTALL.integrate_appimage(new, "2.2.0")
-        stable, stable_contents = INSTALL.desktop_entry(new, "2.2.0", appimage=True)
+        self.assertIn(f"Icon={new}/com.murvix.app.png", entry.read_text())
+        INSTALL.integrate_appimage(new, self.new)
+        stable, stable_contents = INSTALL.desktop_entry(new, self.new, appimage=True)
         self.assertEqual(stable.read_text(), stable_contents)
         for unrelated in (old_contents + "X-User-Customized=true\n", INSTALL.desktop_entry(self.root, self.old)[1]):
             entry.write_text(unrelated)
             INSTALL.integrate_appimage(new, self.new)
             self.assertEqual(entry.read_text(), unrelated)
-            self.assertEqual(stable.read_text(), stable_contents)
-        entry.unlink()
-        entry.symlink_to(stable)
-        INSTALL.integrate_appimage(new, self.new)
-        self.assertTrue(entry.is_symlink())
-        self.assertEqual(stable.read_text(), stable_contents)
 
     def test_symlinked_installation_and_competing_mutations_are_rejected(self):
         link = self.home / "linked"
@@ -270,22 +264,20 @@ class DesktopDistributionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "insecure"):
             INSTALL.HTTPSRedirectHandler().redirect_request(request, None, 302, "redirect", {}, "http://example.com/archive")
 
-    def test_latest_install_uses_existing_feeds_without_switching_channels_or_selecting_cli_only_releases(self):
+    def test_latest_install_uses_the_stable_feed(self):
         def feed(version, platforms):
             return json.dumps({"schema": 1, "version": version, "platforms": platforms}).encode()
-        for selected, version, url in (
-                ("stable", "2.2.0", "https://github.com/teomurgi/Murvix/releases/latest/download/update.json"),
-                ("beta", self.new, f"{INSTALL.RELEASES}/beta-2.x/update.json")):
-            def fetch(actual_url, output, limit):
-                self.assertEqual(actual_url, url)
-                output.write(feed(version, {"linux-aarch64": {}}))
-            with patch.object(INSTALL, "fetch", side_effect=fetch):
-                self.assertEqual(INSTALL.latest(selected), version)
+        url = "https://github.com/teomurgi/Murvix/releases/latest/download/update.json"
+        def fetch(actual_url, output, limit):
+            self.assertEqual(actual_url, url)
+            output.write(feed("2.2.0", {"linux-aarch64": {}}))
+        with patch.object(INSTALL, "fetch", side_effect=fetch):
+            self.assertEqual(INSTALL.latest(), "2.2.0")
         for data, reason in ((feed("2.2.0", {"macos-aarch64": {}}), "no Linux desktop"),
-                             (feed(self.new, {"linux-aarch64": {}}), "channel metadata")):
+                             (feed("2.2.0-beta.1", {"linux-aarch64": {}}), "Expected X.Y.Z")):
             with patch.object(INSTALL, "fetch", side_effect=lambda url, output, limit: output.write(data)):
                 with self.assertRaisesRegex(ValueError, reason):
-                    INSTALL.latest("stable")
+                    INSTALL.latest()
 
     def test_linux_metadata_is_complete_checksummed_and_keeps_macos_assets(self):
         for name in (f"Murvix-{self.new}-arm64.dmg", f"Murvix-{self.new}-x86_64.dmg",

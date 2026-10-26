@@ -198,7 +198,7 @@ impl Worker {
     }
 
     fn deliver(&self, id: String, title: &str, body: &str, opens: bool) {
-        let name = murvix_core::release::Channel::current().app_name();
+        let name = murvix_core::release::APP_NAME;
         let open = tr!("Show");
         let body = if self.reads_markup() {
             escaped(body)

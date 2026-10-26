@@ -2,7 +2,7 @@ use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use murvix_core::release::{self, Channel};
+use murvix_core::release;
 use murvix_ui::tr;
 
 use super::{Release, Result, client, download, latest, replacement};
@@ -26,14 +26,14 @@ pub(crate) struct PreparedUpdate {
 
 impl Installation {
     pub(crate) fn detect() -> Result<Self> {
-        let app_name = Channel::current().app_name();
-        release::Version::current().ok_or_else(|| {
-            tr!(
+        if cfg!(debug_assertions) || release::current().is_none() {
+            return Err(tr!(
                 "Automatic updates require an installed release of %@",
-                app_name
+                release::APP_NAME
             )
             .to_string()
-        })?;
+            .into());
+        }
         let executable = murvix_core::executable::current_path()?;
         let bundle = executable
             .parent()
@@ -41,7 +41,11 @@ impl Installation {
             .and_then(Path::parent)
             .filter(|path| path.extension().is_some_and(|extension| extension == "app"))
             .ok_or_else(|| {
-                tr!("Automatic updates require an installed %@.app", app_name).to_string()
+                tr!(
+                    "Automatic updates require an installed %@.app",
+                    release::APP_NAME
+                )
+                .to_string()
             })?
             .to_owned();
         if bundle.starts_with("/Volumes")
@@ -51,7 +55,7 @@ impl Installation {
         {
             return Err(tr!(
                 "Move %@.app to Applications and reopen it before updating",
-                app_name
+                release::APP_NAME
             )
             .to_string()
             .into());
@@ -95,7 +99,7 @@ impl Installation {
     pub(crate) fn prepare(&self, release: Release) -> Result<PreparedUpdate> {
         let client = client()?;
         let staging = tempfile::Builder::new()
-            .prefix(".murvix-beta-update-")
+            .prefix(".murvix-update-")
             .tempdir_in(
                 self.bundle
                     .parent()
@@ -176,7 +180,7 @@ impl Installation {
         path.parent() == self.bundle.parent()
             && path
                 .file_name()
-                .is_some_and(|name| name.to_string_lossy().starts_with(".murvix-beta-update-"))
+                .is_some_and(|name| name.to_string_lossy().starts_with(".murvix-update-"))
             && std::fs::symlink_metadata(path).is_ok_and(|m| m.is_dir() && !m.is_symlink())
     }
 
@@ -231,7 +235,7 @@ impl Installation {
         );
         if app {
             requirement.push_str(" and identifier \"");
-            requirement.push_str(Channel::current().bundle_identifier());
+            requirement.push_str(release::BUNDLE_ID);
             requirement.push('"');
         }
         verify_code(path, &requirement)
@@ -241,7 +245,7 @@ impl Installation {
         self.verify_signature(app, true)?;
         let plist = app.join("Contents/Info.plist");
         for (key, expected) in [
-            ("CFBundleIdentifier", Channel::current().bundle_identifier()),
+            ("CFBundleIdentifier", release::BUNDLE_ID),
             ("CFBundleExecutable", "murvix-app"),
             ("MurvixVersion", version),
         ] {
@@ -252,18 +256,6 @@ impl Installation {
                 return Err(tr!("The signed app has an unexpected %@", key)
                     .to_string()
                     .into());
-            }
-        }
-        if let Some(release::Version::Beta { build }) = release::Version::parse(version) {
-            let count = run(Command::new("/usr/bin/plutil")
-                .args(["-extract", "CFBundleVersion", "raw", "-o", "-"])
-                .arg(&plist))?;
-            if count.trim().parse::<u64>().ok() != Some(build) {
-                return Err(
-                    tr!("The signed beta build number does not match the update feed")
-                        .to_string()
-                        .into(),
-                );
             }
         }
         let arch = if cfg!(target_arch = "aarch64") {
@@ -318,7 +310,7 @@ impl PreparedUpdate {
     pub(crate) fn fixture() -> Result<Self> {
         let staging = tempfile::tempdir()?;
         Ok(Self {
-            version: "2.0.0-beta.1234".into(),
+            version: "2.0.0".into(),
             installation: Installation {
                 bundle: staging.path().join("installed.app"),
                 team: "TESTTEAM00".into(),
@@ -420,7 +412,7 @@ impl PreparedUpdate {
 }
 
 fn bundle_name() -> String {
-    format!("{}.app", Channel::current().app_name())
+    format!("{}.app", release::APP_NAME)
 }
 
 fn restart(bundle: &Path) -> Result<()> {
@@ -428,7 +420,7 @@ fn restart(bundle: &Path) -> Result<()> {
         .args([
             "-c",
             "while /bin/kill -0 \"$1\" 2>/dev/null; do /bin/sleep 0.1; done; /usr/bin/open \"$2\"",
-            "muxy-beta-restart",
+            "murvix-restart",
         ])
         .arg(std::process::id().to_string())
         .arg(bundle)
@@ -509,14 +501,14 @@ mod tests {
     #[test]
     fn native_verification_checks_literal_requirement_and_nested_code() -> Result<()> {
         let directory = tempfile::tempdir()?;
-        let app = directory.path().join("Murvix Beta.app");
+        let app = directory.path().join("Murvix.app");
         let binaries = app.join("Contents/MacOS");
         std::fs::create_dir_all(&binaries)?;
         std::fs::write(
             app.join("Contents/Info.plist"),
             r#"<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
-<key>CFBundleIdentifier</key><string>com.murvix-beta.app</string>
+<key>CFBundleIdentifier</key><string>com.murvix.app</string>
 <key>CFBundleExecutable</key><string>murvix-app</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 </dict></plist>"#,
@@ -531,15 +523,15 @@ mod tests {
         run(Command::new("/usr/bin/codesign")
             .args(["--force", "--sign", "-"])
             .arg(&app))?;
-        verify_code(&app, "identifier \"com.murvix-beta.app\"")?;
-        assert!(verify_code(&app, "identifier \"com.murvix.app\"").is_err());
+        verify_code(&app, "identifier \"com.murvix.app\"")?;
+        assert!(verify_code(&app, "identifier \"com.example.other\"").is_err());
         let installation = Installation {
             bundle: app.clone(),
             team: "TESTTEAM00".into(),
         };
         assert!(installation.verify_signature(&app, true).is_err());
         std::fs::write(binaries.join("murvix"), b"changed helper")?;
-        assert!(verify_code(&app, "identifier \"com.murvix-beta.app\"").is_err());
+        assert!(verify_code(&app, "identifier \"com.example.other\"").is_err());
         Ok(())
     }
 }
@@ -567,12 +559,12 @@ mod retirement_tests {
     #[test]
     fn discarded_downloads_respect_installation_locks_and_recovery_files() -> Result<()> {
         let root = tempfile::tempdir()?;
-        let staging = root.path().join(".murvix-beta-update-superseded");
+        let staging = root.path().join(".murvix-update-superseded");
         std::fs::create_dir(&staging)?;
         let update = PreparedUpdate {
-            version: "2.0.0-beta.10".into(),
+            version: "2.0.10".into(),
             installation: Installation {
-                bundle: root.path().join("Murvix Beta.app"),
+                bundle: root.path().join("Murvix.app"),
                 team: "TESTTEAM00".into(),
             },
             staging: staging.clone(),
@@ -600,7 +592,7 @@ mod retirement_tests {
     fn only_committed_unused_bundles_are_retired() -> Result<()> {
         let root = tempfile::tempdir()?;
         let installation = Installation {
-            bundle: root.path().join("Murvix Beta.app"),
+            bundle: root.path().join("Murvix.app"),
             team: "TESTTEAM00".into(),
         };
         let server = murvix_protocol::ServerInfo::current();
@@ -610,7 +602,7 @@ mod retirement_tests {
             ("recovery", false, 0),
             ("unused", true, 0),
         ] {
-            let path = root.path().join(format!(".murvix-beta-update-{name}"));
+            let path = root.path().join(format!(".murvix-update-{name}"));
             std::fs::create_dir_all(path.join("previous.app"))?;
             write_record(
                 &path.join("retained.json"),

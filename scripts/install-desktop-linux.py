@@ -21,12 +21,14 @@ import urllib.request
 import urllib.parse
 
 RELEASES = "https://github.com/teomurgi/Murvix/releases/download"
-# Linux desktop identity. Both platforms now use Murvix-branded identifiers.
-LINUX_APPS = {"beta": ("Murvix Beta", "com.murvix-beta.app"), "stable": ("Murvix", "com.murvix.app")}
+APP_NAME = "Murvix"
+APP_IDENTIFIER = "com.murvix.app"
+# Historic per-channel map kept for readers; there is only the stable app now.
+LINUX_APPS = {"stable": (APP_NAME, APP_IDENTIFIER)}
 MAX_ARCHIVE = 2 * 1024**3
 FILES = {"murvix-app", "murvix", "murvix-server", "icon.png", "install.py", "LICENSE", "manifest.json"}
 BINARIES = {"murvix-app", "murvix", "murvix-server"}
-LOCK = ".murvix-beta-update.lock"
+LOCK = ".murvix-update.lock"
 
 
 class HTTPSRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -36,20 +38,17 @@ class HTTPSRedirectHandler(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(request, response, code, message, headers, url)
 
 
-def channel(version):
-    if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+-beta\.[1-9][0-9]*", version):
-        return "beta"
-    if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
-        return "stable"
-    raise ValueError("Expected X.Y.Z or X.Y.Z-beta.N")
+def check_version(version):
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version or ""):
+        raise ValueError("Expected X.Y.Z")
+    return version
+
+
+
 
 
 def newer(version, current):
-    if channel(version) != channel(current):
-        return False
-    if channel(version) == "beta":
-        return int(version.split("-beta.")[1]) > int(current.split("-beta.")[1])
-    return tuple(map(int, version.split("."))) > tuple(map(int, current.split(".")))
+    return tuple(map(int, check_version(version).split("."))) > tuple(map(int, check_version(current).split(".")))
 
 
 def architecture():
@@ -67,7 +66,8 @@ def data_home():
 
 
 def default_root(version):
-    return data_home() / ("murvix-desktop-beta" if channel(version) == "beta" else "murvix-desktop")
+    check_version(version)
+    return data_home() / "murvix-desktop"
 
 
 def owned_directory(path):
@@ -122,14 +122,16 @@ def locked(root, timeout=0):
 def installation(root, version):
     owned_directory(root)
     owned_directory(root / "versions")
-    if read_json(root / "installation.json") != {"schema": 1, "channel": channel(version)}:
+    manifest = read_json(root / "installation.json")
+    if manifest.get("schema") != 1 or manifest.get("channel", "stable") != "stable":
         raise ValueError("Installation belongs to a different channel or format")
+    check_version(version)
 
 
 def current_version(root):
     target = os.readlink(root / "current")
     version = target.removeprefix("versions/")
-    channel(version)
+    check_version(version)
     if target != f"versions/{version}":
         raise ValueError("The current installation link is invalid")
     return version
@@ -146,8 +148,9 @@ def digest(path):
 def verify(directory, version, arch=None):
     owned_directory(directory)
     manifest = read_json(directory / "manifest.json")
+    check_version(version)
     if (manifest.get("schema") != 1 or manifest.get("version") != version
-            or manifest.get("channel") != channel(version)
+            or manifest.get("channel", "stable") != "stable"
             or manifest.get("arch") != (arch or architecture())
             or set(manifest.get("files", {})) != FILES - {"manifest.json"}):
         raise ValueError("Desktop package identity does not match this release")
@@ -236,7 +239,7 @@ def prune(root):
     if previous.exists():
         keep.add(read_json(previous)["version"])
     for directory in (root / "versions").iterdir():
-        channel(directory.name)
+        check_version(directory.name)
         owned_directory(directory)
         if directory.name in keep or newer(directory.name, current_version(root)):
             continue
@@ -293,8 +296,8 @@ def restart(root, version, previous, parent):
 
 
 def desktop_entry(root, version, appimage=False):
-    release_channel = channel(version)
-    name, identifier = LINUX_APPS[release_channel]
+    check_version(version)
+    name, identifier = APP_NAME, APP_IDENTIFIER
     path = data_home() / "applications" / f"{identifier}.desktop"
     executable = str(root / ("usr/bin/murvix-app" if appimage else "current/murvix-app"))
     executable = executable.replace("\\", "\\\\\\\\").replace('"', '\\\\"').replace("`", "\\\\`").replace("$", "\\\\$").replace("%", "%%")
@@ -339,9 +342,8 @@ def integrate(root, version):
     path.write_text(contents)
     commands = Path.home() / ".local/bin"
     commands.mkdir(parents=True, exist_ok=True)
-    suffix = "-beta" if channel(version) == "beta" else ""
     for name in ("murvix", "murvix-server"):
-        link = commands / (name + suffix)
+        link = commands / name
         target = root / "current" / name
         try:
             link.symlink_to(target)
@@ -355,7 +357,7 @@ def uninstall(root):
     installation(root, version)
     with contextlib.ExitStack() as stack:
         for directory in (root / "versions").iterdir():
-            channel(directory.name)
+            check_version(directory.name)
             owned_directory(directory)
             if {path.name for path in directory.iterdir()} - FILES - {".lease"}:
                 raise ValueError(f"Unrecognized files in {directory}; move them before uninstalling")
@@ -390,20 +392,21 @@ def fetch(url, output, limit):
     return total
 
 
-def latest(release_channel):
+FEED_URL = "https://github.com/teomurgi/Murvix/releases/latest/download/update.json"
+
+
+def latest():
     import io
-    url = (f"{RELEASES}/beta-2.x/update.json" if release_channel == "beta"
-           else "https://github.com/teomurgi/Murvix/releases/latest/download/update.json")
     metadata = io.BytesIO()
-    fetch(url, metadata, 65536)
+    fetch(FEED_URL, metadata, 65536)
     feed = json.loads(metadata.getvalue())
     version = feed["version"]
-    if feed.get("schema") != 1 or channel(version) != release_channel:
-        raise ValueError("Unexpected release channel metadata")
+    if feed.get("schema") != 1 or check_version(version) != version:
+        raise ValueError("Unexpected release metadata")
     key = "linux-aarch64" if architecture() == "arm64" else "linux-x86_64"
     if key not in feed.get("platforms", {}):
-        raise ValueError(f"The latest {release_channel} release has no Linux desktop for this architecture. "
-                         "Use --channel beta to opt into beta releases, or --version to select a desktop release.")
+        raise ValueError("The latest release has no Linux desktop for this architecture; "
+                         "use --version to select a desktop release.")
     return version
 
 
@@ -428,8 +431,7 @@ def download(version, directory):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("install", "stage", "verify", "prune", "discard", "activate", "restart", "uninstall", "integrate-appimage"))
-    parser.add_argument("--version", help="Exact release; otherwise install the latest release in the selected channel")
-    parser.add_argument("--channel", choices=("stable", "beta"), help="Channel for install (default: stable)")
+    parser.add_argument("--version", help="Exact release; otherwise install the latest release")
     parser.add_argument("--root", type=Path)
     parser.add_argument("--archive", type=Path)
     parser.add_argument("--sha256")
@@ -438,23 +440,19 @@ def main():
     args = parser.parse_args()
     if platform.system() != "Linux" or os.getuid() == 0:
         raise ValueError("Run as your normal user on Linux, without sudo")
-    if args.channel and args.command != "install":
-        raise ValueError("--channel is only used for install")
     if args.command == "install":
         if args.archive and not args.version:
             raise ValueError("An offline archive requires --version and --sha256")
         if not args.version:
-            args.version = latest(args.channel or "stable")
-        if args.channel and channel(args.version) != args.channel:
-            raise ValueError("The version does not belong to the selected channel")
+            args.version = latest()
         print(f"Installing Murvix {args.version} for Linux {architecture()}…", flush=True)
     if args.command in {"install", "stage", "verify", "discard", "activate", "restart", "integrate-appimage"}:
-        channel(args.version or "")
+        check_version(args.version or "")
     root = args.root or (default_root(args.version) if args.command == "install" else Path(__file__).resolve().parent.parent.parent)
     if not root.is_absolute() or any(character in str(root) for character in "\n\r\0"):
         raise ValueError("Installation path must be absolute and contain no control characters")
     if args.command in {"activate", "restart"}:
-        channel(args.current or "")
+        check_version(args.current or "")
         if not args.pid or args.pid <= 1:
             raise ValueError("Missing updater process")
     if args.command == "integrate-appimage":
@@ -468,7 +466,7 @@ def main():
         if not root.exists():
             root.mkdir(mode=0o700)
             (root / "versions").mkdir(mode=0o700)
-            atomic_json(root / "installation.json", {"schema": 1, "channel": channel(args.version)})
+            atomic_json(root / "installation.json", {"schema": 1})
     with locked(root):
         if args.command in {"install", "stage"}:
             installation(root, args.version)

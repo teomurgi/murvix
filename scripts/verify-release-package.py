@@ -18,7 +18,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
-from release import APPS, channel  # noqa: E402
+from release import APP_NAME  # noqa: E402
 
 
 def run(*command, **kwargs):
@@ -59,7 +59,7 @@ def verify(args):
             mount = work / 'mounted'
             run('hdiutil', 'attach', args.dmg, '-nobrowse', '-readonly', '-mountpoint', mount)
             try:
-                app = mount / f'{APPS[channel(args.version)][0]}.app'
+                app = mount / f'{APP_NAME}.app'
                 run('codesign', '--verify', '--deep', '--strict', app)
                 for name in ('murvix', 'murvix-server'):
                     assert (app / 'Contents/MacOS' / name).read_bytes() == (extracted / name).read_bytes()

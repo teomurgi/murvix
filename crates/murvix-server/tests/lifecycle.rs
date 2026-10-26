@@ -191,9 +191,6 @@ impl Client {
                     } | Message::Changed {
                         topic: murvix_protocol::Topic::Sessions,
                         ..
-                    } | Message::Changed {
-                        topic: murvix_protocol::Topic::RemoteAccess,
-                        ..
                     }
                 )
             ) {
@@ -471,18 +468,18 @@ fn default_directory_does_not_touch_other_channels() -> TestResult {
     } else {
         "Library/Application Support"
     });
-    let [development, beta, stable] = if linux {
-        ["murvix-dev", "murvix-beta", "murvix"]
+    // Debug builds resolve to the development directory; release builds to the release one.
+    let (development, release) = if linux {
+        ("murvix-dev", "murvix")
     } else {
-        ["Murvix Dev", "Murvix Beta", "Murvix"]
+        ("Murvix Dev", "Murvix")
     };
-    let release = murvix_core::release::Version::current().filter(|_| !cfg!(debug_assertions));
-    let current = match release.map(murvix_core::release::Version::channel) {
-        None => development,
-        Some(murvix_core::release::Channel::Beta) => beta,
-        Some(murvix_core::release::Channel::Stable) => stable,
+    let current = if cfg!(debug_assertions) {
+        development
+    } else {
+        release
     };
-    let others: Vec<&str> = ["Murvix", "Murvix Alpha", development, beta, stable]
+    let others: Vec<&str> = ["Murvix", "Murvix Alpha", development, release]
         .into_iter()
         .filter(|name| *name != current)
         .collect();
@@ -653,31 +650,11 @@ fn binary() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_murvix-server"))
 }
 
-fn enable_mobile_access(
-    client: &mut Client,
-    port: u16,
-) -> TestResult<murvix_protocol::ListenerStatus> {
-    match client.request(RequestBody::WriteRemoteAccess(
-        murvix_protocol::RemoteAccessSettings {
-            enabled: true,
-            port,
-        },
-    ))? {
-        ReplyBody::RemoteAccess(state) => Ok(state.status),
-        other => Err(format!("expected remote access, got {other:?}").into()),
-    }
-}
-
 #[test]
-fn an_occupied_port_reports_failure_without_breaking_local_access() -> TestResult {
+fn local_access_survives_server_restart_signals() -> TestResult {
     let mut fixture = Fixture::new()?;
     fixture.start()?;
-    let occupied = std::net::TcpListener::bind("127.0.0.1:0")?;
     let mut local = Client::new(&fixture.socket())?;
-    assert!(matches!(
-        enable_mobile_access(&mut local, occupied.local_addr()?.port())?,
-        murvix_protocol::ListenerStatus::Failed(_)
-    ));
     assert_eq!(local.request(RequestBody::Ping)?, ReplyBody::Pong);
     fixture.stop("-TERM")
 }

@@ -19,7 +19,7 @@ pub(super) fn replace_and_restart(
         replace(current, backup, next)?;
         return Err(tr!(
             "Could not restart %@; the previous app was restored: %@",
-            murvix_core::release::Channel::current().app_name(),
+            murvix_core::release::APP_NAME,
             error.to_string()
         )
         .to_string()

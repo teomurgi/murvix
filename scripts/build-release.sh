@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         *)
-            echo "Usage: $0 --arch <arm64|x86_64> --version <X.Y.Z-beta.N | X.Y.Z --build-number N> [--sign-identity <identity>]" >&2
+            echo "Usage: $0 --arch <arm64|x86_64> --version <X.Y.Z> --build-number <N> [--sign-identity <identity>]" >&2
             exit 1
             ;;
     esac
@@ -34,10 +34,8 @@ case "$ARCH" in
     x86_64) TARGET="x86_64-apple-darwin" ;;
     *) echo "Error: arch must be arm64 or x86_64" >&2; exit 1 ;;
 esac
-case "$(python3 "$ROOT/scripts/release.py" channel "$VERSION")" in
-    beta) ICON_SOURCE="$ROOT/packaging/macos/AppIconBeta.png" ;;
-    stable) ICON_SOURCE="$ROOT/packaging/macos/AppIcon.png" ;;
-esac
+python3 "$ROOT/scripts/release.py" check-version "$VERSION"
+ICON_SOURCE="$ROOT/packaging/macos/AppIcon.png"
 APP_NAME="$(python3 "$ROOT/scripts/release.py" app-name "$VERSION")"
 if [[ "$(uname -s)" != Darwin ]]; then
     echo "Error: packaging requires macOS and Xcode" >&2

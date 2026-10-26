@@ -1,12 +1,12 @@
 name: Build release
 
 # Builds, signs, notarizes and verifies one release for every platform. Used
-# by the beta and stable release workflows.
+# by the release workflow.
 on:
   workflow_call:
     inputs:
       version:
-        description: X.Y.Z or X.Y.Z-beta.N
+        description: X.Y.Z
         required: true
         type: string
       source:
@@ -14,7 +14,7 @@ on:
         required: true
         type: string
       build_number:
-        description: Commit count of a stable release; a beta's is in its version
+        description: Commit count that becomes the macOS CFBundleVersion
         required: false
         type: string
         default: ''
@@ -84,7 +84,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
-          key: beta-${{ matrix.target }}-baseline
+          key: release-${{ matrix.target }}-baseline
       - name: Stamp the build version without committing a bump
         run: |
           rm -rf target/packages
@@ -96,12 +96,12 @@ jobs:
           CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
-          KEYCHAIN_PATH="$RUNNER_TEMP/muxy-release-signing.keychain-db"
+          KEYCHAIN_PATH="$RUNNER_TEMP/murvix-release-signing.keychain-db"
           : "${CERTIFICATE_P12:?Developer ID certificate is required}"
           : "${CERTIFICATE_PASSWORD:?Certificate password is required}"
           : "${KEYCHAIN_PASSWORD:?Keychain password is required}"
           umask 077
-          CERTIFICATE="$RUNNER_TEMP/muxy-release-certificate.p12"
+          CERTIFICATE="$RUNNER_TEMP/murvix-release-certificate.p12"
           trap 'rm -f "$CERTIFICATE"' EXIT
           printf '%s' "$CERTIFICATE_P12" | base64 --decode > "$CERTIFICATE"
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
@@ -114,7 +114,7 @@ jobs:
         if: runner.os == 'macOS'
         id: identity
         run: |
-          KEYCHAIN_PATH="$RUNNER_TEMP/muxy-release-signing.keychain-db"
+          KEYCHAIN_PATH="$RUNNER_TEMP/murvix-release-signing.keychain-db"
           IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | awk '/Developer ID Application/ {print $2; exit}')
           if [[ -z "$IDENTITY" ]]; then
             echo "Error: no Developer ID Application identity found" >&2
@@ -134,7 +134,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: bash scripts/notarize-release.sh "$PACKAGE_DIR/Muxy-$VERSION-$ARCH.dmg"
+        run: bash scripts/notarize-release.sh "$PACKAGE_DIR/Murvix-$VERSION-$ARCH.dmg"
       - name: Notarize standalone ZIP and verify extracted executables
         if: runner.os == 'macOS'
         env:
@@ -149,15 +149,8 @@ jobs:
         run: >-
           arch "-$ARCH" /usr/bin/python3 scripts/verify-release-package.py
           "$PACKAGE_DIR/muxy-$VERSION-macos-$ARCH.zip"
-          --version "$VERSION" --dmg "$PACKAGE_DIR/Muxy-$VERSION-$ARCH.dmg"
+          --version "$VERSION" --dmg "$PACKAGE_DIR/Murvix-$VERSION-$ARCH.dmg"
           --notarized
-      - name: Sign the update that moves Muxy 1.x to this release
-        if: runner.os == 'macOS' && !contains(inputs.version, '-')
-        env:
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-        run: >-
-          python3 scripts/sparkle-appcast.py "$VERSION" "$BUILD_NUMBER"
-          "$PACKAGE_DIR/Muxy-$VERSION-$ARCH.dmg" "$PACKAGE_DIR/appcast-$ARCH.xml"
       - name: Build and package the native glibc 2.35 pair
         if: runner.os == 'Linux'
         run: bash scripts/build-cli-linux.sh "$ARCH" "$VERSION"
@@ -172,10 +165,9 @@ jobs:
         with:
           name: distribution-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            ${{ env.PACKAGE_DIR }}/Muxy-${{ env.VERSION }}-${{ matrix.arch }}.dmg
-            ${{ env.PACKAGE_DIR }}/appcast-${{ matrix.arch }}.xml
-            ${{ env.PACKAGE_DIR }}/muxy-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}.zip
-            ${{ env.PACKAGE_DIR }}/muxy-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+            ${{ env.PACKAGE_DIR }}/Murvix-${{ env.VERSION }}-${{ matrix.arch }}.dmg
+            ${{ env.PACKAGE_DIR }}/murvix-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}.zip
+            ${{ env.PACKAGE_DIR }}/murvix-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
           if-no-files-found: error
           retention-days: 7
       - name: Upload debug symbols and dependency audits
@@ -195,14 +187,14 @@ jobs:
       - name: Remove signing keychain
         if: always() && runner.os == 'macOS'
         run: |
-          KEYCHAIN_PATH="$RUNNER_TEMP/muxy-release-signing.keychain-db"
+          KEYCHAIN_PATH="$RUNNER_TEMP/murvix-release-signing.keychain-db"
           if [[ -f "$KEYCHAIN_PATH" ]]; then
             security delete-keychain "$KEYCHAIN_PATH"
           fi
-          rm -f "$RUNNER_TEMP/muxy-release-certificate.p12"
+          rm -f "$RUNNER_TEMP/murvix-release-certificate.p12"
 
-  linux-desktop:
-    name: Build (Linux desktop, ${{ matrix.arch }})
+  omarchy:
+    name: Build (Omarchy desktop, ${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     strategy:
@@ -255,7 +247,7 @@ jobs:
           name: distribution-linux-desktop-${{ matrix.arch }}
           path: |
             ${{ env.PACKAGE_DIR }}/murvix-desktop-${{ env.VERSION }}-linux-${{ matrix.arch }}.tar.gz
-            ${{ env.PACKAGE_DIR }}/Muxy-${{ env.VERSION }}-linux-${{ matrix.arch }}.AppImage
+            ${{ env.PACKAGE_DIR }}/Murvix-${{ env.VERSION }}-linux-${{ matrix.arch }}.AppImage
             ${{ env.PACKAGE_DIR }}/murvix-desktop*.deb
           if-no-files-found: error
           retention-days: 7

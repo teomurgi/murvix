@@ -1405,7 +1405,6 @@
 "The server version does not match the signed app" = "The server version does not match the signed app";
 "The shortcut key is not available in the current keyboard layout." = "The shortcut key is not available in the current keyboard layout.";
 "The signed app has an unexpected %@" = "The signed app has an unexpected %@";
-"The signed beta build number does not match the update feed" = "The signed beta build number does not match the update feed";
 "The staged update metadata changed. Check for updates again." = "The staged update metadata changed. Check for updates again.";
 "The terminal closed before sending." = "The terminal closed before sending.";
 "The typeface used to render text in every terminal pane." = "The typeface used to render text in every terminal pane.";

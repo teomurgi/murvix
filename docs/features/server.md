@@ -81,10 +81,10 @@ Every terminal gets `TERM=xterm-256color`, `COLORTERM=truecolor`,
 
 Everything lives in one profile folder:
 
-| Platform | Stable | Beta |
-| --- | --- | --- |
-| macOS | `~/Library/Application Support/Murvix` | `~/Library/Application Support/Murvix Beta` |
-| Linux | `$XDG_STATE_HOME/murvix`, or `~/.local/state/murvix` | `$XDG_STATE_HOME/murvix-beta`, or `~/.local/state/murvix-beta` |
+| Platform | Profile folder |
+| --- | --- |
+| macOS | `~/Library/Application Support/Murvix` |
+| Linux | `$XDG_STATE_HOME/murvix`, or `~/.local/state/murvix` |
 
 | File | What it holds |
 | --- | --- |
@@ -92,7 +92,6 @@ Everything lives in one profile folder:
 | `server.log` | Server log |
 | `server.sock` | The socket apps connect to |
 | `sessions/` | Projects, sessions, and saved terminal output |
-| `remote.json` | Mobile access settings and paired phones |
 | `settings.toml`, `terminal.toml`, `themes/` | Desktop app settings, see [Settings](../user-guide/settings.md) |
 | `tui-state.json` | Terminal UI layouts |
 

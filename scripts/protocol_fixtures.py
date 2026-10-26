@@ -60,7 +60,7 @@ def append_only(base):
 
 def last_release(version):
     """The newest beta tag, if it speaks `version`; otherwise the version is unreleased."""
-    # 2.0.0-beta-N tags predate BETA_VERSION numbering.
+    # 2.0.0-beta-N tags predate VERSION numbering.
     tags = git("tag", "--list", "v2.0.0-beta-*", "v2.*-beta.*").split()
     if not tags:
         return None

@@ -8,17 +8,15 @@ import shutil
 import subprocess
 import tempfile
 
-from release import LINUX_APPS, ROOT, channel, check_build
+from release import APP_IDENTIFIER, APP_NAME, ROOT, check_build, check_version
 
 
 ARCHITECTURES = {"arm64": ("arm64", "aarch64"), "x86_64": ("amd64", "x86_64")}
 
 
 def identity(version):
-    release_channel = channel(version)
-    name, identifier = LINUX_APPS[release_channel]
-    suffix = "-beta" if release_channel == "beta" else ""
-    return name, identifier, suffix
+    check_version(version)
+    return APP_NAME, APP_IDENTIFIER, ""
 
 
 def desktop_entry(version, executable):
@@ -43,8 +41,7 @@ def write(destination, contents, mode=0o644):
 
 
 def debian_version(version):
-    channel(version)
-    return version.replace("-beta.", "~beta.")
+    return check_version(version)
 
 
 def package_deb(version, arch, payload, output):

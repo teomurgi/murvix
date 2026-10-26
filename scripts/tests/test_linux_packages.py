@@ -15,15 +15,14 @@ import linux_packages as PACKAGES
 
 
 class LinuxPackageTests(unittest.TestCase):
-    def test_beta_debian_versions_sort_before_stable_and_keep_numeric_build_order(self):
-        if not shutil.which("dpkg"):
-            self.skipTest("Debian version comparison requires dpkg")
-        versions = ["2.2.0-beta.9", "2.2.0-beta.10", "2.2.0", "2.2.1-beta.11"]
-        for old, new in zip(versions, versions[1:]):
-            subprocess.run(["dpkg", "--compare-versions", PACKAGES.debian_version(old),
-                            "lt", PACKAGES.debian_version(new)], check=True)
+    def test_debian_versions_are_plain_semver(self):
+        self.assertEqual(PACKAGES.debian_version("2.2.0"), "2.2.0")
+        self.assertEqual(PACKAGES.debian_version("2.2.1"), "2.2.1")
+        for bad in ("2.2.0-beta.10", "2.2", "v2.2.0"):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                PACKAGES.debian_version(bad)
 
-    def test_package_channels_do_not_claim_each_others_commands_or_user_installations(self):
+    def test_package_claims_only_murvix_commands(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             payload = root / "payload"
@@ -39,6 +38,7 @@ class LinuxPackageTests(unittest.TestCase):
                 paths = {str(path.relative_to(staging)) for path in staging.rglob("*")
                          if path.is_file() or path.is_symlink()}
                 control = (staging / "DEBIAN/control").read_text()
+                self.assertIn("Package: murvix-desktop", control)
                 self.assertIn("libc6 (>= 2.39)", control)
                 self.assertIn("libwebkit2gtk-4.1-0 (>= 2.42)", control)
                 self.assertNotIn("python3", control)
@@ -49,10 +49,9 @@ class LinuxPackageTests(unittest.TestCase):
 
             with patch.object(PACKAGES.subprocess, "run", side_effect=build):
                 PACKAGES.package_deb("2.2.0", "x86_64", payload, root)
-                PACKAGES.package_deb("2.2.0-beta.10", "arm64", payload, root)
-            self.assertFalse(owned[0] & owned[1])
             self.assertIn("usr/bin/murvix", owned[0])
-            self.assertIn("usr/bin/murvix-beta", owned[1])
+            self.assertIn("usr/bin/murvix-server", owned[0])
+            self.assertFalse(any("beta" in path for path in owned[0]))
 
     def test_untrusted_packaging_tool_is_not_executed_or_cached(self):
         with tempfile.TemporaryDirectory() as temporary:
