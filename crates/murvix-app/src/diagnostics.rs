@@ -27,7 +27,7 @@ pub(crate) fn init(directory: &Path) {
     let previous = path.with_extension("previous.log");
     let output = path.clone();
     let worker = std::thread::Builder::new()
-        .name("muxy-diagnostics".into())
+        .name("murvix-diagnostics".into())
         .spawn(move || {
             let mut written = 0;
             for line in receiver {

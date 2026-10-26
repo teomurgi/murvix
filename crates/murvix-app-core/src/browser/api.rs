@@ -1,4 +1,4 @@
-//! How `muxy browser` reaches the desktop app: one JSON request and one JSON
+//! How `murvix browser` reaches the desktop app: one JSON request and one JSON
 //! reply over a Unix socket in the profile folder that only this user can
 //! open. The client closes its side after the request, so each side reads to
 //! the end.
@@ -16,8 +16,8 @@ pub const SOCKET: &str = "app.sock";
 pub const MAX_REQUEST_BYTES: u64 = 8 * 1024 * 1024;
 pub const MAX_REPLY_BYTES: u64 = 128 * 1024 * 1024;
 
-pub fn socket_path(muxy_dir: &Path) -> PathBuf {
-    muxy_dir.join(SOCKET)
+pub fn socket_path(murvix_dir: &Path) -> PathBuf {
+    murvix_dir.join(SOCKET)
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

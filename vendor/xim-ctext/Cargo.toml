@@ -25,6 +25,6 @@ std = []
 
 [workspace]
 
-[package.metadata.muxy]
+[package.metadata.murvix]
 upstream-version = "0.4.1"
 decoding-fix = "https://github.com/Riey/xim-rs/pull/50"

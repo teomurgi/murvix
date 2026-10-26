@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use crate::{AppError, AppState};
 
 pub fn default_path() -> Result<PathBuf, AppError> {
-    murvix_core::dirs::muxy_dir()
+    murvix_core::dirs::murvix_dir()
         .map(|directory| directory.join("desktop-state.json"))
         .map_err(|source| AppError::Io {
             path: PathBuf::from("Murvix state directory"),

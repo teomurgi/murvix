@@ -204,7 +204,7 @@ fn search_samples(session: SessionId, channel: ChannelId) -> Vec<Message> {
             id: RequestId(7),
             body: RequestBody::Search {
                 source: SearchSource::Saved(session),
-                query: "muxy".into(),
+                query: "murvix".into(),
                 ignore_case: true,
                 before: HistoryCursor(42),
                 max_results: 100,
@@ -817,7 +817,7 @@ fn files_samples() -> Vec<Message> {
         Message::Reply {
             id: RequestId(10),
             body: ReplyBody::Uploaded(Some(ServerPath(
-                b"/home/dev/.local/state/muxy/uploads/1/screenshot.png".to_vec(),
+                b"/home/dev/.local/state/murvix/uploads/1/screenshot.png".to_vec(),
             ))),
         },
         Message::Request {

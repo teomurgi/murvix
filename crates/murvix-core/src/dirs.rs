@@ -5,7 +5,7 @@ use std::io;
 use std::os::unix::fs::DirBuilderExt;
 use std::path::PathBuf;
 
-pub fn muxy_dir() -> io::Result<PathBuf> {
+pub fn murvix_dir() -> io::Result<PathBuf> {
     let linux = cfg!(target_os = "linux");
     let directory = resolve_directory(
         env::var_os("MUXY_DIR"),

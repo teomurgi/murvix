@@ -148,7 +148,7 @@ flowchart LR
 - Browser panes embed [polybrowser](https://github.com/saeedvaziry/polybrowser),
   which wraps the system WebKit view and keeps profiles and history.
 - A page sits in the same native host as extension web views, so it hides under
-  app content and shares the keyboard with Muxy's shortcuts.
+  app content and shares the keyboard with Murvix's shortcuts.
 - The server knows nothing about browsers. `murvix browser` reaches the desktop
   app over its own socket in the profile folder, `app.sock`, which only this
   user can open. One JSON request gets one JSON reply.

@@ -192,7 +192,7 @@ fn peers_that_do_not_negotiate_the_murvix_protocol_are_rejected() -> Result {
         let mut tcp = TcpStream::connect(listener.local_addr())?;
         tcp.set_read_timeout(Some(TIMEOUT))?;
         let mut connection =
-            rustls::ClientConnection::new(Arc::new(config), "muxy.invalid".try_into()?)?;
+            rustls::ClientConnection::new(Arc::new(config), "murvix.invalid".try_into()?)?;
         while connection.is_handshaking() {
             if connection.complete_io(&mut tcp).is_err() {
                 break;

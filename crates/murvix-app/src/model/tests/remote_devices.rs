@@ -215,7 +215,7 @@ fn a_remote_reached_over_ssh_lists_folders_and_adds_a_project_there(cx: &mut Tes
 
 fn remote_add_project(cx: &mut TestAppContext) -> Result {
     let directory = tempfile::Builder::new()
-        .prefix("muxy-remote-")
+        .prefix("murvix-remote-")
         .tempdir_in("/tmp")?;
     let socket = directory.path().join("remote.sock");
     serve_remote(&socket)?;

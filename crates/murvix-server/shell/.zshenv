@@ -6,4 +6,4 @@ else
 fi
 unset MUXY_ZDOTDIR_SET MUXY_ORIGINAL_ZDOTDIR
 [[ -r ${ZDOTDIR-$HOME}/.zshenv ]] && source "${ZDOTDIR-$HOME}/.zshenv"
-[[ -o interactive && ${MUXY_SHELL_INTEGRATION-} == 1 ]] && source "$MUXY_SHELL_INTEGRATION_DIR/muxy.zsh"
+[[ -o interactive && ${MUXY_SHELL_INTEGRATION-} == 1 ]] && source "$MUXY_SHELL_INTEGRATION_DIR/murvix.zsh"

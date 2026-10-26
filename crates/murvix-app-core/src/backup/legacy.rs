@@ -7,72 +7,72 @@ use super::{ImportReport, Result, ServerSettings, settings_source};
 use crate::settings::{CustomCommand, KeyChord, Keymap, Settings};
 
 const MAPPINGS: &[(&str, &[&str])] = &[
-    ("muxy.theme.dark", &["appearance", "dark_theme"]),
-    ("muxy.theme.light", &["appearance", "light_theme"]),
-    ("muxy.showStatusBar", &["appearance", "status_bar_visible"]),
-    ("muxy.tips.visible", &["appearance", "tips_visible"]),
+    ("murvix.theme.dark", &["appearance", "dark_theme"]),
+    ("murvix.theme.light", &["appearance", "light_theme"]),
+    ("murvix.showStatusBar", &["appearance", "status_bar_visible"]),
+    ("murvix.tips.visible", &["appearance", "tips_visible"]),
     (
-        "muxy.general.autoExpandWorktreesOnProjectSwitch",
+        "murvix.general.autoExpandWorktreesOnProjectSwitch",
         &["appearance", "auto_expand_worktrees"],
     ),
     (
-        "muxy.worktrees.showUnreadIndicator",
+        "murvix.worktrees.showUnreadIndicator",
         &["appearance", "worktree_show_unread"],
     ),
     (
-        "muxy.general.autoCopyTerminalSelection",
+        "murvix.general.autoCopyTerminalSelection",
         &["clipboard", "copy_on_select"],
     ),
     (
-        "muxy.tabs.confirmCloseRunningProcess",
+        "murvix.tabs.confirmCloseRunningProcess",
         &["window", "confirm_running_process"],
     ),
     (
-        "muxy.general.defaultWorktreePathTemplate",
+        "murvix.general.defaultWorktreePathTemplate",
         &["worktrees", "default_location", "path_template"],
     ),
     (
-        "muxy.general.defaultWorktreeParentPath",
+        "murvix.general.defaultWorktreeParentPath",
         &["worktrees", "default_location", "parent_path"],
     ),
     (
-        "muxy.projectPicker.defaultDirectory",
+        "murvix.projectPicker.defaultDirectory",
         &["projects", "search_root"],
     ),
     (
-        "muxy.sidebarCollapsedStyle",
+        "murvix.sidebarCollapsedStyle",
         &["appearance", "sidebar_collapsed_style"],
     ),
-    ("muxy.activeSidebar", &["appearance", "extension_sidebar"]),
-    ("muxy.localization", &["appearance", "language"]),
-    ("muxy.appLayout", &["appearance", "layout"]),
+    ("murvix.activeSidebar", &["appearance", "extension_sidebar"]),
+    ("murvix.localization", &["appearance", "language"]),
+    ("murvix.appLayout", &["appearance", "layout"]),
     (
         "editor.richInputImageStrategy",
         &["composer", "image_strategy"],
     ),
-    ("muxy.richInput.floating", &["composer", "pinned"]),
-    ("muxy.quickTerminal.enabled", &["quick_terminal", "enabled"]),
-    ("muxy.quickTerminal.width", &["quick_terminal", "width"]),
-    ("muxy.quickTerminal.height", &["quick_terminal", "height"]),
+    ("murvix.richInput.floating", &["composer", "pinned"]),
+    ("murvix.quickTerminal.enabled", &["quick_terminal", "enabled"]),
+    ("murvix.quickTerminal.width", &["quick_terminal", "width"]),
+    ("murvix.quickTerminal.height", &["quick_terminal", "height"]),
     (
-        "muxy.quickTerminal.transparency",
+        "murvix.quickTerminal.transparency",
         &["quick_terminal", "transparency"],
     ),
-    ("muxy.quickTerminal.blur", &["quick_terminal", "blur"]),
+    ("murvix.quickTerminal.blur", &["quick_terminal", "blur"]),
     ("shortcuts.quickTerminal", &["quick_terminal", "shortcut"]),
     (
-        "muxy.richInput.presentationMode",
+        "murvix.richInput.presentationMode",
         &["composer", "presentation"],
     ),
-    ("muxy.richInput.position", &["composer", "position"]),
-    ("muxy.richInput.fontSize", &["composer", "font_size"]),
-    ("muxy.richInput.broadcast", &["composer", "broadcast"]),
+    ("murvix.richInput.position", &["composer", "position"]),
+    ("murvix.richInput.fontSize", &["composer", "font_size"]),
+    ("murvix.richInput.broadcast", &["composer", "broadcast"]),
     (
-        "muxy.richInput.clearAfterSending",
+        "murvix.richInput.clearAfterSending",
         &["composer", "clear_after_sending"],
     ),
     (
-        "muxy.richInput.clearOnClose",
+        "murvix.richInput.clearOnClose",
         &["composer", "clear_on_close"],
     ),
     ("editor.richInputFontFamily", &["composer", "font_family"]),
@@ -80,22 +80,22 @@ const MAPPINGS: &[(&str, &[&str])] = &[
         "editor.richInputLineHeightMultiplier",
         &["composer", "line_height"],
     ),
-    ("muxy.recording.autoSend", &["composer", "voice_auto_send"]),
-    ("muxy.recording.language", &["composer", "language"]),
+    ("murvix.recording.autoSend", &["composer", "voice_auto_send"]),
+    ("murvix.recording.language", &["composer", "language"]),
     (
-        "muxy.ai.repositoryActions.commit.provider",
+        "murvix.ai.repositoryActions.commit.provider",
         &["ai", "providers", "commit"],
     ),
     (
-        "muxy.ai.repositoryActions.commit.prompt",
+        "murvix.ai.repositoryActions.commit.prompt",
         &["ai", "prompts", "commit"],
     ),
     (
-        "muxy.ai.repositoryActions.createPullRequest.provider",
+        "murvix.ai.repositoryActions.createPullRequest.provider",
         &["ai", "providers", "create_pr"],
     ),
     (
-        "muxy.ai.repositoryActions.createPullRequest.prompt",
+        "murvix.ai.repositoryActions.createPullRequest.prompt",
         &["ai", "prompts", "create_pr"],
     ),
 ];
@@ -116,13 +116,13 @@ pub fn import_settings(source: &[u8], current: &Settings) -> Result<(Settings, I
         let result = (|| -> Result<toml::Value> {
             let mut candidate = document.clone();
             let value = match (key.as_str(), value) {
-                ("muxy.appLayout", Value::String(value)) => Value::String(action_id(value)),
+                ("murvix.appLayout", Value::String(value)) => Value::String(action_id(value)),
                 ("editor.richInputImageStrategy", Value::String(value))
                     if value == "inlinePath" =>
                 {
                     Value::String("inline_path".into())
                 }
-                ("muxy.richInput.floating", Value::Bool(value)) => Value::Bool(!value),
+                ("murvix.richInput.floating", Value::Bool(value)) => Value::Bool(!value),
                 _ => value.clone(),
             };
             set(&mut candidate, path, toml::Value::try_from(value)?);

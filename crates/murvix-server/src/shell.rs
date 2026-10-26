@@ -35,11 +35,11 @@ impl ShellIntegration {
         }
         for (name, contents) in [
             ("zsh/.zshenv", include_str!("../shell/.zshenv")),
-            ("muxy.zsh", include_str!("../shell/muxy.zsh")),
-            ("muxy.bash", include_str!("../shell/muxy.bash")),
+            ("murvix.zsh", include_str!("../shell/murvix.zsh")),
+            ("murvix.bash", include_str!("../shell/murvix.bash")),
             (
-                "fish/vendor_conf.d/muxy.fish",
-                include_str!("../shell/muxy.fish"),
+                "fish/vendor_conf.d/murvix.fish",
+                include_str!("../shell/murvix.fish"),
             ),
         ] {
             let path = directory.join(name);

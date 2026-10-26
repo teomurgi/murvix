@@ -148,4 +148,4 @@ Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) fo
 
 ## Thanks
 
-Murvix builds on [Muxy](https://github.com/muxy-app/muxy), the project it was derived from. Thank you to [Saeed Vaziry](https://github.com/saeedvaziry) and everyone who has contributed to Muxy — their work made Murvix possible.
+Murvix builds on [Murvix](https://github.com/murvix-app/murvix), the project it was derived from. Thank you to [Saeed Vaziry](https://github.com/saeedvaziry) and everyone who has contributed to Murvix — their work made Murvix possible.

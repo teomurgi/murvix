@@ -1,6 +1,6 @@
-# Muxy
+# Murvix
 
-Muxy is a terminal multiplexer. You organize your work into projects and work
+Murvix is a terminal multiplexer. You organize your work into projects and work
 in tabs and split panes. Terminals run in a background server, so they keep
 running when you close the app, and several apps can show the same terminal at
 once.
@@ -16,7 +16,7 @@ flowchart LR
     DESKTOP <-->|"SSH"| REMOTE["murvix-server<br/>on another computer"]
 ```
 
-Three ideas explain most of Muxy:
+Three ideas explain most of Murvix:
 
 - **The server owns the work.** Projects and terminal sessions live in the
   server, not in the apps.

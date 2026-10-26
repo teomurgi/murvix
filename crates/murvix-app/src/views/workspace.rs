@@ -17,7 +17,7 @@ use crate::model::AppModel;
 use crate::model::browsers::BrowserAction;
 
 actions!(
-    muxy,
+    murvix,
     [
         OpenSettings,
         CheckForUpdates,
@@ -86,13 +86,13 @@ actions!(
 );
 
 #[derive(Clone, PartialEq, Debug, gpui::Action)]
-#[action(namespace = muxy, no_json)]
+#[action(namespace = murvix, no_json)]
 pub(crate) struct SelectTab {
     pub(crate) index: usize,
 }
 
 #[derive(Clone, PartialEq, Debug, gpui::Action)]
-#[action(namespace = muxy, no_json)]
+#[action(namespace = murvix, no_json)]
 pub(crate) struct SelectProject {
     pub(crate) index: usize,
 }

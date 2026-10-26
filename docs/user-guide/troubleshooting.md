@@ -44,7 +44,7 @@ your `PATH`:
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-If `murvix --version` shows 1.x, Muxy 1.x's CLI comes first on your `PATH`.
+If `murvix --version` shows 1.x, Murvix 1.x's CLI comes first on your `PATH`.
 
 ## A remote server won't connect
 
@@ -102,8 +102,8 @@ shortcut.
 2. Quit Murvix.
 3. Move the [profile folder](../features/server.md#files) somewhere else.
 
-Muxy 1.x data and `~/.config/ghostty` are not touched. The next launch imports
-Muxy 1.x again; to start empty, also move `~/Library/Application Support/Muxy`.
+Murvix 1.x data and `~/.config/ghostty` are not touched. The next launch imports
+Murvix 1.x again; to start empty, also move `~/Library/Application Support/Murvix`.
 
 ## Reporting a bug
 

@@ -1,15 +1,15 @@
 # Manifest
 
 The manifest is the `package.json` at the root of the extension. `name` and
-`version` sit at the top level; everything Muxy-specific sits under `muxy`.
+`version` sit at the top level; everything Murvix-specific sits under `murvix`.
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/muxy-app/muxy/main/docs/extensions/schema/manifest.schema.json",
+  "$schema": "https://raw.githubusercontent.com/murvix-app/murvix/main/docs/extensions/schema/manifest.schema.json",
   "name": "hello",
   "version": "0.1.0",
   "scripts": { "build": "vite build && cp package.json dist/" },
-  "muxy": {
+  "murvix": {
     "description": "Says hello",
     "permissions": ["notifications:write"],
     "commands": [{ "id": "ping", "title": "Hello: Ping" }]
@@ -20,12 +20,12 @@ The manifest is the `package.json` at the root of the extension. `name` and
 The [JSON schema](schema/manifest.schema.json) gives editor completion when
 `$schema` sits at the top level. In VS Code it replaces the built-in
 `package.json` schema for that file. The schema checks publishable packages, so
-it also requires `scripts.build`. Muxy ignores `$schema` and other keys it
+it also requires `scripts.build`. Murvix ignores `$schema` and other keys it
 doesn't know.
 
 ## Loading
 
-- Muxy reads `dist/package.json` when it exists, otherwise `package.json`.
+- Murvix reads `dist/package.json` when it exists, otherwise `package.json`.
 - Every path in the manifest (`entry`, `background`, `script`, icons) is
   relative to `dist/` when the folder has one, otherwise to the folder itself.
   Paths can't leave that folder.
@@ -39,9 +39,9 @@ doesn't know.
 | `version` | yes | Semver. Bump it for every published change. |
 | `scripts.build` | to publish | Must leave `package.json` in `dist/`. |
 
-## `muxy` fields
+## `murvix` fields
 
-The `muxy` object is required; its fields are optional.
+The `murvix` object is required; its fields are optional.
 
 | Field | Type | See |
 | --- | --- | --- |

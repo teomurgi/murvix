@@ -19,9 +19,9 @@ project or worktree by ID.
 | `files.delete(paths)` | `files:write` | |
 
 ```js
-const entries = await muxy.files.list("");
-const readme = await muxy.files.read("README.md");
-await muxy.files.write("notes/todo.md", readme.content + "\n- [ ] ship it");
+const entries = await murvix.files.list("");
+const readme = await murvix.files.read("README.md");
+await murvix.files.write("notes/todo.md", readme.content + "\n- [ ] ship it");
 ```
 
 - Writes ask the user first; see [Permissions](permissions.md#runtime-prompts).

@@ -9,7 +9,7 @@ struct Temp(PathBuf);
 impl Temp {
     fn new() -> Self {
         let root =
-            std::env::temp_dir().join(format!("muxy-openers-{}", murvix_app_core::PaneId::new()));
+            std::env::temp_dir().join(format!("murvix-openers-{}", murvix_app_core::PaneId::new()));
         std::fs::create_dir(&root).expect("temp directory");
         Self(root)
     }
@@ -262,11 +262,11 @@ fn linux_openers_preserve_literal_paths_and_use_the_file_manager_for_reveal() {
 
 #[test]
 fn a_missing_program_is_named_and_other_failures_are_kept() {
-    let missing = Launch::program("/nonexistent/muxy-opener", ["a file".into()]);
+    let missing = Launch::program("/nonexistent/murvix-opener", ["a file".into()]);
     let error = launch(&missing).expect_err("nothing to run");
     assert_eq!(error.kind(), io::ErrorKind::NotFound);
     assert!(
-        error.to_string().contains("/nonexistent/muxy-opener"),
+        error.to_string().contains("/nonexistent/murvix-opener"),
         "{error}"
     );
     let failing = Launch::program("/usr/bin/false", []);

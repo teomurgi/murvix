@@ -362,7 +362,7 @@
   var searchTimerResolve = null;
   var currentExecHandle = null;
   function open_find_in_files() {
-    muxy.modal.open({
+    murvix.modal.open({
       placeholder: "Find in files...",
       emptyLabel: "Type 2 or more characters",
       noMatchLabel: "No matches",
@@ -520,12 +520,12 @@
     return search_error("Search failed", variants[0]);
   }
   async function run_request(request) {
-    const handle = muxy.execAsync(request.argv, {
+    const handle = murvix.execAsync(request.argv, {
       stdin: request.stdin,
       timeoutMs: request.timeoutMs
     });
     if (!handle || typeof handle.cancel !== "function" || typeof handle.result?.then !== "function") {
-      return { ok: false, error: new Error("muxy.execAsync unavailable") };
+      return { ok: false, error: new Error("murvix.execAsync unavailable") };
     }
     if (currentExecHandle) {
       try {
@@ -642,8 +642,8 @@
     if (!choice) return;
     const result = parse_result_id(choice.id);
     if (!result) return;
-    const extId = typeof muxy !== "undefined" && muxy.extensionID || "files";
-    muxy.tabs.open({
+    const extId = typeof murvix !== "undefined" && murvix.extensionID || "files";
+    murvix.tabs.open({
       kind: "extensionWebView",
       extension: {
         id: extId,

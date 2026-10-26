@@ -32,7 +32,7 @@ impl Args {
             *destination = Some(PathBuf::from(value));
         }
         let directory = if socket.is_none() || settings.is_none() || log.is_none() {
-            murvix_core::dirs::muxy_dir()?
+            murvix_core::dirs::murvix_dir()?
         } else {
             PathBuf::new()
         };

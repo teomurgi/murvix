@@ -1,4 +1,4 @@
-//! Language packs: extensions that declare `muxy.localizations`, each a
+//! Language packs: extensions that declare `murvix.localizations`, each a
 //! resource-only `.bundle` with `<language>.lproj/Localizable.strings` and an
 //! optional `Localizable.stringsdict`, in main's format.
 //!

@@ -26,7 +26,7 @@ const TIMEOUT_PERL =
 function timed_lines(argv, sep) {
   let out = "";
   try {
-    const result = muxy.exec(["perl", "-e", TIMEOUT_PERL, "--", ...argv]);
+    const result = murvix.exec(["perl", "-e", TIMEOUT_PERL, "--", ...argv]);
     out = (result && result.stdout) || "";
   } catch {
     return null;
@@ -82,7 +82,7 @@ function search(query) {
   return matches.slice(0, MAX_RESULTS).map((m) => to_item(m.rel));
 }
 
-muxy.modal.open({
+murvix.modal.open({
   placeholder: "Go to file…",
   emptyLabel: "No files",
   noMatchLabel: "No matching files",
@@ -100,9 +100,9 @@ muxy.modal.open({
   },
   onSelect(choice) {
     if (!choice) return;
-    const extId = (typeof muxy !== "undefined" && muxy.extensionID) || "files";
+    const extId = (typeof murvix !== "undefined" && murvix.extensionID) || "files";
     try {
-      muxy.tabs.open({
+      murvix.tabs.open({
         kind: "extensionWebView",
         extension: {
           id: extId,
@@ -115,7 +115,7 @@ muxy.modal.open({
       console.error(
         "[quick-open] tabs.open FAILED" +
           " extId=" + String(extId) +
-          " muxy.extensionID=" + String(typeof muxy !== "undefined" ? muxy.extensionID : "n/a") +
+          " murvix.extensionID=" + String(typeof murvix !== "undefined" ? murvix.extensionID : "n/a") +
           " tabType=code-editor file=" + choice.id +
           " error=" + String((err && err.message) || err),
       );

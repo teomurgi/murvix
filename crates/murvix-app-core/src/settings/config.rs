@@ -211,7 +211,7 @@ impl Settings {
     }
 
     pub fn default_path() -> Result<PathBuf> {
-        murvix_core::dirs::muxy_dir()
+        murvix_core::dirs::murvix_dir()
             .map(|directory| directory.join("settings.toml"))
             .map_err(|error| Error::new("settings path", error))
     }

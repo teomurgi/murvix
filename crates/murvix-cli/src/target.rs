@@ -36,7 +36,7 @@ pub(crate) enum Target {
 impl Target {
     /// The server on `host` if one is given, else this computer's.
     pub(crate) fn new(host: Option<SshTarget>) -> io::Result<Self> {
-        let profile = murvix_core::dirs::muxy_dir()?;
+        let profile = murvix_core::dirs::murvix_dir()?;
         Ok(match host {
             Some(host) => Self::Ssh { profile, host },
             None => Self::Local {

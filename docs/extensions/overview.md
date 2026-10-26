@@ -4,19 +4,19 @@
 
 An extension is a web project that adds to the desktop app: tabs, panels,
 popovers, a sidebar, top bar and status bar items, palette commands, shortcuts,
-background logic, and app languages. You build it with any web tooling and Muxy
+background logic, and app languages. You build it with any web tooling and Murvix
 loads the build output.
 
-Most extensions made for Muxy 1.x work unchanged. A few 1.x features are not
+Most extensions made for Murvix 1.x work unchanged. A few 1.x features are not
 available yet; see [Coming from 1.x](get-started.md#coming-from-1x).
 
 ## Where code runs
 
 | Where | What it is | API |
 | --- | --- | --- |
-| **Pages** | Tabs, panels, popovers, the sidebar, and modal web views. Native WebKit views that stay alive while hidden. | `window.muxy`, async (Promises) |
-| **Scripts** | A `runScript` command. Runs once in JavaScriptCore on its own thread. | `muxy`, synchronous |
-| **Background** | The optional `background` script. Runs while the extension is enabled. Receives events. | `muxy`, synchronous |
+| **Pages** | Tabs, panels, popovers, the sidebar, and modal web views. Native WebKit views that stay alive while hidden. | `window.murvix`, async (Promises) |
+| **Scripts** | A `runScript` command. Runs once in JavaScriptCore on its own thread. | `murvix`, synchronous |
+| **Background** | The optional `background` script. Runs while the extension is enabled. Receives events. | `murvix`, synchronous |
 
 Not every API exists everywhere. See the [API reference](api.md#availability).
 
@@ -30,7 +30,7 @@ for local and remote projects. Web requests run in the desktop app.
 | [Get started](get-started.md) | Build, load, and debug an extension |
 | [Manifest](manifest.md) | `package.json` fields |
 | [Permissions](permissions.md) | Permissions and runtime prompts |
-| [API reference](api.md) | Every `muxy` namespace and where it is available |
+| [API reference](api.md) | Every `murvix` namespace and where it is available |
 | [Events](events.md) | App events and extension messages |
 | [Tabs](tabs.md) | Tab types, file openers, page data, and theme |
 | [Panels](panels.md) | Panels, popovers, and the sidebar |
@@ -44,7 +44,7 @@ for local and remote projects. Web requests run in the desktop app.
 
 ## Where extensions live
 
-Installed extensions live in the `extensions/<name>/` folder of Muxy's
+Installed extensions live in the `extensions/<name>/` folder of Murvix's
 [profile folder](../features/server.md#files). Each is the build output, with
 `package.json` at its root.
 

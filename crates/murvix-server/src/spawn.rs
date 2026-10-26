@@ -17,7 +17,7 @@ const LOGIN_FLAG: &str = "-l";
 const TERMINAL_ENV: [(&str, &str); 3] = [
     ("TERM", "xterm-256color"),
     ("COLORTERM", "truecolor"),
-    ("TERM_PROGRAM", "muxy"),
+    ("TERM_PROGRAM", "murvix"),
 ];
 
 pub(crate) fn spawn_shell(

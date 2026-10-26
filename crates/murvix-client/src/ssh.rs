@@ -308,7 +308,7 @@ fn program(explicit: Option<&Path>, environment: Option<OsString>) -> io::Result
 
 impl Client {
     /// Connects to the server on another computer through ssh, which runs
-    /// `muxy stdio` there. ssh prompts only through the target's askpass
+    /// `murvix stdio` there. ssh prompts only through the target's askpass
     /// program, so logging in otherwise needs ssh-agent, a key, or a
     /// certificate. The host's key must already be trusted.
     pub fn connect_ssh(target: &SshTarget, start: Start) -> Result<Self, ClientError> {
@@ -366,7 +366,7 @@ impl ErrorTail {
         match stderr {
             Some(stderr) => {
                 thread::Builder::new()
-                    .name("muxy-ssh-stderr".into())
+                    .name("murvix-ssh-stderr".into())
                     .spawn(move || filling.fill(stderr))?;
             }
             None => filling.finish(),

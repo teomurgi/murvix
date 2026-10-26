@@ -179,7 +179,7 @@ fn window_owns_focus_and_closing_chooses_neighbors_without_stealing_focus() -> R
 #[test]
 fn closing_tabs_in_a_missing_project_keeps_saved_window_state_loadable() -> Result {
     let mut state = AppState::bootstrap()?;
-    let directory = std::env::temp_dir().join(format!("muxy-missing-{}", PaneId::new()));
+    let directory = std::env::temp_dir().join(format!("murvix-missing-{}", PaneId::new()));
     std::fs::create_dir(&directory)?;
     let project = state.add_project(ServerId::local(), directory.clone())?;
     let first = state.open_terminal_tab(project)?;

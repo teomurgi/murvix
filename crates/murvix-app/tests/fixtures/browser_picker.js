@@ -10,7 +10,7 @@ const move = element => element.dispatchEvent(new PointerEvent('pointermove', { 
 const click = element => element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 const clean = () => {
     check(active.size === 0, 'picker listeners leaked');
-    check(!window.__muxyDomPicker, 'picker handle leaked');
+    check(!window.__murvixDomPicker, 'picker handle leaked');
 };
 
 document.body.innerHTML = '<p id="plain">Hello</p>';
@@ -75,11 +75,11 @@ clean();
 
 result = run();
 move(element);
-const stale = window.__muxyDomPicker;
+const stale = window.__murvixDomPicker;
 const replacement = run();
 check(await result === null, 'previous picker not cancelled');
 stale.cancel();
-check(Boolean(window.__muxyDomPicker), 'stale handle removed the replacement');
+check(Boolean(window.__murvixDomPicker), 'stale handle removed the replacement');
 click(element);
 check((await replacement).text === 'Hello', 'replacement picker failed');
 clean();

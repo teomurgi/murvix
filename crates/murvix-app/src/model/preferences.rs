@@ -93,7 +93,7 @@ impl AppModel {
                 cx,
             );
             view.extensions = Some(extensions.clone());
-            view.set_backup_pending(self.path.with_file_name("pending-import.muxy").exists());
+            view.set_backup_pending(self.path.with_file_name("pending-import.murvix").exists());
             view
         });
         let weak = cx.weak_entity();

@@ -45,7 +45,7 @@ fn installation_message(result: io::Result<PathBuf>) -> (SharedString, String) {
                 std::env::split_paths(&value).any(|entry| Some(entry.as_path()) == path.parent())
             });
             let guidance = if on_path {
-                tr!("Run muxy --help in your terminal.")
+                tr!("Run murvix --help in your terminal.")
             } else {
                 tr!(
                     "Add ~/.local/bin to your PATH. For this shell, run:\nexport PATH=\"$HOME/.local/bin:$PATH\""
@@ -85,7 +85,7 @@ fn install() -> io::Result<PathBuf> {
     Ok(destination)
 }
 
-/// The `muxy` installed with the app at `executable`: on Linux the app, the
+/// The `murvix` installed with the app at `executable`: on Linux the app, the
 /// tool and the server sit in one directory. An app run from a temporary
 /// folder is not installed, and a link into it would not last.
 #[cfg(not(target_os = "macos"))]
@@ -123,7 +123,7 @@ fn installed_tool(executable: &Path) -> io::Result<PathBuf> {
     Ok(executable.with_file_name("murvix"))
 }
 
-/// The `muxy` inside the app bundle at `executable`.
+/// The `murvix` inside the app bundle at `executable`.
 #[cfg(target_os = "macos")]
 fn installed_tool(executable: &Path) -> io::Result<PathBuf> {
     let app_name = murvix_core::release::APP_NAME;
@@ -154,7 +154,7 @@ fn installed_tool(executable: &Path) -> io::Result<PathBuf> {
                 || part
                     .as_os_str()
                     .to_string_lossy()
-                    .starts_with(".muxy-beta-update-")
+                    .starts_with(".murvix-beta-update-")
         })
         || bundle
             .file_name()
@@ -174,7 +174,7 @@ fn installed_tool(executable: &Path) -> io::Result<PathBuf> {
 fn install_link(target: &Path, destination: &Path) -> io::Result<()> {
     if !target.is_absolute() || !target.is_file() {
         return Err(io::Error::other(
-            tr!("Bundled muxy executable is missing").to_string(),
+            tr!("Bundled murvix executable is missing").to_string(),
         ));
     }
     let parent = destination
@@ -266,7 +266,7 @@ mod tests {
         install_link(&target, &destination)?;
         assert_eq!(fs::read_link(&destination)?, target);
         install_link(&target, &destination)?;
-        let next = root.path().join("moved-muxy");
+        let next = root.path().join("moved-murvix");
         fs::rename(&target, &next)?;
         install_link(&next, &destination)?;
         assert_eq!(fs::read_link(&destination)?, next);

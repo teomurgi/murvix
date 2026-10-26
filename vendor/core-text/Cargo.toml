@@ -47,6 +47,6 @@ mountainlion = []
 
 [workspace]
 
-[package.metadata.muxy]
+[package.metadata.murvix]
 upstream-version = "21.0.0"
 ownership-fix = "https://github.com/servo/core-foundation-rs/commit/6f844cf1a1a18e25b70fcdf1bcdc458555bd2eff"

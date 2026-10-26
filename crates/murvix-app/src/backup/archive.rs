@@ -119,7 +119,7 @@ pub(super) fn write(destination: &Path, files: &Files, restore: Restore) -> Resu
     archive.write_all(&serde_json::to_vec_pretty(&serde_json::json!({
         "schemaVersion": 2,
         "appVersion": env!("CARGO_PKG_VERSION"),
-        "format": "muxy.configuration",
+        "format": "murvix.configuration",
         "complete": restore == Restore::Complete,
         "merge": restore == Restore::Merge,
         "files": files.keys().collect::<Vec<_>>(),
@@ -159,7 +159,7 @@ pub(super) fn read(source: &Path) -> Result<(Files, bool, Restore)> {
     };
     let legacy = match manifest["schemaVersion"].as_u64() {
         Some(1) => true,
-        Some(2) if manifest["format"].as_str() == Some("muxy.configuration") => false,
+        Some(2) if manifest["format"].as_str() == Some("murvix.configuration") => false,
         _ => {
             return Err(failure(&tr!(
                 "This backup format is not supported by this version of Murvix"

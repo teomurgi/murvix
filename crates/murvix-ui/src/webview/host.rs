@@ -878,7 +878,7 @@ mod tests {
     }
 
     #[test]
-    fn kept_shortcuts_and_modal_escape_go_to_muxy() {
+    fn kept_shortcuts_and_modal_escape_go_to_murvix() {
         let emitted = RefCell::new(Vec::new());
         let on_key = |key: Signal| {
             emitted.borrow_mut().push(format!("{key:?}"));

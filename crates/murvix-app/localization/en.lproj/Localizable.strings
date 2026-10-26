@@ -117,11 +117,11 @@
 "Add a GitHub remote named origin to open a pull request" = "Add a GitHub remote named origin to open a pull request";
 "Add space between terminal lines using pixels or a percentage, such as 10%%." = "Add space between terminal lines using pixels or a percentage, such as 10%%.";
 "Add ~/.local/bin to your PATH. For this shell, run:\nexport PATH=\"$HOME/.local/bin:$PATH\"" = "Add ~/.local/bin to your PATH. For this shell, run:\nexport PATH=\"$HOME/.local/bin:$PATH\"";
-"Added %lld projects from Muxy 1.x. Projects and tabs you already had are unchanged." = "Added %lld projects from Muxy 1.x. Projects and tabs you already had are unchanged.";
+"Added %lld projects from Murvix 1.x. Projects and tabs you already had are unchanged." = "Added %lld projects from Murvix 1.x. Projects and tabs you already had are unchanged.";
 "Additional Prompt" = "Additional Prompt";
 "Additional instructions" = "Additional instructions";
 "Additional prompt" = "Additional prompt";
-"Adds %lld extensions from Muxy 1.x." = "Adds %lld extensions from Muxy 1.x.";
+"Adds %lld extensions from Murvix 1.x." = "Adds %lld extensions from Murvix 1.x.";
 "Adjust character spacing by pixels or a percentage, such as 10%%." = "Adjust character spacing by pixels or a percentage, such as 10%%.";
 "Adjust mouse wheel scrolling speed." = "Adjust mouse wheel scrolling speed.";
 "Adjust smooth scrolling speed." = "Adjust smooth scrolling speed.";
@@ -236,7 +236,7 @@
 "Browsing" = "Browsing";
 "Built-in" = "Built-in";
 "Built-in browser is disabled" = "Built-in browser is disabled";
-"Bundled muxy executable is missing" = "Bundled muxy executable is missing";
+"Bundled murvix executable is missing" = "Bundled murvix executable is missing";
 "By default, ⌘D splits right, ⌘⇧D splits down, ⌘⌥ plus an arrow moves between panes, and ⌘⇧↩ maximizes or restores the focused pane." = "By default, ⌘D splits right, ⌘⇧D splits down, ⌘⌥ plus an arrow moves between panes, and ⌘⇧↩ maximizes or restores the focused pane.";
 "By default, ⌘I opens Composer to draft prompts with files, images, or dictation, and ⌘↩ sends it. Send to All Split Panes in its menu targets every split." = "By default, ⌘I opens Composer to draft prompts with files, images, or dictation, and ⌘↩ sends it. Send to All Split Panes in its menu targets every split.";
 "By default, ⌘⇧P opens the command palette. Choose Switch Project… to jump to any project or worktree by name." = "By default, ⌘⇧P opens the command palette. Choose Switch Project… to jump to any project or worktree by name.";
@@ -272,7 +272,7 @@
 "Choose Logo" = "Choose Logo";
 "Choose Murvix backup or 1.x settings.json" = "Choose Murvix backup or 1.x settings.json";
 "Choose Tab Focused from the layout menu at the top of the expanded sidebar to list every project's tabs there. By default, ⌘1–⌘9 then select tabs across projects." = "Choose Tab Focused from the layout menu at the top of the expanded sidebar to list every project's tabs there. By default, ⌘1–⌘9 then select tabs across projects.";
-"Choose a .muxy backup or a 1.x settings.json file. Review the import before applying it on the next launch." = "Choose a .muxy backup or a 1.x settings.json file. Review the import before applying it on the next launch.";
+"Choose a .murvix backup or a 1.x settings.json file. Review the import before applying it on the next launch." = "Choose a .murvix backup or a 1.x settings.json file. Review the import before applying it on the next launch.";
 "Choose a PNG, JPEG, GIF, or WebP image up to 8192 pixels and 64 MB decoded." = "Choose a PNG, JPEG, GIF, or WebP image up to 8192 pixels and 64 MB decoded.";
 "Choose a branch…" = "Choose a branch…";
 "Choose a folder inside the home folder on %@." = "Choose a folder inside the home folder on %@.";
@@ -423,7 +423,7 @@
 "Could not install the update: %@" = "Could not install the update: %@";
 "Could not install update (%@) or restore the previous app (%@). The previous app is at %@" = "Could not install update (%@) or restore the previous app (%@). The previous app is at %@";
 "Could not install update; the previous app was restored: %@" = "Could not install update; the previous app was restored: %@";
-"Could not load .muxy/layouts: %@" = "Could not load .muxy/layouts: %@";
+"Could not load .murvix/layouts: %@" = "Could not load .murvix/layouts: %@";
 "Could not load layout “%@”: %@" = "Could not load layout “%@”: %@";
 "Could not load logo: %@" = "Could not load logo: %@";
 "Could not load match" = "Could not load match";
@@ -694,7 +694,7 @@
 "Ignore key" = "Ignore key";
 "Image submission" = "Image submission";
 "Import cancelled." = "Import cancelled.";
-"Import from Muxy 1.x" = "Import from Muxy 1.x";
+"Import from Murvix 1.x" = "Import from Murvix 1.x";
 "Import from another browser" = "Import from another browser";
 "Import installed 1.x" = "Import installed 1.x";
 "Import projects" = "Import projects";
@@ -732,7 +732,7 @@
 "Install murvix-server on %@?" = "Install murvix-server on %@?";
 "Install the Silero speech detection model at %@ to use offline dictation." = "Install the Silero speech detection model at %@ to use offline dictation.";
 "Install whisper-cli 1.9.5 or later to use offline dictation." = "Install whisper-cli 1.9.5 or later to use offline dictation.";
-"Install whisper-cli and parec, then choose a multilingual GGML model file. Leave blank to use ggml-base.bin in your user data folder under muxy/voice. That folder must also contain ggml-silero-v6.2.0.bin for speech detection. Audio stays on this computer and is transcribed after you finish." = "Install whisper-cli and parec, then choose a multilingual GGML model file. Leave blank to use ggml-base.bin in your user data folder under muxy/voice. That folder must also contain ggml-silero-v6.2.0.bin for speech detection. Audio stays on this computer and is transcribed after you finish.";
+"Install whisper-cli and parec, then choose a multilingual GGML model file. Leave blank to use ggml-base.bin in your user data folder under murvix/voice. That folder must also contain ggml-silero-v6.2.0.bin for speech detection. Audio stays on this computer and is transcribed after you finish." = "Install whisper-cli and parec, then choose a multilingual GGML model file. Leave blank to use ggml-base.bin in your user data folder under murvix/voice. That folder must also contain ggml-silero-v6.2.0.bin for speech detection. Audio stays on this computer and is transcribed after you finish.";
 "Installed" = "Installed";
 "Installed %@.\n\n%@" = "Installed %@.\n\n%@";
 "Installing murvix-server, then testing connection…" = "Installing murvix-server, then testing connection…";
@@ -877,9 +877,9 @@
 "Murvix will stage all changes, ask %@ for a branch name, title, and summary, then create the branch, commit, push, and open the pull request on GitHub." = "Murvix will stage all changes, ask %@ for a branch name, title, and summary, then create the branch, commit, push, and open the pull request on GitHub.";
 "Murvix will update and restart when all %lld terminal session end, including idle and detached sessions. Keep Murvix open to finish the update." = "Murvix will update and restart when all %lld terminal session end, including idle and detached sessions. Keep Murvix open to finish the update.";
 "Murvix will update and restart when all %lld terminal sessions end, including idle and detached sessions. Keep Murvix open to finish the update." = "Murvix will update and restart when all %lld terminal sessions end, including idle and detached sessions. Keep Murvix open to finish the update.";
-"Muxy 1.x has no projects to import." = "Muxy 1.x has no projects to import.";
-"Muxy 1.x was imported. Check these items:" = "Muxy 1.x was imported. Check these items:";
-"Muxy 1.x was not imported. Try again from Settings → Backup & Restore. %@" = "Muxy 1.x was not imported. Try again from Settings → Backup & Restore. %@";
+"Murvix 1.x has no projects to import." = "Murvix 1.x has no projects to import.";
+"Murvix 1.x was imported. Check these items:" = "Murvix 1.x was imported. Check these items:";
+"Murvix 1.x was not imported. Try again from Settings → Backup & Restore. %@" = "Murvix 1.x was not imported. Try again from Settings → Backup & Restore. %@";
 "Name" = "Name";
 "Name (A–Z)" = "Name (A–Z)";
 "Name (Z–A)" = "Name (Z–A)";
@@ -907,7 +907,7 @@
 "Next Tab" = "Next Tab";
 "Next Tip" = "Next Tip";
 "Next match" = "Next match";
-"No Muxy 1.x configuration was found on this computer. Choose a 1.x backup file instead." = "No Muxy 1.x configuration was found on this computer. Choose a 1.x backup file instead.";
+"No Murvix 1.x configuration was found on this computer. Choose a 1.x backup file instead." = "No Murvix 1.x configuration was found on this computer. Choose a 1.x backup file instead.";
 "No Shortcut" = "No Shortcut";
 "No agent sessions in this project" = "No agent sessions in this project";
 "No agents running" = "No agents running";
@@ -918,7 +918,7 @@
 "No extensions installed" = "No extensions installed";
 "No fonts found" = "No fonts found";
 "No items" = "No items";
-"No layouts found in .muxy/layouts" = "No layouts found in .muxy/layouts";
+"No layouts found in .murvix/layouts" = "No layouts found in .murvix/layouts";
 "No matches" = "No matches";
 "No matching commands" = "No matching commands";
 "No matching extensions" = "No matching extensions";
@@ -985,7 +985,7 @@
 "Open on GitHub" = "Open on GitHub";
 "Open terminal links in the browser" = "Open terminal links in the browser";
 "Open the packaged Murvix app to enable microphone and speech permissions." = "Open the packaged Murvix app to enable microphone and speech permissions.";
-"Open web pages in browser tabs and let muxy browser commands drive them." = "Open web pages in browser tabs and let muxy browser commands drive them.";
+"Open web pages in browser tabs and let murvix browser commands drive them." = "Open web pages in browser tabs and let murvix browser commands drive them.";
 "OpenType features separated by commas, such as ss01 or zero. Put a minus before one to turn it off, such as -calt." = "OpenType features separated by commas, such as ss01 or zero. Put a minus before one to turn it off, such as -calt.";
 "Opener does not support this resource" = "Opener does not support this resource";
 "Opener exited with %@" = "Opener exited with %@";
@@ -995,7 +995,7 @@
 "Opens files you click in a terminal. An extension opener opens only the files it supports; other files open in the project editor." = "Opens files you click in a terminal. An extension opener opens only the files it supports; other files open in the project editor.";
 "Option as Alt" = "Option as Alt";
 "Option-Return inserts a new line." = "Option-Return inserts a new line.";
-"Optional setup commands: add setup to .muxy/worktree.json in the project or $XDG_CONFIG_HOME/muxy/worktree.json (defaults to ~/.config/muxy/worktree.json)." = "Optional setup commands: add setup to .muxy/worktree.json in the project or $XDG_CONFIG_HOME/muxy/worktree.json (defaults to ~/.config/muxy/worktree.json).";
+"Optional setup commands: add setup to .murvix/worktree.json in the project or $XDG_CONFIG_HOME/murvix/worktree.json (defaults to ~/.config/murvix/worktree.json)." = "Optional setup commands: add setup to .murvix/worktree.json in the project or $XDG_CONFIG_HOME/murvix/worktree.json (defaults to ~/.config/murvix/worktree.json).";
 "Optional teardown commands (review before enabling):" = "Optional teardown commands (review before enabling):";
 "Orange" = "Orange";
 "Order the worktree switcher by recent use" = "Order the worktree switcher by recent use";
@@ -1183,7 +1183,7 @@
 "Right" = "Right";
 "Right-click a terminal and choose Detach Terminal to put it away without ending it. By default, ⌘⌥T opens Existing Terminals to bring it back." = "Right-click a terminal and choose Detach Terminal to put it away without ending it. By default, ⌘⌥T opens Existing Terminals to bring it back.";
 "Run a saved shell command in a new tab in the selected project. Assign a direct shortcut or find it in the command palette." = "Run a saved shell command in a new tab in the selected project. Assign a direct shortcut or find it in the command palette.";
-"Run muxy --help in your terminal." = "Run muxy --help in your terminal.";
+"Run murvix --help in your terminal." = "Run murvix --help in your terminal.";
 "Run the teardown commands shown above" = "Run the teardown commands shown above";
 "Run these commands after creating the worktree" = "Run these commands after creating the worktree";
 "Running" = "Running";
@@ -1193,7 +1193,7 @@
 "SSH connected. Install murvix-server to finish setting up this server." = "SSH connected. Install murvix-server to finish setting up this server.";
 "SSH host" = "SSH host";
 "Save" = "Save";
-"Save settings, themes, extension preferences, projects, and terminal layouts to a .muxy file." = "Save settings, themes, extension preferences, projects, and terminal layouts to a .muxy file.";
+"Save settings, themes, extension preferences, projects, and terminal layouts to a .murvix file." = "Save settings, themes, extension preferences, projects, and terminal layouts to a .murvix file.";
 "Scan with the Murvix app. The code works once and expires in 5 minutes." = "Scan with the Murvix app. The code works once and expires in 5 minutes.";
 "Scroll page down" = "Scroll page down";
 "Scroll page up" = "Scroll page up";
@@ -1365,7 +1365,7 @@
 "The command path changed during installation; try again." = "The command path changed during installation; try again.";
 "The default profile can't be deleted" = "The default profile can't be deleted";
 "The desktop refused a notification: %@" = "The desktop refused a notification: %@";
-"The development build at %@ is uploaded to %@. It installs murvix-server and its muxy helper in ~/.local/bin, then tests the connection. It requires x86_64 Linux with glibc 2.35 or newer." = "The development build at %@ is uploaded to %@. It installs murvix-server and its muxy helper in ~/.local/bin, then tests the connection. It requires x86_64 Linux with glibc 2.35 or newer.";
+"The development build at %@ is uploaded to %@. It installs murvix-server and its murvix helper in ~/.local/bin, then tests the connection. It requires x86_64 Linux with glibc 2.35 or newer." = "The development build at %@ is uploaded to %@. It installs murvix-server and its murvix helper in ~/.local/bin, then tests the connection. It requires x86_64 Linux with glibc 2.35 or newer.";
 "The device disconnects now and must be paired again to reconnect." = "The device disconnects now and must be paired again to reconnect.";
 "The extension changed. Check for updates and try again." = "The extension changed. Check for updates and try again.";
 "The extension kept an open view. Save or close it before continuing." = "The extension kept an open view. Save or close it before continuing.";
@@ -1439,7 +1439,7 @@
 "This session is no longer available. Refresh the session list." = "This session is no longer available. Refresh the session list.";
 "This signs out and removes all cookies, cache, history, and logins for this profile, including imported ones." = "This signs out and removes all cookies, cache, history, and logins for this profile, including imported ones.";
 "This update requires a server restart" = "This update requires a server restart";
-"To pair a phone, turn on Settings → Mobile → Allow mobile devices and click Show Pairing Code, or run muxy mobile enable and then muxy mobile pair." = "To pair a phone, turn on Settings → Mobile → Allow mobile devices and click Show Pairing Code, or run muxy mobile enable and then muxy mobile pair.";
+"To pair a phone, turn on Settings → Mobile → Allow mobile devices and click Show Pairing Code, or run murvix mobile enable and then murvix mobile pair." = "To pair a phone, turn on Settings → Mobile → Allow mobile devices and click Show Pairing Code, or run murvix mobile enable and then murvix mobile pair.";
 "Toggle Agent Sessions" = "Toggle Agent Sessions";
 "Toggle Agents Panel" = "Toggle Agents Panel";
 "Toggle Composer" = "Toggle Composer";
@@ -1564,12 +1564,12 @@
 "Work is paused." = "Work is paused.";
 "Work reported an error." = "Work reported an error.";
 "Working" = "Working";
-"Working over SSH? Run muxy on that machine for tabs and splits in the terminal, and press Ctrl-B then ? to see its keys." = "Working over SSH? Run muxy on that machine for tabs and splits in the terminal, and press Ctrl-B then ? to see its keys.";
+"Working over SSH? Run murvix on that machine for tabs and splits in the terminal, and press Ctrl-B then ? to see its keys." = "Working over SSH? Run murvix on that machine for tabs and splits in the terminal, and press Ctrl-B then ? to see its keys.";
 "Workspace" = "Workspace";
 "Worktree created, but its location preference could not be saved: %@" = "Worktree created, but its location preference could not be saved: %@";
 "Worktree created, but setup failed" = "Worktree created, but setup failed";
 "Worktrees" = "Worktrees";
-"Worktrees go in <folder>/<project>/<name>. Leave both location settings empty to use ~/.muxy/worktrees." = "Worktrees go in <folder>/<project>/<name>. Leave both location settings empty to use ~/.muxy/worktrees.";
+"Worktrees go in <folder>/<project>/<name>. Leave both location settings empty to use ~/.murvix/worktrees." = "Worktrees go in <folder>/<project>/<name>. Leave both location settings empty to use ~/.murvix/worktrees.";
 "Writing PR" = "Writing PR";
 "Writing message" = "Writing message";
 "X11 returned an empty keyboard map." = "X11 returned an empty keyboard map.";

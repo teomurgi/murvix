@@ -81,7 +81,7 @@ fn prepare(model: &str, shared: &Shared) -> Result<(Tools, PathBuf), String> {
         .ok_or_else(|| {
             tr!("The user data folder is unavailable. Set XDG_DATA_HOME or HOME to use offline dictation.").to_string()
         })?
-        .join("muxy/voice");
+        .join("murvix/voice");
     let model = if model.is_empty() {
         data.join("ggml-base.bin")
     } else {

@@ -284,7 +284,7 @@ mod tests {
 
     #[gpui::test]
     fn an_svg_cannot_draw_another_file(cx: &mut TestAppContext) {
-        let directory = std::env::temp_dir().join(format!("muxy-icon-{}", std::process::id()));
+        let directory = std::env::temp_dir().join(format!("murvix-icon-{}", std::process::id()));
         let other = directory.join("other.svg");
         let written = std::fs::create_dir_all(&directory).is_ok()
             && std::fs::write(

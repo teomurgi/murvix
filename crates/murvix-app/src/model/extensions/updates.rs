@@ -159,7 +159,7 @@ mod tests {
             root.join("package.json"),
             json!({
                 "name":"reader", "version":version,
-                "muxy":{"permissions":permissions}
+                "murvix":{"permissions":permissions}
             })
             .to_string(),
         )

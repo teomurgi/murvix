@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{Error, Result, Settings};
 
-pub const DEFAULT_WORKTREE_FOLDER: &str = "~/.muxy/worktrees";
+pub const DEFAULT_WORKTREE_FOLDER: &str = "~/.murvix/worktrees";
 
 pub const SUGGESTED_WORKTREE_TEMPLATE: &str = "../{base-dir}.{branch}";
 
@@ -37,9 +37,9 @@ impl WorktreeLocation {
             ));
         }
         let resolve = |branch| {
-            normalize(&Path::new("/muxy/project").join(template.replace("{branch}", branch)))
+            normalize(&Path::new("/murvix/project").join(template.replace("{branch}", branch)))
         };
-        if resolve("muxy-validation-a") == resolve("muxy-validation-b") {
+        if resolve("murvix-validation-a") == resolve("murvix-validation-b") {
             return Err(Error::new(
                 "worktrees",
                 "Path template must keep {branch} in the resolved path.",
@@ -229,14 +229,14 @@ mod tests {
             settings
                 .worktrees
                 .directory(&project, &default, "Feature A", "feature/a", None)?,
-            home.join(".muxy/worktrees/My-Project/Feature-A")
+            home.join(".murvix/worktrees/My-Project/Feature-A")
         );
         settings.worktrees.default_location.parent_path = "  ".into();
         assert_eq!(
             settings
                 .worktrees
                 .directory(&project, &default, "Feature A", "feature/a", None)?,
-            home.join(".muxy/worktrees/My-Project/Feature-A")
+            home.join(".murvix/worktrees/My-Project/Feature-A")
         );
         settings.worktrees.default_location.parent_path = "/trees".into();
         assert_eq!(

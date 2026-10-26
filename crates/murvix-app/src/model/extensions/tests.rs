@@ -101,7 +101,7 @@ fn expired_confirmation_does_not_persist_permission(cx: &mut TestAppContext) {
     let package = tempfile::tempdir().expect("extension folder");
     std::fs::write(
         package.path().join("package.json"),
-        r#"{"name":"writer","version":"1.0.0","muxy":{"permissions":["files:write"]}}"#,
+        r#"{"name":"writer","version":"1.0.0","murvix":{"permissions":["files:write"]}}"#,
     )
     .expect("manifest");
     let (boot, _requests) = stub_boot(AppState::bootstrap().expect("state"));
@@ -179,7 +179,7 @@ fn expired_confirmation_does_not_persist_permission(cx: &mut TestAppContext) {
     );
 }
 
-/// Loads and enables an unpacked extension whose `muxy` manifest is `manifest`.
+/// Loads and enables an unpacked extension whose `murvix` manifest is `manifest`.
 fn enabled<'a>(
     cx: &'a mut TestAppContext,
     name: &str,
@@ -210,7 +210,7 @@ fn enabled_with<'a>(
     let package = tempfile::tempdir().expect("extension folder");
     std::fs::write(
         package.path().join("package.json"),
-        format!(r#"{{"name":"{name}","version":"1.0.0","muxy":{manifest}}}"#),
+        format!(r#"{{"name":"{name}","version":"1.0.0","murvix":{manifest}}}"#),
     )
     .expect("manifest");
     std::fs::write(package.path().join("index.html"), "").expect("entry");
@@ -579,7 +579,7 @@ fn background_scripts_follow_the_extension_not_the_connection(cx: &mut TestAppCo
         AppState::bootstrap().expect("state"),
     );
     wait_for(&view, cx, "background start", |model| {
-        logged(model, "ports", "[muxy] started ports v1.0.0")
+        logged(model, "ports", "[murvix] started ports v1.0.0")
     });
     view.update(cx, |model, cx| model.disconnect(ServerId::local(), cx));
     view.read_with(cx, |model, _| {
@@ -590,7 +590,7 @@ fn background_scripts_follow_the_extension_not_the_connection(cx: &mut TestAppCo
     });
     std::fs::write(
         package.path().join("package.json"),
-        format!(r#"{{"name":"ports","version":"1.1.0","muxy":{manifest}}}"#),
+        format!(r#"{{"name":"ports","version":"1.1.0","murvix":{manifest}}}"#),
     )
     .expect("updated manifest");
     finish_extension(
@@ -599,10 +599,10 @@ fn background_scripts_follow_the_extension_not_the_connection(cx: &mut TestAppCo
     )
     .expect("refresh");
     wait_for(&view, cx, "background restart", |model| {
-        logged(model, "ports", "[muxy] started ports v1.1.0")
+        logged(model, "ports", "[murvix] started ports v1.1.0")
     });
     view.read_with(cx, |model, _| {
-        assert!(logged(model, "ports", "[muxy] exited cleanly"));
+        assert!(logged(model, "ports", "[murvix] exited cleanly"));
     });
     finish_extension(
         view.update(cx, |model, cx| {
@@ -775,7 +775,7 @@ fn extension_events_reach_permitted_scripts(cx: &mut TestAppContext) {
         AppState::bootstrap().expect("state"),
     );
     let (script, events) = murvix_ui::javascript::Script::start(
-        "globalThis.__muxyEvent = (name, payload) => __muxyNative(JSON.stringify({ name, payload }));"
+        "globalThis.__murvixEvent = (name, payload) => __murvixNative(JSON.stringify({ name, payload }));"
             .into(),
     )
     .expect("script");

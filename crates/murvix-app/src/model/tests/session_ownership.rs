@@ -6,7 +6,7 @@ fn session(project: ProjectId, id: u64) -> ProjectSession {
         info: SessionInfo {
             id: SessionId::new(id).expect("session"),
             project,
-            directory: murvix_protocol::ServerPath(b"/tmp/muxy".to_vec()),
+            directory: murvix_protocol::ServerPath(b"/tmp/murvix".to_vec()),
         },
         status: SessionStatus::Live,
         attached: false,

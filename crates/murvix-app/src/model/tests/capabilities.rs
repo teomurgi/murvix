@@ -11,7 +11,7 @@ const INFO: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>com.example.muxy-german.localization</string>
+    <string>com.example.murvix-german.localization</string>
     <key>CFBundleDevelopmentRegion</key>
     <string>de</string>
 </dict>
@@ -167,7 +167,7 @@ fn language_packs_load_while_extension_code_cannot_run(cx: &mut TestAppContext) 
     for (file, contents) in [
         (
             "package.json",
-            r#"{"name":"german","version":"1.0.0","muxy":{
+            r#"{"name":"german","version":"1.0.0","murvix":{
                 "background":"background.js",
                 "commands":[{"id":"hello","title":"Hello"}],
                 "localizations":[{"id":"de","language":"de","title":"Deutsch","bundle":"German.bundle"}]

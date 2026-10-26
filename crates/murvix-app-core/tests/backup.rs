@@ -10,19 +10,19 @@ fn one_x_settings_keep_unrelated_preferences_and_skip_unsupported_values() {
     let mut original = Settings::default();
     original.window.default_size = [1400.0, 900.0];
     let source = json!({
-        "muxy.theme.dark": "Dracula",
-        "muxy.general.autoCopyTerminalSelection": true,
-        "muxy.appLayout": "agentsFocused",
-        "muxy.quickTerminal.width": 900,
-        "muxy.quickTerminal.height": 0,
-        "muxy.projectPicker.defaultDirectory": "/projects",
+        "murvix.theme.dark": "Dracula",
+        "murvix.general.autoCopyTerminalSelection": true,
+        "murvix.appLayout": "agentsFocused",
+        "murvix.quickTerminal.width": 900,
+        "murvix.quickTerminal.height": 0,
+        "murvix.projectPicker.defaultDirectory": "/projects",
         "editor.richInputImageStrategy": "inlinePath",
-        "muxy.richInput.floating": false,
-        "muxy.richInput.clearAfterSending": true,
-        "muxy.ai.repositoryActions.createPullRequest.prompt": "My instructions",
-        "muxy.recording.autoSend": true,
-        "muxy.localization": "language-packs:ko",
-        "muxy.browser.homePage": "https://example.com",
+        "murvix.richInput.floating": false,
+        "murvix.richInput.clearAfterSending": true,
+        "murvix.ai.repositoryActions.createPullRequest.prompt": "My instructions",
+        "murvix.recording.autoSend": true,
+        "murvix.localization": "language-packs:ko",
+        "murvix.browser.homePage": "https://example.com",
         "mobile.approvedDevices": [{"token":"never-copy"}]
     });
     let (settings, report) =
@@ -264,7 +264,7 @@ fn one_x_worktrees_keep_parent_relationships() {
     let projects = json!([{ "id":project,"name":"Project","path":folder.path(),"sortOrder":0 }]);
     let worktrees = json!([
         { "id":worktree,"name":"Feature","path":checkout.path(),"isPrimary":false },
-        { "id":missing,"name":"Deleted","path":"/missing-muxy-worktree","isPrimary":false }
+        { "id":missing,"name":"Deleted","path":"/missing-murvix-worktree","isPrimary":false }
     ]);
     let assets = BTreeMap::from([(
         format!("worktrees/{project}.json"),
@@ -293,7 +293,7 @@ fn one_x_import_keeps_every_usable_project_when_some_details_are_stale() {
         {"id":symbol,"name":"Symbol","path":folders[0].path(),"sortOrder":0,"icon":"chart.pie.fill","iconColor":"indigo"},
         {"id":emoji,"name":"Emoji","path":folders[1].path(),"sortOrder":1,"icon":"🚀","iconColor":"#E5484D"},
         {"id":outdated,"name":"Stale","path":folders[2].path(),"sortOrder":2,"icon":"not a symbol!","logo":"stale.png"},
-        {"id":"01000000-0000-0000-0000-000000000004","name":"Missing","path":"/missing-muxy-project","sortOrder":3},
+        {"id":"01000000-0000-0000-0000-000000000004","name":"Missing","path":"/missing-murvix-project","sortOrder":3},
         {"id":symbol,"name":"Duplicate","path":folders[0].path(),"sortOrder":4}
     ]);
     let assets = BTreeMap::from([("logos/stale.png".to_owned(), b"not a PNG".to_vec())]);

@@ -93,7 +93,7 @@ pub(crate) const INSTALL_SKILLS: &str = "Usage: murvix install-skills [--dir DIR
 Installs the murvix-cli skill, which teaches AI coding agents to use this command,
 into each agent folder that exists: ~/.claude/skills, ~/.codex/skills and
 ~/.agents/skills. --dir adds another skills folder; repeat it for more.
-An installed copy, including the Muxy 1.x skill, is replaced.";
+An installed copy, including the Murvix 1.x skill, is replaced.";
 pub(crate) const SERVER: &str = "Usage: murvix server start|status|stop [--json]
   stop [--force]  Stop only if idle; --force ends all running terminals.";
 pub(crate) const PROJECT: &str = "Usage: murvix project <action> [--json]
@@ -154,7 +154,7 @@ pub(crate) const WORKTREE: &str = "Usage: murvix worktree <action> [--json]
 
 Create makes a new branch named after the worktree from HEAD; --existing checks
 out a branch that exists. The directory defaults to the worktree location in
-Settings. --hooks runs the setup or teardown commands from .muxy/worktree.json
+Settings. --hooks runs the setup or teardown commands from .murvix/worktree.json
 and the per-machine worktree.json, printing each one; without it none run.
 Remove deletes the worktree directory and its project, ending its terminals,
 and refuses uncommitted changes unless --force is given.

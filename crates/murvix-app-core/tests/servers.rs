@@ -358,7 +358,7 @@ fn remote_projects_never_touch_this_computers_disk() -> TestResult {
         api,
         ..
     } = two_servers()?;
-    let missing = Path::new("/muxy-test-missing/app");
+    let missing = Path::new("/murvix-test-missing/app");
     assert!(state.add_project(LOCAL, missing.into()).is_err());
     assert!(state.add_project(remote, "relative/app".into()).is_err());
     assert!(

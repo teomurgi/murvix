@@ -1,6 +1,6 @@
 # Product model
 
-The things Muxy is made of, and who owns them.
+The things Murvix is made of, and who owns them.
 
 ## The pieces
 
@@ -67,11 +67,11 @@ folder. You can create one from a branch or add a worktree that already exists.
 It takes the branch name and its parent's color, and has its own tabs.
 Worktrees can't have children of their own.
 
-Worktrees made outside Muxy show up automatically. A new project shows
+Worktrees made outside Murvix show up automatically. A new project shows
 worktrees only if its repository already has some; turn them on or off from
 the project menu.
 
-After a worktree is deleted outside Muxy, its entry is removed automatically
+After a worktree is deleted outside Murvix, its entry is removed automatically
 if it has no tabs in this app and no terminal history.
 
 ```mermaid
@@ -111,7 +111,7 @@ Deleting always asks first and explains what will end.
 
 ## Project layouts
 
-Named layouts live in `.muxy/layouts/` inside a project or worktree. Use YAML,
+Named layouts live in `.murvix/layouts/` inside a project or worktree. Use YAML,
 YML, or JSON files; the filename is the layout's name. Choose **Apply Layout…**
 from the project menu or the layout button in the top bar. Layouts are never
 applied automatically. Confirmation replaces that project's tabs in this app;

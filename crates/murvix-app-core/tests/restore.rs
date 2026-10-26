@@ -8,7 +8,7 @@ type TestResult = Result<(), Box<dyn Error>>;
 
 #[test]
 fn closing_offline_persists_cleanup_without_restoring_the_tab() -> TestResult {
-    let path = std::env::temp_dir().join(format!("muxy-close-{}.json", ProjectId::new()));
+    let path = std::env::temp_dir().join(format!("murvix-close-{}.json", ProjectId::new()));
     let mut state = AppState::bootstrap()?;
     let tab = state.open_terminal_tab(state.home().id)?;
     let session = SessionId::new(42).ok_or("zero ID")?;

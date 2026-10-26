@@ -2859,7 +2859,7 @@ dependencies = [
 [[package]]
 name = "gpui"
 version = "0.2.2"
-source = "git+https://github.com/muxy-app/gpui?rev=0f0fecb8f3b125df633598973d78cd81a7880e87#0f0fecb8f3b125df633598973d78cd81a7880e87"
+source = "git+https://github.com/murvix-app/gpui?rev=0f0fecb8f3b125df633598973d78cd81a7880e87#0f0fecb8f3b125df633598973d78cd81a7880e87"
 dependencies = [
  "anyhow",
  "as-raw-xcb-connection",

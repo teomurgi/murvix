@@ -29,9 +29,9 @@ With `panels:write`, pages, scripts, and background scripts can change an item
 they declared:
 
 ```js
-muxy.statusbar.set({ id: "count", text: "3", icon: "bolt.fill" });
-muxy.topbar.hide("hello");
-muxy.topbar.show("hello");
+murvix.statusbar.set({ id: "count", text: "3", icon: "bolt.fill" });
+murvix.topbar.hide("hello");
+murvix.topbar.show("hello");
 ```
 
 `set` takes `id` plus any of `icon`, `visible`, and, for the status bar,

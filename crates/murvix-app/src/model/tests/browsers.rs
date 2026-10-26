@@ -358,11 +358,11 @@ fn extension_arguments_are_named_like_the_cli_names_them() {
     use crate::model::browsers::automation::extension_args;
     let typed = extension_args(
         "browser.type",
-        &json!({"tabId": "t", "args": ["#q", "muxy", {"submit": true}]}),
+        &json!({"tabId": "t", "args": ["#q", "murvix", {"submit": true}]}),
     );
     assert_eq!(
         Value::Object(typed),
-        json!({"tabId": "t", "selector": "#q", "text": "muxy", "submit": true})
+        json!({"tabId": "t", "selector": "#q", "text": "murvix", "submit": true})
     );
     let wait = extension_args(
         "browser.wait",

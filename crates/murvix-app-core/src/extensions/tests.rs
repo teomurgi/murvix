@@ -10,7 +10,7 @@ use std::fs;
 fn package(root: &Path, name: &str) {
     fs::create_dir_all(root).unwrap();
     fs::write(root.join("index.html"), "<!doctype html>").unwrap();
-    fs::write(root.join("package.json"),json!({"name":name,"version":"1.0.0","muxy":{"permissions":["files:read","panels:write"],"tabTypes":[{"id":"editor","title":"Editor","entry":"index.html"}],"commands":[{"id":"open","title":"Open","action":{"kind":"openTab","tabType":"editor"}}]}}).to_string()).unwrap();
+    fs::write(root.join("package.json"),json!({"name":name,"version":"1.0.0","murvix":{"permissions":["files:read","panels:write"],"tabTypes":[{"id":"editor","title":"Editor","entry":"index.html"}],"commands":[{"id":"open","title":"Open","action":{"kind":"openTab","tabType":"editor"}}]}}).to_string()).unwrap();
 }
 
 #[test]
@@ -44,7 +44,7 @@ fn manifests_reject_escaping_resources_and_invalid_commands() {
     }
     let path = root.path().join("package.json");
     let mut value: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-    value["muxy"]["commands"][0]["action"]["tabType"] = json!("absent");
+    value["murvix"]["commands"][0]["action"]["tabType"] = json!("absent");
     fs::write(path, value.to_string()).unwrap();
     assert!(Extension::load(root.path()).is_err());
 }
@@ -176,7 +176,7 @@ fn files_and_git_bridge_payloads_match_main_contract() {
     );
 }
 
-fn write_package(root: &Path, muxy: &serde_json::Value, files: &[(&str, &str)]) {
+fn write_package(root: &Path, murvix: &serde_json::Value, files: &[(&str, &str)]) {
     for (relative, contents) in files {
         let path = root.join(relative);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -184,7 +184,7 @@ fn write_package(root: &Path, muxy: &serde_json::Value, files: &[(&str, &str)]) 
     }
     fs::write(
         root.join("package.json"),
-        json!({"name":"sample","version":"1.0.0","muxy":muxy}).to_string(),
+        json!({"name":"sample","version":"1.0.0","murvix":murvix}).to_string(),
     )
     .unwrap();
 }

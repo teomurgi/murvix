@@ -617,7 +617,7 @@ mod tests {
     impl Directory {
         fn new() -> io::Result<Self> {
             let path = std::env::temp_dir().join(format!(
-                "muxy-archive-{}-{}",
+                "murvix-archive-{}-{}",
                 std::process::id(),
                 NEXT.fetch_add(1, Ordering::Relaxed)
             ));

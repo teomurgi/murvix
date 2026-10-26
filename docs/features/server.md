@@ -20,7 +20,7 @@ flowchart LR
 - Stopping or restarting it ends every terminal. Saved screens and history are
   kept. Use the status bar, **Settings → Server**, or
   `murvix server stop --force`.
-- Muxy never restarts it on its own while terminals are running. After an
+- Murvix never restarts it on its own while terminals are running. After an
   update, the desktop app replaces this computer's server once no terminals are
   running.
 
@@ -61,7 +61,7 @@ budget applies to saved history after the server restarts.
 
 ## Shell integration
 
-Shell integration lets Muxy track each terminal's folder, jump between prompts,
+Shell integration lets Murvix track each terminal's folder, jump between prompts,
 and select a command's output. It loads automatically for zsh and fish, without
 editing your startup files.
 

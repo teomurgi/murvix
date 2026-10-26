@@ -55,7 +55,7 @@ fn object(path: &Path) -> Result<Map<String, Value>, String> {
     }
 }
 
-/// The per-extension key/value store behind `muxy.storage`.
+/// The per-extension key/value store behind `murvix.storage`.
 #[derive(Debug)]
 pub struct Storage {
     root: PathBuf,

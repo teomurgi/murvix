@@ -314,7 +314,7 @@ fn a_remote_reached_over_ssh_lists_its_projects_and_runs_a_terminal(cx: &mut Tes
 
 fn remote_terminal(cx: &mut TestAppContext) -> Result {
     let directory = tempfile::Builder::new()
-        .prefix("muxy-remote-")
+        .prefix("murvix-remote-")
         .tempdir_in("/tmp")?;
     let socket = directory.path().join("remote.sock");
     serve_remote(&socket)?;

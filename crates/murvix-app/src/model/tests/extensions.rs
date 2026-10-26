@@ -8,7 +8,7 @@ fn extension_permissions_shortcuts_and_toolbar_follow_enable_disable_and_unload(
     std::fs::write(
         package.path().join("package.json"),
         r#"{
-        "name":"reader","version":"1.0.0","muxy":{
+        "name":"reader","version":"1.0.0","murvix":{
             "permissions":["files:read"],
             "commands":[{"id":"read","title":"Read file","defaultShortcut":"cmd+e"}],
             "topbarItems":[{"id":"read","icon":{"symbol":"folder"},"command":"read"}]

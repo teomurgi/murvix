@@ -348,7 +348,7 @@ fn capture(language: &str, shared: &Arc<Shared>) -> Result<Capture, String> {
             active: active.clone(),
         });
         let delegate: Retained<CaptureDelegate> = msg_send![super(sink), init];
-        let queue = DispatchQueue::new("app.muxy.composer.audio", None);
+        let queue = DispatchQueue::new("app.murvix.composer.audio", None);
         output.setSampleBufferDelegate_queue(
             Some(ProtocolObject::from_ref(&*delegate)),
             Some(&queue),
@@ -490,7 +490,7 @@ impl DeviceObserver {
                 mScope: kAudioObjectPropertyScopeGlobal,
                 mElement: kAudioObjectPropertyElementMain,
             },
-            queue: DispatchQueue::new("app.muxy.composer.device", None),
+            queue: DispatchQueue::new("app.murvix.composer.device", None),
             listener,
         };
         let status = unsafe {

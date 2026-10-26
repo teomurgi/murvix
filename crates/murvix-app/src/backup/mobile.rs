@@ -49,8 +49,8 @@ pub(super) fn migrate(
     let mut settings = current(profile)?;
     let mut changed = false;
     for (key, field) in [
-        ("app.muxy.mobile.serverEnabled", "enabled"),
-        ("app.muxy.mobile.serverPort", "port"),
+        ("app.murvix.mobile.serverEnabled", "enabled"),
+        ("app.murvix.mobile.serverPort", "port"),
     ] {
         let Some(value) = source.remove(key) else {
             continue;

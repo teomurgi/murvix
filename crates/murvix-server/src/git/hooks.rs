@@ -31,7 +31,7 @@ fn global_path() -> Result<PathBuf> {
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))
         .ok_or_else(|| error("Home directory is unavailable"))?;
-    Ok(root.join("muxy/worktree.json"))
+    Ok(root.join("murvix/worktree.json"))
 }
 
 fn load(path: &Path, teardown: bool, project: bool) -> Result<Vec<WorktreeHook>> {
@@ -96,7 +96,7 @@ pub(super) fn resolve(
 
 fn resolve_at(repository: &Path, global: &Path, teardown: bool) -> Result<Vec<WorktreeHook>> {
     let mut global = load(global, teardown, false)?;
-    let mut project = load(&repository.join(".muxy/worktree.json"), teardown, true)?;
+    let mut project = load(&repository.join(".murvix/worktree.json"), teardown, true)?;
     let hooks = if teardown {
         project.append(&mut global);
         project

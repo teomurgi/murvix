@@ -30,7 +30,7 @@ pub(super) fn rows(view: &SettingsView, cx: &mut Context<SettingsView>) -> Vec<A
         ),
         (
             "backup-legacy",
-            tr_key!("Import from Muxy 1.x"),
+            tr_key!("Import from Murvix 1.x"),
             vec![
                 (tr!("Import installed 1.x"), Action::Legacy),
                 (tr!("Import projects"), Action::LegacyProjects),
@@ -136,7 +136,7 @@ impl SettingsWindow {
         });
         match action {
             Action::Export => {
-                let prompt = cx.prompt_for_new_path(&profile, Some("Murvix-backup.muxy"));
+                let prompt = cx.prompt_for_new_path(&profile, Some("Murvix-backup.murvix"));
                 cx.spawn(async move |root, cx| {
                     let result = async {
                         let Some(mut path) = prompt
@@ -147,7 +147,7 @@ impl SettingsWindow {
                             return Ok(None);
                         };
                         if path.extension().is_none() {
-                            path.set_extension("muxy");
+                            path.set_extension("murvix");
                         }
                         cx.background_executor()
                             .spawn(async move {

@@ -297,7 +297,7 @@ impl NativeWebview {
         unsafe {
             configuration.setURLSchemeHandler_forURLScheme(
                 Some(ProtocolObject::from_ref(&*delegate)),
-                &NSString::from_str("muxy-ext"),
+                &NSString::from_str("murvix-ext"),
             );
             controller.addScriptMessageHandlerWithReply_contentWorld_name(
                 ProtocolObject::from_ref(&*delegate),

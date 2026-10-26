@@ -354,7 +354,7 @@ mod tests {
     fn worktree_visibility_defaults_and_independent_saved_choices() -> Result<()> {
         let first = crate::ProjectId::new();
         let second = crate::ProjectId::new();
-        let directory = std::env::temp_dir().join(format!("muxy-worktree-visibility-{first}"));
+        let directory = std::env::temp_dir().join(format!("murvix-worktree-visibility-{first}"));
         let path = directory.join("settings.toml");
         let initial = Appearance::load(&path)?;
         assert!(initial.hidden_worktrees.is_empty());

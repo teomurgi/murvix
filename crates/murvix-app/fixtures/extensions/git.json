@@ -20,9 +20,9 @@
     "tailwindcss": "^4.3.0",
     "vite": "^7.3.5"
   },
-  "muxy": {
-    "$schema": "https://raw.githubusercontent.com/muxy-app/muxy/main/docs/extensions/schema/manifest.schema.json",
-    "description": "Official Git extension for Muxy — GitHub, Forgejo, and Gitea",
+  "murvix": {
+    "$schema": "https://raw.githubusercontent.com/murvix-app/murvix/main/docs/extensions/schema/manifest.schema.json",
+    "description": "Official Git extension for Murvix — GitHub, Forgejo, and Gitea",
     "permissions": [
       "commands:exec",
       "panels:write",
@@ -155,7 +155,7 @@
     "marketplace": {
       "author": "Saeed Vaziry",
       "github": "saeedvaziry",
-      "repository": "https://github.com/muxy-app/extensions",
+      "repository": "https://github.com/murvix-app/extensions",
       "categories": [
         "git",
         "source-control"

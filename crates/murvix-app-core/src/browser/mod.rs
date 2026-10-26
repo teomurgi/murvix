@@ -356,8 +356,8 @@ mod tests {
             Some("https://www.google.com/search?q=rust+lifetimes")
         );
         assert_eq!(
-            resolve("muxy").as_deref(),
-            Some("https://www.google.com/search?q=muxy")
+            resolve("murvix").as_deref(),
+            Some("https://www.google.com/search?q=murvix")
         );
         assert_eq!(resolve("   "), None);
     }

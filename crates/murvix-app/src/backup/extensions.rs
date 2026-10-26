@@ -1,4 +1,4 @@
-//! 1.x kept installed extensions in `~/.config/muxy/extensions` and whether
+//! 1.x kept installed extensions in `~/.config/murvix/extensions` and whether
 //! each is on in its preferences.
 
 use std::collections::BTreeSet;
@@ -83,12 +83,12 @@ fn copy_package(package: &Path, name: &str, destination: &Path) -> Result<usize>
 }
 
 pub(super) fn legacy_root() -> Option<PathBuf> {
-    std::env::home_dir().map(|home| home.join(".config/muxy/extensions"))
+    std::env::home_dir().map(|home| home.join(".config/murvix/extensions"))
 }
 
 pub(super) fn enabled_in_legacy(name: &str) -> bool {
     std::process::Command::new("/usr/bin/defaults")
-        .args(["read", "com.muxy.app", &format!("muxy.ext.enabled.{name}")])
+        .args(["read", "com.murvix.app", &format!("murvix.ext.enabled.{name}")])
         .output()
         .is_ok_and(|output| output.status.success() && output.stdout.trim_ascii() == b"1")
 }

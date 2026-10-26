@@ -1,4 +1,4 @@
-//! The socket `muxy browser` reaches the app on: one JSON request and one
+//! The socket `murvix browser` reaches the app on: one JSON request and one
 //! reply per connection, from processes of this user only.
 
 use std::io::{self, Write};

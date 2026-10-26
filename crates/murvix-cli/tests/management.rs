@@ -379,9 +379,9 @@ fn worktrees_use_the_default_location_and_run_hooks_only_when_asked() -> Result 
             trees.display()
         ),
     )?;
-    std::fs::create_dir(f.directory.path().join(".muxy"))?;
+    std::fs::create_dir(f.directory.path().join(".murvix"))?;
     std::fs::write(
-        f.directory.path().join(".muxy/worktree.json"),
+        f.directory.path().join(".murvix/worktree.json"),
         r#"{"setup": ["touch \"$MUXY_PROJECT_PATH/setup-ran\""],
             "teardown": ["touch \"$MUXY_PROJECT_PATH/teardown-ran\""]}"#,
     )?;

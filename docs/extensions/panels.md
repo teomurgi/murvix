@@ -33,7 +33,7 @@ A panel docks to the right or bottom of the window, or floats over it.
 | `defaultData` | Data used when opened without any. |
 
 - Open one with a `togglePanel` or `openPanel` [command](commands.md), or from
-  a page with `muxy.panels.open(id, data)`, `toggle(id, data)`, or
+  a page with `murvix.panels.open(id, data)`, `toggle(id, data)`, or
   `close(id)`. `close()` with no ID closes the calling panel. Needs
   `panels:write`.
 - Each project remembers its open panel: switching projects closes it, and
@@ -53,9 +53,9 @@ outside it.
 
 - Popovers open only from bar items whose command uses `openPopover`. Needs
   `panels:write`.
-- `width` and `height` default to 320 × 360. `muxy.popover.resize(w, h)`
+- `width` and `height` default to 320 × 360. `murvix.popover.resize(w, h)`
   changes them within 80–600 × 80–720.
-- `muxy.popover.close()` closes it.
+- `murvix.popover.close()` closes it.
 
 ## Sidebar
 

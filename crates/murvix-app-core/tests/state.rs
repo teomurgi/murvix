@@ -32,7 +32,7 @@ fn legacy_home_migrates_and_renamed_home_wins_over_another_home_name() -> TestRe
 
 #[test]
 fn missing_projects_preserve_tabs_and_only_allow_removal() -> TestResult {
-    let directory = std::env::temp_dir().join(format!("muxy-project-{}", ProjectId::new()));
+    let directory = std::env::temp_dir().join(format!("murvix-project-{}", ProjectId::new()));
     std::fs::create_dir(&directory)?;
     let marker = directory.join("keep.txt");
     std::fs::write(&marker, "keep")?;

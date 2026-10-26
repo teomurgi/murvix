@@ -44,12 +44,12 @@ fn cancelling_an_async_editor_dialog_prevents_closing_the_document() {
         r#"
         globalThis.window = globalThis;
         globalThis.document = {{ documentElement: {{ style: {{ setProperty() {{}} }} }}, addEventListener() {{}} }};
-        window.webkit = {{ messageHandlers: {{ muxy: {{ postMessage(message) {{
-            return Promise.resolve(JSON.parse(__muxyNative(JSON.stringify(message))));
+        window.webkit = {{ messageHandlers: {{ murvix: {{ postMessage(message) {{
+            return Promise.resolve(JSON.parse(__murvixNative(JSON.stringify(message))));
         }} }} }} }};
         {}({{ owner: 'files', id: 'editor', surface: 'tab', data: null, theme: {{}} }}, {});
-        muxy.lifecycle.onBeforeClose(async () => await muxy.dialog.confirm({{ buttons: ["Save", "Discard", "Cancel"] }}) === "Cancel");
-        __muxyBeforeClose('close-1', 'tab', 'editor');
+        murvix.lifecycle.onBeforeClose(async () => await murvix.dialog.confirm({{ buttons: ["Save", "Discard", "Cancel"] }}) === "Cancel");
+        __murvixBeforeClose('close-1', 'tab', 'editor');
         "#,
         include_str!("../views/webview/bridge.js"),
         include_str!("bridge.js")
@@ -143,7 +143,7 @@ fn unchanged_find_in_files_script_uses_query_callbacks_and_async_exec() {
                 reply(&call, &Value::Null);
                 if !query_sent {
                     query_sent = true;
-                    script.evaluate("__muxyDeliverModalQuery('native:2','1','needle',{})".into());
+                    script.evaluate("__murvixDeliverModalQuery('native:2','1','needle',{})".into());
                 } else if started {
                     break;
                 }
@@ -153,7 +153,7 @@ fn unchanged_find_in_files_script_uses_query_callbacks_and_async_exec() {
                 assert!(request["args"]["argv"].is_array());
                 let id = &request["args"]["id"];
                 reply(&call, &id.clone());
-                script.evaluate(format!("__muxyResolveExec({id},{{ok:true,value:{{stdout:'',stderr:'',exitCode:0,timedOut:false,truncated:false}}}})"));
+                script.evaluate(format!("__murvixResolveExec({id},{{ok:true,value:{{stdout:'',stderr:'',exitCode:0,timedOut:false,truncated:false}}}})"));
             }
             "exec.cancel" => reply(&call, &json!(true)),
             "console" => {
@@ -177,14 +177,14 @@ fn background_scripts_keep_running_with_main_surface() {
         include_str!("bridge.js"),
         r"
         console.log(JSON.stringify({
-            files: typeof muxy.files, toast: typeof muxy.toast, projects: typeof muxy.projects,
-            emit: typeof muxy.events.emit, remote: typeof muxy.remote.handle,
-            storage: typeof muxy.storage.get, tabs: Object.keys(muxy.tabs),
+            files: typeof murvix.files, toast: typeof murvix.toast, projects: typeof murvix.projects,
+            emit: typeof murvix.events.emit, remote: typeof murvix.remote.handle,
+            storage: typeof murvix.storage.get, tabs: Object.keys(murvix.tabs),
         }));
-        try { muxy.events.emit('ready'); } catch (error) { console.log(error.message); }
+        try { murvix.events.emit('ready'); } catch (error) { console.log(error.message); }
         let ticks = 0;
         const timer = setInterval(() => {
-            if (++ticks === 3) { clearInterval(timer); muxy.storage.keys(); }
+            if (++ticks === 3) { clearInterval(timer); murvix.storage.keys(); }
         }, 1);
         "
     ))
@@ -226,7 +226,7 @@ fn unchanged_manifests_load_without_api_changes() {
         let root = tempfile::tempdir().unwrap();
         let package: Value = serde_json::from_str(source).unwrap();
         std::fs::write(root.path().join("package.json"), source).unwrap();
-        let manifest = &package["muxy"];
+        let manifest = &package["murvix"];
         let resources = manifest["panels"]
             .as_array()
             .unwrap()

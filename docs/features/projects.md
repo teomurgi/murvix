@@ -35,7 +35,7 @@ can't be removed. `Cmd+N` opens a tab in Home.
 
 For Git projects, worktrees appear under their project and have their own
 tabs. Turn them on with **Worktrees → Show Worktrees** in the project menu.
-Worktrees created outside Muxy show up on their own.
+Worktrees created outside Murvix show up on their own.
 
 **Switch Worktree…** (`Cmd+Opt+W`) lists the current project and its
 worktrees: the current one first, then the most recently used, so `Down` and
@@ -48,18 +48,18 @@ worktree switcher by recent use** to list them in sidebar order.
 for:
 
 - A name, and a new branch (from a base branch) or an existing one.
-- A location: **Default** (`~/.muxy/worktrees/<project>/<name>`), a
+- A location: **Default** (`~/.murvix/worktrees/<project>/<name>`), a
   **Template**, or a **Folder**. Templates must contain `{branch}` and can use
   `{base-dir}` and `{project-name}`, for example `../{base-dir}.{branch}`.
   Set the default in **Settings → General**; each project remembers its choice.
 
 **Remove Worktree and Files…** deletes the worktree folder and its project, and
-ends its terminals. Muxy warns about uncommitted changes.
+ends its terminals. Murvix warns about uncommitted changes.
 
 ### Setup and teardown commands
 
-Muxy can run commands when it creates or removes a worktree. List them in
-`.muxy/worktree.json` in the project, or for every project in
+Murvix can run commands when it creates or removes a worktree. List them in
+`.murvix/worktree.json` in the project, or for every project in
 `~/.config/murvix/worktree.json` (`$XDG_CONFIG_HOME/murvix/worktree.json`):
 
 ```json
@@ -69,7 +69,7 @@ Muxy can run commands when it creates or removes a worktree. List them in
 }
 ```
 
-- Muxy shows the commands and runs them only if you turn them on in the dialog.
+- Murvix shows the commands and runs them only if you turn them on in the dialog.
 - Setup runs your own commands first, then the project's. Teardown runs the
   project's first.
 - Commands run in the worktree with `MUXY_PROJECT_PATH`, `MUXY_WORKTREE_ID`,
@@ -79,5 +79,5 @@ Muxy can run commands when it creates or removes a worktree. List them in
 
 ## Layouts
 
-Check a `.muxy/layouts/` folder into a project to open a ready-made set of
+Check a `.murvix/layouts/` folder into a project to open a ready-made set of
 split terminals. See [Layouts](../layouts/overview.md).

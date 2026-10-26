@@ -521,7 +521,7 @@ fn shell_hooks_are_socket_relative_and_the_setting_controls_new_shells() -> Test
     let home = fixture.directory.join("home");
     fs::create_dir(&home)?;
     fs::write(home.join(".zshenv"), "skip_global_compinit=1\n")?;
-    fs::write(home.join(".zshrc"), "PS1='muxy-lifecycle> '\n")?;
+    fs::write(home.join(".zshrc"), "PS1='murvix-lifecycle> '\n")?;
     for enabled in [true, false] {
         fs::write(
             fixture.directory.join("server.toml"),
@@ -553,7 +553,7 @@ fn shell_hooks_are_socket_relative_and_the_setting_controls_new_shells() -> Test
                 })
                 .collect::<Vec<_>>()
                 .join("\n");
-            let ready = screen.contains("muxy-lifecycle>");
+            let ready = screen.contains("murvix-lifecycle>");
             observed = !snapshot.prompts.is_empty();
             client.request(RequestBody::Detach(snapshot.channel))?;
             Ok(ready)
@@ -571,7 +571,7 @@ fn shell_hooks_are_socket_relative_and_the_setting_controls_new_shells() -> Test
         assert!(
             fixture
                 .directory
-                .join("shell-integration/fish/vendor_conf.d/muxy.fish")
+                .join("shell-integration/fish/vendor_conf.d/murvix.fish")
                 .is_file()
         );
         fixture.stop("-TERM")?;

@@ -12,7 +12,7 @@ fn resize_coalescing_preserves_request_and_detach_order() -> TestResult {
 
 fn check_resize_delivery(saturated: bool) -> TestResult {
     let directory = PathBuf::from(format!(
-        "/tmp/muxy-resize-{}-{saturated}",
+        "/tmp/murvix-resize-{}-{saturated}",
         std::process::id(),
     ));
     fs::create_dir(&directory)?;
@@ -176,7 +176,7 @@ fn resize_server(
 
 #[test]
 fn reconnect_discards_old_resizes_and_stale_completion_unblocks_new_work() -> TestResult {
-    let directory = PathBuf::from(format!("/tmp/muxy-resize-reconnect-{}", std::process::id()));
+    let directory = PathBuf::from(format!("/tmp/murvix-resize-reconnect-{}", std::process::id()));
     fs::create_dir(&directory)?;
     let socket = directory.join("server.sock");
     let listener = UnixListener::bind(&socket)?;

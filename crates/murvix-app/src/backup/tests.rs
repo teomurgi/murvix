@@ -38,7 +38,7 @@ fn backup_round_trip_is_portable_and_restore_waits_for_restart() {
         "history_budget_bytes = 1048576\nshell_integration = false\n",
     )
     .unwrap();
-    let archive = source.path().join("test.muxy");
+    let archive = source.path().join("test.murvix");
     export(source.path(), &archive, &state).unwrap();
     let (files, legacy, restore) = archive::read(&archive).unwrap();
     assert!(!legacy);
@@ -93,7 +93,7 @@ fn backup_round_trip_is_portable_and_restore_waits_for_restart() {
 #[test]
 fn invalid_archive_and_cancel_leave_current_configuration_untouched() {
     let directory = profile();
-    let archive = directory.path().join("test.muxy");
+    let archive = directory.path().join("test.murvix");
     export(directory.path(), &archive, &AppState::bootstrap().unwrap()).unwrap();
     stage(
         directory.path(),
@@ -124,7 +124,7 @@ fn legacy_archive(path: &Path, extra: &str) {
     zip.write_all(br#"{"schemaVersion":1,"appVersion":"1.0","files":["settings.json"]}"#)
         .unwrap();
     zip.start_file("settings.json", options).unwrap();
-    zip.write_all(br#"{"muxy.theme.dark":"Dracula","muxy.quickTerminal.width":900,"browser.homePageURL":"https://example.com"}"#).unwrap();
+    zip.write_all(br#"{"murvix.theme.dark":"Dracula","murvix.quickTerminal.width":900,"browser.homePageURL":"https://example.com"}"#).unwrap();
     if !extra.is_empty() {
         zip.start_file(extra, options).unwrap();
         zip.write_all(b"unsafe").unwrap();
@@ -135,7 +135,7 @@ fn legacy_archive(path: &Path, extra: &str) {
 #[test]
 fn native_one_x_archive_and_manual_json_use_the_same_conversion() {
     let directory = profile();
-    let archive = directory.path().join("legacy.muxy");
+    let archive = directory.path().join("legacy.murvix");
     legacy_archive(&archive, "");
     let import = prepare(directory.path(), &archive).unwrap();
     assert!(import.summary.contains("Not available in Murvix 2 (1)"));
@@ -151,7 +151,7 @@ fn native_one_x_archive_and_manual_json_use_the_same_conversion() {
     let json = directory.path().join("settings.json");
     fs::write(
         &json,
-        r#"{"muxy.quickTerminal.height":650,"mobile.approvedDevices":["secret"]}"#,
+        r#"{"murvix.quickTerminal.height":650,"mobile.approvedDevices":["secret"]}"#,
     )
     .unwrap();
     let import = prepare(directory.path(), &json).unwrap();
@@ -170,7 +170,7 @@ fn native_one_x_archive_and_manual_json_use_the_same_conversion() {
 #[test]
 fn traversal_symlinks_missing_manifest_and_unknown_versions_are_rejected() {
     let directory = profile();
-    let archive = directory.path().join("unsafe.muxy");
+    let archive = directory.path().join("unsafe.murvix");
     for name in [
         "../escape",
         "/absolute",
@@ -184,7 +184,7 @@ fn traversal_symlinks_missing_manifest_and_unknown_versions_are_rejected() {
     zip.start_file("manifest.json", zip::write::SimpleFileOptions::default())
         .unwrap();
     zip.write_all(
-        br#"{"schemaVersion":2,"format":"muxy.configuration","files":["settings.toml"]}"#,
+        br#"{"schemaVersion":2,"format":"murvix.configuration","files":["settings.toml"]}"#,
     )
     .unwrap();
     zip.add_symlink(
@@ -217,7 +217,7 @@ fn ghostty_includes_are_resolved_and_untrusted_imports_cannot_read_external_file
         "font-size = 12\nconfig-file = included.conf\n",
     )
     .unwrap();
-    let archive = directory.path().join("test.muxy");
+    let archive = directory.path().join("test.murvix");
     export(directory.path(), &archive, &AppState::bootstrap().unwrap()).unwrap();
     let (mut files, _, _) = archive::read(&archive).unwrap();
     let source = String::from_utf8_lossy(&files["terminal.toml"]);
@@ -242,7 +242,7 @@ fn recovery_archive_resolves_includes_and_keeps_original_files_for_rollback() {
     let original = "font-size = 12\nconfig-file = included.conf\n";
     fs::write(target.path().join("ghostty.conf"), original).unwrap();
     fs::write(target.path().join("included.conf"), "font-size = 21\n").unwrap();
-    let archive = source.path().join("test.muxy");
+    let archive = source.path().join("test.murvix");
     export(source.path(), &archive, &AppState::bootstrap().unwrap()).unwrap();
     stage(target.path(), &prepare(target.path(), &archive).unwrap()).unwrap();
     assert!(apply_pending(target.path()).unwrap().is_none());
@@ -257,7 +257,7 @@ fn recovery_archive_resolves_includes_and_keeps_original_files_for_rollback() {
         original
     );
     fs::remove_file(target.path().join("included.conf")).unwrap();
-    let import = prepare(target.path(), &recovery.join("recovery.muxy")).unwrap();
+    let import = prepare(target.path(), &recovery.join("recovery.murvix")).unwrap();
     stage(target.path(), &import).unwrap();
     assert!(apply_pending(target.path()).unwrap().is_none());
     let terminal = TerminalSettings::load_native(&target.path().join("terminal.toml")).unwrap();
@@ -334,7 +334,7 @@ fn native_backup_ignores_stale_legacy_includes_and_old_backups_replace_native_se
         "config-file = missing.conf",
     )
     .unwrap();
-    let archive = source.path().join("native.muxy");
+    let archive = source.path().join("native.murvix");
     export(source.path(), &archive, &AppState::bootstrap().unwrap()).unwrap();
     let (files, _, _) = archive::read(&archive).unwrap();
     assert!(!files.contains_key("ghostty.conf"));
@@ -345,7 +345,7 @@ fn native_backup_ignores_stale_legacy_includes_and_old_backups_replace_native_se
         terminal
     );
 
-    let old = source.path().join("old.muxy");
+    let old = source.path().join("old.murvix");
     let files = Files::from([
         (
             "settings.toml".into(),
@@ -383,7 +383,7 @@ fn recovery_of_first_partial_terminal_migration_restores_legacy_preferences() {
         .unwrap()
         .unwrap()
         .path()
-        .join("recovery.muxy");
+        .join("recovery.murvix");
     let native = directory.path().join("terminal.toml");
     assert_eq!(
         TerminalSettings::load_native(&native)
@@ -445,7 +445,7 @@ fn partial_terminal_import_preserves_unmentioned_preferences_and_replaces_lists(
     .unwrap();
     fs::write(
         legacy.path().join("settings.json"),
-        r#"{"muxy.quickTerminal.width":900}"#,
+        r#"{"murvix.quickTerminal.width":900}"#,
     )
     .unwrap();
     let import = prepare(directory.path(), legacy.path()).unwrap();
@@ -469,12 +469,12 @@ fn full_restore_resets_omitted_configuration_and_partial_import_keeps_it() {
     fs::create_dir(target.path().join("themes")).unwrap();
     fs::write(target.path().join("themes/custom"), "background = 111111").unwrap();
     let json = source.path().join("settings.json");
-    fs::write(&json, r#"{"muxy.quickTerminal.width":900}"#).unwrap();
+    fs::write(&json, r#"{"murvix.quickTerminal.width":900}"#).unwrap();
     stage(target.path(), &prepare(target.path(), &json).unwrap()).unwrap();
     apply_pending(target.path()).unwrap();
     assert!(target.path().join("server.toml").exists());
     assert!(target.path().join("themes/custom").exists());
-    let archive = source.path().join("test.muxy");
+    let archive = source.path().join("test.murvix");
     export(source.path(), &archive, &AppState::bootstrap().unwrap()).unwrap();
     stage(target.path(), &prepare(target.path(), &archive).unwrap()).unwrap();
     apply_pending(target.path()).unwrap();
@@ -495,7 +495,7 @@ fn mobile_preferences_exclude_credentials_and_apply_through_the_server() {
     let raw = br#"{"enabled":true,"port":7420,"certificate":"secret-certificate","private_key":"secret-key","devices":["secret-device"]}"#;
     fs::write(source.path().join("remote.json"), raw).unwrap();
     fs::write(target.path().join("remote.json"), raw).unwrap();
-    let archive = source.path().join("test.muxy");
+    let archive = source.path().join("test.murvix");
     export(source.path(), &archive, &AppState::bootstrap().unwrap()).unwrap();
     let import = prepare(target.path(), &archive).unwrap();
     assert!(!import.files.contains_key("remote.json"));
@@ -526,7 +526,7 @@ fn legacy_package(folder: &Path, name: &str) {
     fs::create_dir_all(folder).unwrap();
     fs::write(
         folder.join("package.json"),
-        serde_json::json!({"name":name,"version":"1.0.0","muxy":{}}).to_string(),
+        serde_json::json!({"name":name,"version":"1.0.0","murvix":{}}).to_string(),
     )
     .unwrap();
 }
@@ -564,7 +564,7 @@ fn installed_one_x_is_imported_once_into_a_new_profile_and_later_imports_merge()
     };
     projects(serde_json::json!([
         {"id":first_id,"name":"First","path":first.path(),"sortOrder":0},
-        {"id":second_id,"name":"Unmounted","path":"/missing-muxy-project","sortOrder":1}
+        {"id":second_id,"name":"Unmounted","path":"/missing-murvix-project","sortOrder":1}
     ]));
     let notice = migrate_once(directory.path(), legacy.path(), legacy_extensions)
         .unwrap()

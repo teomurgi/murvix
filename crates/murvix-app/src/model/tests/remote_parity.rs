@@ -27,7 +27,7 @@ struct Machine {
 impl Machine {
     fn new() -> Result<Self> {
         let directory = tempfile::Builder::new()
-            .prefix("muxy-remote-")
+            .prefix("murvix-remote-")
             .tempdir_in("/tmp")?;
         let socket = directory.path().join("remote.sock");
         serve_remote(&socket)?;

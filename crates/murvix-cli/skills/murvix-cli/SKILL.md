@@ -1,11 +1,11 @@
 ---
 name: murvix-cli
-description: How to drive Muxy 2 from a shell with the `murvix` command — start terminals that keep running, type into them, read and wait on their output, and manage projects and Git worktrees. Use this when you are an agent running inside a Muxy terminal (or any script on the same computer) and want work to run in its own terminal instead of blocking yours, or to drive the desktop app's built-in browser.
+description: How to drive Murvix 2 from a shell with the `murvix` command — start terminals that keep running, type into them, read and wait on their output, and manage projects and Git worktrees. Use this when you are an agent running inside a Murvix terminal (or any script on the same computer) and want work to run in its own terminal instead of blocking yours, or to drive the desktop app's built-in browser.
 ---
 
-# Muxy CLI
+# Murvix CLI
 
-Muxy keeps terminals in a background server. The `murvix` command talks to that
+Murvix keeps terminals in a background server. The `murvix` command talks to that
 server directly; the desktop app doesn't need to be open. Terminals you start
 keep running after your command returns, and the user can open them in the
 desktop app or the terminal UI from **Existing Terminals**.
@@ -22,9 +22,9 @@ to any management command for machine-readable output.
 
 Don't use it for work a plain command can do in your own terminal.
 
-## Inside a Muxy terminal
+## Inside a Murvix terminal
 
-Muxy sets `MUXY_SESSION_ID` and `MUXY_SERVER_ID` in every terminal. Session
+Murvix sets `MUXY_SESSION_ID` and `MUXY_SERVER_ID` in every terminal. Session
 commands then default to your own terminal, and `session create` to your
 project, so most commands need no IDs.
 
@@ -46,7 +46,7 @@ WEB=$(murvix session create -- npm run dev)
 TESTS=$(murvix session create MyProject --directory ./packages/api -- exec npm test)
 ```
 
-Outside a Muxy terminal, name the project: an ID, a unique name, or its folder.
+Outside a Murvix terminal, name the project: an ID, a unique name, or its folder.
 
 The words after `--` are joined with spaces, so quote the whole command to keep
 its own quotes, pipes, or `;`:

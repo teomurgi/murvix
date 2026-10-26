@@ -40,7 +40,7 @@ pub enum RemoteReason {
     AuthenticationFailed,
     /// The host can't be resolved or reached.
     Unreachable,
-    /// The remote shell can't find `muxy`.
+    /// The remote shell can't find `murvix`.
     NotInstalled,
     /// No server runs there, and this connection must not start one.
     NotRunning,

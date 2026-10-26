@@ -1,4 +1,4 @@
-//! The bridge to a server on another computer. `muxy stdio` runs there,
+//! The bridge to a server on another computer. `murvix stdio` runs there,
 //! joined to that computer's server, and its stdin and stdout carry the
 //! protocol unchanged, so version negotiation stays end to end.
 //!
@@ -27,13 +27,13 @@ const MAX_NOISE: usize = 64 * 1024;
 const MAX_VERSION: usize = 16;
 /// Keeps error details to one readable line.
 const MAX_DETAIL: usize = 300;
-/// What `muxy stdio --no-start` reports when no server is running.
+/// What `murvix stdio --no-start` reports when no server is running.
 const NOT_RUNNING: &str = "the server isn't running";
-/// How shells report that `muxy` isn't on PATH.
+/// How shells report that `murvix` isn't on PATH.
 const NOT_FOUND: [&str; 3] = [
-    "muxy: not found",
-    "muxy: command not found",
-    "command not found: muxy",
+    "murvix: not found",
+    "murvix: command not found",
+    "command not found: murvix",
 ];
 /// ssh's own words when the network or the host's sshd fails it.
 const UNREACHABLE: [&str; 8] = [
@@ -52,13 +52,13 @@ const UNREACHABLE: [&str; 8] = [
 pub enum Start {
     /// Start the server if it isn't running, like most commands.
     IfNeeded,
-    /// Only use a running server, like `muxy server status`.
+    /// Only use a running server, like `murvix server status`.
     Never,
 }
 
 /// The command a remote login shell runs to start the bridge. It runs under
 /// `sh` whatever the login shell is, and also looks in `~/.local/bin`, where
-/// the installer puts `muxy`.
+/// the installer puts `murvix`.
 pub fn command(start: Start) -> &'static str {
     match start {
         Start::IfNeeded => r#"sh -c 'export PATH="$PATH:$HOME/.local/bin"; exec murvix stdio'"#,
@@ -95,7 +95,7 @@ pub fn serve(socket: &Path, executable: &Path, start: Start) -> Result<(), Clien
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct BridgeExit {
     /// The exit status, such as 255 from ssh itself or 127 from a shell that
-    /// can't find `muxy`.
+    /// can't find `murvix`.
     pub status: Option<i32>,
     /// The end of the transport's error output.
     pub stderr: String,
@@ -117,7 +117,7 @@ impl Client {
         let (reader, writer) = stream.split()?;
         let (sender, receiver) = mpsc::channel();
         thread::Builder::new()
-            .name("muxy-bridge-ready".into())
+            .name("murvix-bridge-ready".into())
             .spawn(move || {
                 let _ = sender.send(ready(reader));
             })?;
@@ -287,7 +287,7 @@ fn explain(exit: &BridgeExit, printed: &[u8]) -> (RemoteReason, String) {
         RemoteReason::AuthenticationFailed
     } else if exit.status == Some(127) || said(&NOT_FOUND) {
         RemoteReason::NotInstalled
-    } else if said(&["muxy: unknown command"]) {
+    } else if said(&["murvix: unknown command"]) {
         RemoteReason::Incompatible
     } else if said(&[NOT_RUNNING]) {
         RemoteReason::NotRunning
@@ -309,7 +309,7 @@ fn explain(exit: &BridgeExit, printed: &[u8]) -> (RemoteReason, String) {
             }
             None => "the connection closed before Murvix started".into(),
         },
-        RemoteReason::BridgeFailed => last.strip_prefix("muxy: ").unwrap_or(&last).into(),
+        RemoteReason::BridgeFailed => last.strip_prefix("murvix: ").unwrap_or(&last).into(),
         _ => last,
     };
     (reason, detail)

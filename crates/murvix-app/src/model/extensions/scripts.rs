@@ -27,7 +27,7 @@ pub(super) struct Picker {
     waiter: Option<Reply>,
 }
 
-/// Wraps script source in the runtime that provides `muxy`, `console`, and timers.
+/// Wraps script source in the runtime that provides `murvix`, `console`, and timers.
 pub(super) fn runtime(owner: &str, surface: &str, source: &str) -> String {
     format!(
         "{}({}, {}, {});\n{}",
@@ -76,7 +76,7 @@ impl AppModel {
             return;
         };
         if let Some(reason) = self.extension_action_reason(&command.action) {
-            self.extension_log(owner, format!("[muxy] command {id} failed: {reason}"));
+            self.extension_log(owner, format!("[murvix] command {id} failed: {reason}"));
             self.fail(reason.into_owned(), cx);
             return;
         }
@@ -85,7 +85,7 @@ impl AppModel {
         {
             self.extension_log(
                 owner,
-                format!("[muxy] command {id} blocked: missing {permission} permission"),
+                format!("[murvix] command {id} blocked: missing {permission} permission"),
             );
             return;
         }
@@ -136,7 +136,7 @@ impl AppModel {
             Action::OpenPopover { .. } => Ok(()),
         };
         if let Err(error) = result {
-            self.extension_log(owner, format!("[muxy] command {id} failed: {error}"));
+            self.extension_log(owner, format!("[murvix] command {id} failed: {error}"));
             self.fail(error, cx);
         }
         self.sync_extension_events(cx);
@@ -180,7 +180,7 @@ impl AppModel {
                     model.start_loaded_extension_script(owner.clone(), Some(project), source, cx)
                 });
                 if let Err(error) = result {
-                    model.extension_log(&owner, format!("[muxy] runScript failed: {error}"));
+                    model.extension_log(&owner, format!("[murvix] runScript failed: {error}"));
                     model.fail(error, cx);
                 }
             });
@@ -244,7 +244,7 @@ impl AppModel {
             Event::Error(error) => {
                 self.extension_log(owner, format!("[err] {error}"));
                 if !self.is_background(id) {
-                    self.extension_log(owner, "[muxy] runScript failed".into());
+                    self.extension_log(owner, "[murvix] runScript failed".into());
                     self.fail(format!("{owner}: {error}"), cx);
                 }
             }
@@ -448,7 +448,7 @@ impl AppModel {
                     model.extension_evaluate(
                         &opener,
                         &format!(
-                            "globalThis.__muxyDeliverModalQuery?.({}, {}, {}, {});",
+                            "globalThis.__murvixDeliverModalQuery?.({}, {}, {}, {});",
                             json!(request),
                             json!(query.token.revision.to_string()),
                             json!(query.query),

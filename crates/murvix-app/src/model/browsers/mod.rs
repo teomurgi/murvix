@@ -307,7 +307,7 @@ impl AppModel {
         }
     }
 
-    /// Answers `muxy browser` on the profile's app socket.
+    /// Answers `murvix browser` on the profile's app socket.
     pub(crate) fn start_app_socket(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let path = murvix_app_core::browser::api::socket_path(
             self.path

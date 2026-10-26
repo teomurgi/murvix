@@ -14,7 +14,7 @@ impl Source {
             || {
                 Self::Development(
                     Path::new(env!("CARGO_MANIFEST_DIR"))
-                        .join("../../target/linux-dev/muxy-dev-linux-x86_64.tar.gz"),
+                        .join("../../target/linux-dev/murvix-dev-linux-x86_64.tar.gz"),
                 )
             },
             |version| Self::Release(version.into()),
@@ -30,7 +30,7 @@ impl Source {
             Self::Development(_) => {
                 let installer = include_str!("../../../scripts/install-murvix.sh");
                 format!(
-                    "sh -c '{}' muxy-install --dev-archive",
+                    "sh -c '{}' murvix-install --dev-archive",
                     installer.replace('\'', "'\\''")
                 )
             }
@@ -52,7 +52,7 @@ impl Source {
                 name
             ),
             Self::Development(archive) => tr!(
-                "The development build at %@ is uploaded to %@. It installs murvix-server and its muxy helper in ~/.local/bin, then tests the connection. It requires x86_64 Linux with glibc 2.35 or newer.",
+                "The development build at %@ is uploaded to %@. It installs murvix-server and its murvix helper in ~/.local/bin, then tests the connection. It requires x86_64 Linux with glibc 2.35 or newer.",
                 archive.display().to_string(),
                 name
             ),

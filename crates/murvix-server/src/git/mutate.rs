@@ -62,7 +62,7 @@ pub(super) fn push(repository: &Path, set_upstream: bool) -> Result<()> {
                 &[
                     "config",
                     "--get",
-                    &format!("branch.{branch}.muxy-pr-number"),
+                    &format!("branch.{branch}.murvix-pr-number"),
                 ],
             )
             .is_ok()

@@ -207,7 +207,7 @@ impl Github {
                         &[
                             "config",
                             "--get",
-                            &format!("branch.{branch}.muxy-pr-number"),
+                            &format!("branch.{branch}.murvix-pr-number"),
                         ],
                     )
                     .ok()
@@ -612,7 +612,7 @@ impl Github {
             repository,
             &[
                 "config",
-                &format!("branch.{branch}.muxy-pr-number"),
+                &format!("branch.{branch}.murvix-pr-number"),
                 &number.to_string(),
             ],
         )?;
@@ -653,7 +653,7 @@ fn current_branch(repository: &Path) -> Result<Option<CurrentBranch>> {
         &[
             "config",
             "--get",
-            &format!("branch.{branch}.muxy-pr-number"),
+            &format!("branch.{branch}.murvix-pr-number"),
         ],
     )
     .ok()

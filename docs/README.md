@@ -1,6 +1,6 @@
-# Muxy Docs
+# Murvix Docs
 
-Documentation for Muxy 2.
+Documentation for Murvix 2.
 
 | Section | Pages |
 | --- | --- |
@@ -12,4 +12,4 @@ Documentation for Muxy 2.
 | Extensions | [Overview](extensions/overview.md) · [Get started](extensions/get-started.md) · [Manifest](extensions/manifest.md) · [API reference](extensions/api.md) |
 
 For contributors, [product](product/README.md) and [technical design](tech/README.md)
-describe how Muxy is meant to work and how it is built.
+describe how Murvix is meant to work and how it is built.

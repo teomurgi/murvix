@@ -898,7 +898,7 @@ impl AppModel {
         true
     }
 
-    /// Adds the projects and tabs Muxy 1.x had to the running app, and
+    /// Adds the projects and tabs Murvix 1.x had to the running app, and
     /// returns how many projects that added. What is already here stays as it
     /// is.
     pub(crate) fn import_legacy_projects(

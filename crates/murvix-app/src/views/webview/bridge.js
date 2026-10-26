@@ -1,5 +1,5 @@
 ((initial, makeAPI) => {
-  const handler = window.webkit?.messageHandlers?.muxy;
+  const handler = window.webkit?.messageHandlers?.murvix;
   if (!handler) return;
   let nextID = 1;
   const send = async (verb, args = {}) => {
@@ -19,21 +19,21 @@
     const root = document.documentElement;
     if (!root) return false;
     for (const [key, value] of Object.entries(theme)) {
-      root.style.setProperty('--muxy-' + key.replace(/[A-Z]/g, m => '-' + m.toLowerCase()), value);
+      root.style.setProperty('--murvix-' + key.replace(/[A-Z]/g, m => '-' + m.toLowerCase()), value);
     }
     root.style.colorScheme = theme.colorScheme || 'light';
     return true;
   };
-  window.__muxyApplyData = value => { data = value ?? null; emit(listeners.data, data); };
-  window.__muxyApplyTheme = value => { theme = Object.freeze({ ...value }); paintTheme(); emit(listeners.theme, theme); };
-  window.__muxyApplyFocus = value => {
+  window.__murvixApplyData = value => { data = value ?? null; emit(listeners.data, data); };
+  window.__murvixApplyTheme = value => { theme = Object.freeze({ ...value }); paintTheme(); emit(listeners.theme, theme); };
+  window.__murvixApplyFocus = value => {
     value = !!value;
     if (focused === value) return;
     focused = value;
     emit(listeners.focus, focused);
   };
   let beforeClose = null;
-  window.__muxyBeforeClose = (callID, surface, instanceID) => {
+  window.__murvixBeforeClose = (callID, surface, instanceID) => {
     const resolve = prevent => send('lifecycle.resolveBeforeClose', { callID: String(callID), prevent }).catch(() => {});
     if (!beforeClose) { resolve(false); return; }
     send('lifecycle.ackBeforeClose', { callID: String(callID) }).catch(() => {});
@@ -43,7 +43,7 @@
     } catch (_) { resolve(false); }
   };
   const eventListeners = new Map();
-  window.__muxyEvent = (name, payload) => {
+  window.__murvixEvent = (name, payload) => {
     for (const callback of [...(eventListeners.get(name) || [])]) {
       try { callback(payload || {}); } catch (_) {}
     }
@@ -57,7 +57,7 @@
         eventListeners.set(name, set);
         send('events.subscribe', { event: name }).catch(error => {
           eventListeners.delete(name);
-          try { console.error('muxy.events.subscribe failed:', error.message || error); } catch (_) {}
+          try { console.error('murvix.events.subscribe failed:', error.message || error); } catch (_) {}
         });
       }
       set.add(callback);
@@ -148,8 +148,8 @@
     closeWebview: () => send('modal.closeWebview'),
   };
   const api = makeAPI(send, { ...initial, surface: 'page' });
-  window.__muxyDeliverModalQuery = deliverModalQuery;
-  window.muxy = Object.freeze({
+  window.__murvixDeliverModalQuery = deliverModalQuery;
+  window.murvix = Object.freeze({
     ...api,
     extensionID: initial.owner,
     tabInstanceID: initial.id,

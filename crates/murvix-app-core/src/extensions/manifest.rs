@@ -570,9 +570,9 @@ impl Extension {
                 .filter(|version| !version.is_empty())
                 .ok_or("missing version")?;
             let mut manifest = value
-                .get("muxy")
+                .get("murvix")
                 .filter(|v| v.is_object())
-                .ok_or("missing muxy manifest")?
+                .ok_or("missing murvix manifest")?
                 .clone();
             without_nulls(&mut manifest);
             let extension = Self {

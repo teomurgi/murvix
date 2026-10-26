@@ -1,6 +1,6 @@
 # Terminal UI
 
-Run `murvix` with no arguments to open Muxy inside any terminal. It shows the
+Run `murvix` with no arguments to open Murvix inside any terminal. It shows the
 same projects and terminals as the desktop app, with its own tabs and splits.
 It works on macOS and Linux, locally or over SSH.
 

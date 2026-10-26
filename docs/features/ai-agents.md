@@ -1,6 +1,6 @@
 # AI Agents
 
-Muxy recognizes AI coding agents running in its terminals and shows whether
+Murvix recognizes AI coding agents running in its terminals and shows whether
 each one is working, waiting for you, or done. It needs no setup, hooks, or
 plugins, and works while no app is open.
 
@@ -56,7 +56,7 @@ or finishes working.
 - Looking at the terminal clears the alert in every app.
 - Clicking a notification jumps to its pane.
 - Only one app notifies, so alerts are never doubled.
-- Turn notifications off in **System Settings → Notifications → Muxy**.
+- Turn notifications off in **System Settings → Notifications → Murvix**.
 
 Alerts live in memory on the server, at most one per terminal. Restarting the
 server clears them.
@@ -71,12 +71,12 @@ focus. Use the arrow keys and Return to open a row.
   opens as a popup that closes when you click elsewhere. Once you have shown
   the panel, the collapsed sidebar keeps a button for it until you hide it.
 - **Move to Right** docks it in the right panel, even when the left sidebar is
-  collapsed. Drag its left edge to resize it; Muxy remembers the side and width.
+  collapsed. Drag its left edge to resize it; Murvix remembers the side and width.
   It shares this area with extension panels and the panel-mode composer: opening
   one replaces the other. Use `Cmd+Opt+A` to bring Agents back. **Move to Left
   Sidebar** returns it to the sidebar.
 - **Detach** floats it over the window. Drag its header to move it and its
-  edges or corner to resize it; Muxy remembers where. **Reattach to Sidebar** or
+  edges or corner to resize it; Murvix remembers where. **Reattach to Sidebar** or
   **Reattach to Right Panel** docks it on its last side. The other side's move
   button is also available while floating.
 - **Settings → Appearance → Agents panel rows** lists each agent, grouped as
@@ -103,7 +103,7 @@ This is separate from the running-agents panel.
   focus to the terminal.
 - Click a session to resume it in a new project terminal using the harness's
   native resume command. The harness must be installed and available on the
-  terminal's PATH. Muxy does not install, configure, or authenticate it.
+  terminal's PATH. Murvix does not install, configure, or authenticate it.
 - Drag the left edge to resize. The panel shares the right-panel area with
   Agents, extension panels, and the panel-mode composer; opening one replaces
   the other.

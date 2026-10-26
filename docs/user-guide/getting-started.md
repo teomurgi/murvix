@@ -51,7 +51,7 @@ The installer detects your architecture and verifies the download:
 
 ```sh
 curl -fsSL --proto '=https' --proto-redir '=https' \
-  https://github.com/muxy-app/muxy/releases/latest/download/install-desktop-linux.py \
+  https://github.com/murvix-app/murvix/releases/latest/download/install-desktop-linux.py \
   | python3 - install
 ```
 
@@ -63,7 +63,7 @@ Open **Murvix** from Applications. The app, CLI and server install into
 
 Download `murvix-desktop_<version>_amd64.deb` or
 `murvix-desktop_<version>_arm64.deb` from the
-[latest stable release](https://github.com/muxy-app/muxy/releases/latest).
+[latest stable release](https://github.com/murvix-app/murvix/releases/latest).
 Use `dpkg --print-architecture` to check which you need. In your download
 directory, replace the filename below with your download:
 
@@ -79,7 +79,7 @@ and `murvix-server` in `/usr/bin`.
 Install the [runtime libraries above](#quick-installer-with-in-app-updates), then
 download `Murvix-<version>-linux-x86_64.AppImage` or
 `Murvix-<version>-linux-arm64.AppImage` from the
-[latest stable release](https://github.com/muxy-app/muxy/releases/latest).
+[latest stable release](https://github.com/murvix-app/murvix/releases/latest).
 Use `uname -m` to check: `aarch64` means ARM64. Replace the filename below with
 your download and run it without `sudo`:
 
@@ -136,12 +136,12 @@ For a Linux computer or Mac without the desktop app. This installs `murvix` and
 ### Install script
 
 Set `VERSION` to the newest version on the
-[releases page](https://github.com/muxy-app/muxy/releases/latest), without the
+[releases page](https://github.com/murvix-app/murvix/releases/latest), without the
 leading `v`:
 
 ```bash
 VERSION=2.1.0
-curl -fsSL "https://github.com/muxy-app/muxy/releases/download/v$VERSION/install-muxy.sh" \
+curl -fsSL "https://github.com/murvix-app/murvix/releases/download/v$VERSION/install-murvix.sh" \
   | sh -s -- --version "$VERSION"
 export PATH="$HOME/.local/bin:$PATH"
 ```
@@ -160,10 +160,10 @@ Run `murvix --version` and `murvix-server --version`, then `murvix` to open the
 running [server](../features/server.md#lifetime); stop it to switch to the new
 version.
 
-## Upgrading from Muxy 1.x
+## Upgrading from Murvix 1.x
 
-Muxy 1.x offers Muxy 2 as an update, or you can install Muxy 2 over it. Unless
-you already have projects in Muxy 2, the first launch imports your 1.x setup:
+Murvix 1.x offers Murvix 2 as an update, or you can install Murvix 2 over it. Unless
+you already have projects in Murvix 2, the first launch imports your 1.x setup:
 supported settings, shortcuts, local projects, terminal tabs, the default shell,
 and extensions. Projects and extensions that could not be imported are listed,
 and your 1.x data stays where it was. To import again later, open
@@ -180,12 +180,12 @@ working; see [Coming from 1.x](../extensions/get-started.md#coming-from-1x).
 2. **Open a terminal.** `Cmd+T` opens a tab in the project. `Cmd+N` opens one
    in Home.
 3. **Split it.** `Cmd+D` splits right, `Cmd+Shift+D` splits down.
-4. **Quit freely.** Terminals keep running in the background. Reopen Muxy and
+4. **Quit freely.** Terminals keep running in the background. Reopen Murvix and
    everything is where you left it.
 
 ## Next
 
-- [How Muxy works](../features/server.md): the server, sessions, and history.
+- [How Murvix works](../features/server.md): the server, sessions, and history.
 - [Projects](../features/projects.md), [Terminal](../features/terminal.md), and
   [Keyboard shortcuts](keyboard-shortcuts.md).
 - [Remote servers](../features/remote-servers.md).

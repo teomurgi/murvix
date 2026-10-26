@@ -22,7 +22,7 @@ impl Fixture {
     fn new() -> Result<Self> {
         static NEXT: AtomicU64 = AtomicU64::new(0);
         let path = std::env::temp_dir().join(format!(
-            "muxy-settings-{}-{}",
+            "murvix-settings-{}-{}",
             std::process::id(),
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));

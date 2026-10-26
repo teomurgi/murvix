@@ -22,7 +22,7 @@ const APP_START_TIME: Duration = Duration::from_secs(20);
 const INVALID_REPLY: &str = "invalid reply from Murvix";
 
 pub(crate) fn run(invocation: Invocation) -> Result<(), Box<dyn Error>> {
-    let socket = api::socket_path(&murvix_core::dirs::muxy_dir()?);
+    let socket = api::socket_path(&murvix_core::dirs::murvix_dir()?);
     let timeout = reply_time()? + invocation.extra_time;
     let starts_app = invocation.verb == "browser.open";
     let request = Request::new(invocation.verb, invocation.args);

@@ -150,7 +150,7 @@ fn start(parent: &Path) -> io::Result<Session> {
     let (finished, done) = std::sync::mpsc::channel();
     let directory = capture.directory.clone();
     if let Err(error) = std::thread::Builder::new()
-        .name("muxy-profiler".into())
+        .name("murvix-profiler".into())
         .spawn(move || {
             if let Some(profile) = PROFILE.get() {
                 collect(capture, profile, &receiver, &finished);

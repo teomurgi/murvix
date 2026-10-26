@@ -16,7 +16,7 @@ const MAX_HOST: usize = 253;
 const MAX_SERVER_NAME: usize = 255;
 const MAX_STATUS: usize = 1024;
 const MAX_LINK: usize = 4096;
-const LINK_PREFIX: &str = "muxy://pair?";
+const LINK_PREFIX: &str = "murvix://pair?";
 const LINK_VERSION: &str = "1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Encode, Decode)]

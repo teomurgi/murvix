@@ -49,7 +49,7 @@ impl Boot {
         let migration = crate::backup::migrate_installed(profile).unwrap_or_else(|error| {
             Some(
                 tr!(
-                    "Muxy 1.x was not imported. Try again from Settings → Backup & Restore. %@",
+                    "Murvix 1.x was not imported. Try again from Settings → Backup & Restore. %@",
                     error.to_string()
                 )
                 .to_string(),

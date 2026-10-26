@@ -1,4 +1,4 @@
-//! `muxy.http.fetch`: main's request validation, its private-network guard,
+//! `murvix.http.fetch`: main's request validation, its private-network guard,
 //! and the request itself. Blocking; callers run it on the network pool.
 
 use std::io::Read;

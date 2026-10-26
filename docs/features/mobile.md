@@ -1,6 +1,6 @@
 # Mobile
 
-The Muxy phone apps connect straight to the server on your computer. There is
+The Murvix phone apps connect straight to the server on your computer. There is
 no cloud service and no account. A paired phone sees the same projects and
 terminals as your desktop.
 
@@ -17,7 +17,7 @@ From the desktop app:
 
 1. Open **Settings → Mobile** and turn on **Allow mobile devices**.
 2. Under **Pair a phone**, choose **Show Pairing Code**.
-3. Scan the code with the Muxy app.
+3. Scan the code with the Murvix app.
 
 From a shell, on any computer with `murvix`:
 
@@ -52,6 +52,6 @@ server, or run programs with `exec`.
 ## Troubleshooting
 
 - On macOS, allow `murvix-server` if the firewall asks.
-- On iOS, the Muxy app needs local network permission.
+- On iOS, the Murvix app needs local network permission.
 - The phone and computer must reach each other: same network, a VPN, or an
   address added with `--address`.

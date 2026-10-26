@@ -16,7 +16,7 @@ fn pairing_links_round_trip_and_stay_compact() -> Result<(), ErrorCode> {
     assert_eq!(
         link,
         format!(
-            "muxy://pair?v=1&h=192.168.1.5&h=studio-mac.local&p=7419&f={}&s={}",
+            "murvix://pair?v=1&h=192.168.1.5&h=studio-mac.local&p=7419&f={}&s={}",
             "c3".repeat(32),
             "ab".repeat(16)
         )
@@ -49,7 +49,7 @@ fn malformed_pairing_links_are_rejected() {
         format!("{link}&p=7420"),
         format!("{link}&x=1"),
         format!("{link}&h"),
-        format!("muxy://pair?v=1{too_many_hosts}&p=7419&f={fingerprint}&s={secret}"),
+        format!("murvix://pair?v=1{too_many_hosts}&p=7419&f={fingerprint}&s={secret}"),
         format!("{link}&h={}", "a".repeat(4096)),
     ];
     for case in cases {

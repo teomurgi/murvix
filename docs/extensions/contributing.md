@@ -1,14 +1,14 @@
 # Contributing an Extension
 
 Published extensions live in the
-[`muxy-app/extensions`](https://github.com/muxy-app/extensions) repository and
+[`murvix-app/extensions`](https://github.com/murvix-app/extensions) repository and
 appear in **Settings → Extensions → Browse**. You publish by opening a pull
 request there; CI builds, checks, and lists your extension. The repository's
 `CONTRIBUTING.md` has the current validation steps.
 
 ## 1. Check out your fork
 
-Fork `muxy-app/extensions`, then check out only the tooling and your folder:
+Fork `murvix-app/extensions`, then check out only the tooling and your folder:
 
 ```bash
 git clone --filter=blob:none --sparse https://github.com/<you>/extensions
@@ -27,7 +27,7 @@ only `dist/` is published.
 
 ## 3. Add a listing
 
-Add a `marketplace` block under `muxy`:
+Add a `marketplace` block under `murvix`:
 
 ```json
 "marketplace": {
@@ -45,7 +45,7 @@ permission.
 ## 4. Open a pull request
 
 Commit your source, not `dist/`, push to your fork, and open a pull request
-against `muxy-app/extensions`. Once merged, the extension is published.
+against `murvix-app/extensions`. Once merged, the extension is published.
 
 A published `name@version` never changes. Bump `version` to ship an update;
 users install updates from **Settings → Extensions**.
@@ -56,4 +56,4 @@ users install updates from **Settings → Extensions**.
 - Keep bundles small and the source readable. Minified or obfuscated code is
   flagged for review.
 - Use lowercase names (`a-z`, `0-9`, `.`, `-`) so pages load.
-- Test on the latest Muxy 2 release.
+- Test on the latest Murvix 2 release.

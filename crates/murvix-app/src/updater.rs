@@ -234,7 +234,7 @@ mod tests {
         for url in [
             "http://github.com/file.dmg",
             "https://example.com/file.dmg",
-            "https://github.com/muxy-app/muxy/releases/download/v2.0.9/Murvix-2.0.9-arm64.dmg",
+            "https://github.com/murvix-app/murvix/releases/download/v2.0.9/Murvix-2.0.9-arm64.dmg",
         ] {
             let mut data = feed("2.0.10");
             data["platforms"]["macos-aarch64"]["url"] = url.into();
@@ -282,7 +282,7 @@ mod tests {
         }
         data["platforms"]["linux-aarch64"]["sha256"] = "a".repeat(64).into();
         data["platforms"]["linux-aarch64"]["url"] =
-            format!("{RELEASES}/v{version}/muxy-{version}-linux-arm64.tar.gz").into();
+            format!("{RELEASES}/v{version}/murvix-{version}-linux-arm64.tar.gz").into();
         assert!(parse(&data).is_err());
     }
 }

@@ -1,10 +1,10 @@
-# Contributing to Muxy
+# Contributing to Murvix
 
-Thank you for your interest in contributing to Muxy! This guide will help you get started.
+Thank you for your interest in contributing to Murvix! This guide will help you get started.
 
 ## Humans Only Policy
 
-Muxy is a community project and we want communication to stay between humans. You are welcome to use AI to help you write code, but **only humans may**:
+Murvix is a community project and we want communication to stay between humans. You are welcome to use AI to help you write code, but **only humans may**:
 
 - Create commits and push changes
 - Open issues or pull requests
@@ -16,7 +16,7 @@ Issues and PRs opened by AI or containing AI-generated text will be closed witho
 
 ## Getting Started
 
-Read [docs/product](docs/product/README.md) and [docs/tech](docs/tech/README.md) first. They describe how Muxy works and how it is built.
+Read [docs/product](docs/product/README.md) and [docs/tech](docs/tech/README.md) first. They describe how Murvix works and how it is built.
 
 ### Prerequisites
 
@@ -44,7 +44,7 @@ cargo run -p murvix-cli     # murvix terminal UI
 
 Build as in [Setup](#setup) first, so `murvix-server` sits next to the binary you
 run.
-Development builds keep their data in a separate `Muxy Dev` profile (`muxy-dev`
+Development builds keep their data in a separate `Murvix Dev` profile (`murvix-dev`
 on Linux).
 
 ## Development Workflow

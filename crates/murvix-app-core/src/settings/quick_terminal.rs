@@ -67,7 +67,7 @@ mod tests {
     #[test]
     fn removed_double_shift_loads_as_unassigned_without_losing_settings() {
         let directory =
-            std::env::temp_dir().join(format!("muxy-quick-shortcut-{}", crate::ProjectId::new()));
+            std::env::temp_dir().join(format!("murvix-quick-shortcut-{}", crate::ProjectId::new()));
         std::fs::create_dir(&directory).unwrap();
         let path = directory.join("settings.toml");
         std::fs::write(

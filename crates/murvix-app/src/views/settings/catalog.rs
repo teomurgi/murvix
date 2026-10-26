@@ -15,7 +15,7 @@ pub(super) const SETTINGS: &[Setting] = &[
         id: "browser-enabled",
         label: tr_key!("Enable built-in browser"),
         description: tr_key!(
-            "Open web pages in browser tabs and let muxy browser commands drive them."
+            "Open web pages in browser tabs and let murvix browser commands drive them."
         ),
         category: Category::Browser,
         section: tr_key!("General"),
@@ -67,7 +67,7 @@ pub(super) const SETTINGS: &[Setting] = &[
         id: "backup-export",
         label: tr_key!("Export backup"),
         description: tr_key!(
-            "Save settings, themes, extension preferences, projects, and terminal layouts to a .muxy file."
+            "Save settings, themes, extension preferences, projects, and terminal layouts to a .murvix file."
         ),
         category: Category::Backup,
         section: tr_key!("Backup & Restore"),
@@ -76,14 +76,14 @@ pub(super) const SETTINGS: &[Setting] = &[
         id: "backup-restore",
         label: tr_key!("Restore backup"),
         description: tr_key!(
-            "Choose a .muxy backup or a 1.x settings.json file. Review the import before applying it on the next launch."
+            "Choose a .murvix backup or a 1.x settings.json file. Review the import before applying it on the next launch."
         ),
         category: Category::Backup,
         section: tr_key!("Backup & Restore"),
     },
     Setting {
         id: "backup-legacy",
-        label: tr_key!("Import from Muxy 1.x"),
+        label: tr_key!("Import from Murvix 1.x"),
         description: tr_key!(
             "Import supported settings and local projects from the installed 1.x app or a backup file. Unsupported options are skipped."
         ),
@@ -288,7 +288,7 @@ pub(super) const SETTINGS: &[Setting] = &[
         id: "worktree-folder",
         label: tr_key!("Default worktree folder"),
         description: tr_key!(
-            "Worktrees go in <folder>/<project>/<name>. Leave both location settings empty to use ~/.muxy/worktrees."
+            "Worktrees go in <folder>/<project>/<name>. Leave both location settings empty to use ~/.murvix/worktrees."
         ),
         category: Category::General,
         section: tr_key!("Worktrees"),

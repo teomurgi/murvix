@@ -42,10 +42,10 @@ pub(crate) const TIPS: &[&str] = &[
         "Record a shortcut in Settings → Quick Terminal → Shortcut to open a floating Home shell over any app."
     ),
     tr_key!(
-        "To pair a phone, turn on Settings → Mobile → Allow mobile devices and click Show Pairing Code, or run muxy mobile enable and then muxy mobile pair."
+        "To pair a phone, turn on Settings → Mobile → Allow mobile devices and click Show Pairing Code, or run murvix mobile enable and then murvix mobile pair."
     ),
     tr_key!(
-        "Working over SSH? Run muxy on that machine for tabs and splits in the terminal, and press Ctrl-B then ? to see its keys."
+        "Working over SSH? Run murvix on that machine for tabs and splits in the terminal, and press Ctrl-B then ? to see its keys."
     ),
     tr_key!(
         "Murvix recognizes AI agents like Claude Code and Codex, marks panes, tabs, and projects when they're working or need you, and notifies you when they're in the background."

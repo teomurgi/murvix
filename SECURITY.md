@@ -8,7 +8,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Muxy, please report it responsibly.
+If you discover a security vulnerability in Murvix, please report it responsibly.
 
 **Do not open a public issue for security vulnerabilities.**
 
@@ -29,4 +29,4 @@ Instead, please use [GitHub's private vulnerability reporting](https://github.co
 
 ## Scope
 
-This policy applies to the Muxy application and its build tooling. For vulnerabilities in [libghostty](https://github.com/ghostty-org/ghostty), please report them to the Ghostty project directly.
+This policy applies to the Murvix application and its build tooling. For vulnerabilities in [libghostty](https://github.com/ghostty-org/ghostty), please report them to the Ghostty project directly.

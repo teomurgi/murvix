@@ -61,9 +61,9 @@
     "tree-sitter-typescript": "^0.23.2",
     "vite": "^7.3.5"
   },
-  "muxy": {
-    "$schema": "https://raw.githubusercontent.com/muxy-app/muxy/main/docs/extensions/schema/manifest.schema.json",
-    "description": "File explorer for Muxy",
+  "murvix": {
+    "$schema": "https://raw.githubusercontent.com/murvix-app/murvix/main/docs/extensions/schema/manifest.schema.json",
+    "description": "File explorer for Murvix",
     "permissions": [
       "files:read",
       "files:write",
@@ -188,7 +188,7 @@
     "marketplace": {
       "author": "Saeed Vaziry",
       "github": "saeedvaziry",
-      "repository": "https://github.com/muxy-app/extensions",
+      "repository": "https://github.com/murvix-app/extensions",
       "categories": [
         "files",
         "explorer"

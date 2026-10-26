@@ -1,6 +1,6 @@
 # Layout Examples
 
-Save any of these in a project's `.muxy/layouts/` folder.
+Save any of these in a project's `.murvix/layouts/` folder.
 
 ## `side-by-side.yaml`
 

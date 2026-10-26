@@ -147,7 +147,7 @@ fn bundled_manifests_compile_and_classify_provider_screens() {
         ),
         (
             AgentProvider::OhMyPi,
-            " π · ◉ glm-5.2 · 🗑 /tmp ↳ muxy-pr · ⑂ fix/1x-icon-import",
+            " π · ◉ glm-5.2 · 🗑 /tmp ↳ murvix-pr · ⑂ fix/1x-icon-import",
             "",
             AgentState::Idle,
         ),

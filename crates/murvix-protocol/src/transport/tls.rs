@@ -23,7 +23,7 @@ use rustls::{CertificateError, DigitallySignedStruct, SignatureScheme};
 use crate::transport::unix::socket_pair;
 use crate::transport::{ByteStream, Listener, StreamCancellation};
 
-const ALPN: &[u8] = b"muxy/1";
+const ALPN: &[u8] = b"murvix/1";
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(10);
 const CLOSE_TIMEOUT: Duration = Duration::from_secs(1);
 const BUFFER: usize = 64 * 1024;
@@ -156,7 +156,7 @@ pub fn connect(
         }
     }
     let mut tcp = connected.ok_or(failure)?;
-    let name = ServerName::try_from("muxy.invalid").map_err(io::Error::other)?;
+    let name = ServerName::try_from("murvix.invalid").map_err(io::Error::other)?;
     let connection = rustls::ClientConnection::new(client_config(fingerprint)?, name)
         .map_err(io::Error::other)?;
     let connection = handshake(rustls::Connection::Client(connection), &mut tcp, timeout)
@@ -370,7 +370,7 @@ fn handshake(
     if connection.alpn_protocol() != Some(ALPN) {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "peer did not negotiate the muxy protocol",
+            "peer did not negotiate the murvix protocol",
         ));
     }
     tcp.set_read_timeout(None)?;

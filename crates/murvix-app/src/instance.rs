@@ -1,5 +1,5 @@
 //! One desktop app per profile. A second launch hands the folders it was
-//! asked to open to the first and exits, which is also how `muxy <folder>`
+//! asked to open to the first and exits, which is also how `murvix <folder>`
 //! reaches an app that is already running.
 
 use std::ffi::{OsStr, OsString};

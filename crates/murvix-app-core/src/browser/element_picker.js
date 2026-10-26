@@ -1,5 +1,5 @@
 return await new Promise((resolve, reject) => {
-  const key = '__muxyDomPicker';
+  const key = '__murvixDomPicker';
   window[key]?.cancel();
   let highlighted = null;
   const restore = () => {

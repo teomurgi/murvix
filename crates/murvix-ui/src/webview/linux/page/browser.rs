@@ -132,7 +132,7 @@ impl Page {
                 cstring(&guard(&self.token)).as_ptr(),
                 ffi::INJECT_TOP_FRAME,
                 ffi::INJECT_AT_DOCUMENT_START,
-                c"muxy-browser".as_ptr(),
+                c"murvix-browser".as_ptr(),
                 ptr::null(),
                 ptr::null(),
             );

@@ -15,7 +15,7 @@ const INFO: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key>
-    <string>com.example.muxy-german.localization</string>
+    <string>com.example.murvix-german.localization</string>
     <key>CFBundleDevelopmentRegion</key>
     <string>de</string>
 </dict>

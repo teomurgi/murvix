@@ -30,7 +30,7 @@ pub(super) fn alone() -> MutexGuard<'static, ()> {
 
 /// The page's own script: `post` sends a request and resolves with its
 /// answer, and `tell` sends one without waiting.
-const SCRIPT: &str = "window.post=body=>window.webkit.messageHandlers.muxy.postMessage(body);\
+const SCRIPT: &str = "window.post=body=>window.webkit.messageHandlers.murvix.postMessage(body);\
                       window.tell=(verb,value)=>{post({verb,value}).catch(()=>{})};";
 
 struct Fixture {
@@ -48,7 +48,7 @@ impl Fixture {
     fn with(files: &[(&str, &str)], entry: &str, transparent: bool) -> Self {
         static NEXT: AtomicU32 = AtomicU32::new(0);
         let root = std::env::temp_dir().join(format!(
-            "muxy-webview-test-{}-{}",
+            "murvix-webview-test-{}-{}",
             std::process::id(),
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
@@ -290,7 +290,7 @@ fn a_page_cannot_open_a_window_or_write_the_clipboard_on_its_own() {
 #[ignore = "needs a desktop session"]
 fn a_frame_cannot_use_the_page_s_bridge() {
     let _alone = alone();
-    let frame = "<script>window.webkit.messageHandlers.muxy.postMessage({verb:'forged'})\
+    let frame = "<script>window.webkit.messageHandlers.murvix.postMessage({verb:'forged'})\
                  .then(()=>parent.postMessage('answered','*'),\
                  error=>parent.postMessage(String(error.message||error),'*'))</script>";
     let mut fixture = Fixture::new(&[(
@@ -318,7 +318,7 @@ fn assets_come_from_the_extension_folder_and_nowhere_else() {
                   for(const [name,url] of Object.entries({\
                   inside:'data/a%20b.txt',unicode:'data/caf%C3%A9.txt',above:'../secret.txt',\
                   encoded:'%2e%2e/secret.txt',link:'link.txt',folder:'data',\
-                  other:'muxy-ext://other.owner/index.html',file:'file:///etc/hostname'}))\
+                  other:'murvix-ext://other.owner/index.html',file:'file:///etc/hostname'}))\
                   results[name]=await read(url);tell('assets',results);})();";
     let mut fixture = Fixture::new(&[
         ("index.html", &page(&format!("<script>{script}</script>"))),
@@ -366,12 +366,12 @@ fn a_page_stays_on_its_own_pages() {
     assert!(
         fixture
             .told("still")
-            .contains("muxy-ext://test.owner/index.html")
+            .contains("murvix-ext://test.owner/index.html")
     );
     assert!(
         fixture
             .told("second")
-            .contains("muxy-ext://test.owner/second.html")
+            .contains("murvix-ext://test.owner/second.html")
     );
     assert_eq!(fixture.view.generation(), 2);
 }
@@ -687,7 +687,7 @@ fn an_answer_given_after_a_long_wait_reaches_the_page() {
 #[ignore = "needs a desktop session"]
 fn what_a_page_stores_outlasts_the_engine_it_was_stored_in() {
     let _alone = alone();
-    let data = std::env::temp_dir().join(format!("muxy-webview-data-{}", std::process::id()));
+    let data = std::env::temp_dir().join(format!("murvix-webview-data-{}", std::process::id()));
     super::set_data_directory(&data);
     let gone = || {
         let deadline = Instant::now() + PATIENCE;

@@ -111,7 +111,7 @@ pub(super) fn actions(model: &AppModel, window: &Window, cx: &mut Context<AppMod
 }
 
 #[derive(Clone, PartialEq, Debug, gpui::Action)]
-#[action(namespace = muxy, no_json)]
+#[action(namespace = murvix, no_json)]
 pub(crate) struct BeginWindowMove;
 
 pub(crate) fn begin_window_move(

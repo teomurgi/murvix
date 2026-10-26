@@ -42,7 +42,7 @@ fn local_worker(socket: PathBuf) -> std::io::Result<(Worker, Updates)> {
 fn blocked_client_request_does_not_block_input_or_acks_and_flush_waits() -> TestResult {
     static NEXT: AtomicU64 = AtomicU64::new(0);
     let directory = PathBuf::from(format!(
-        "/tmp/muxy-bridge-{}-{}",
+        "/tmp/murvix-bridge-{}-{}",
         std::process::id(),
         NEXT.fetch_add(1, Ordering::Relaxed)
     ));
@@ -352,7 +352,7 @@ fn identify_desktop<R: std::io::Read, W: std::io::Write>(
 #[test]
 fn pending_extension_replies_do_not_block_app_requests_or_flush() -> TestResult {
     let directory = tempfile::Builder::new()
-        .prefix("muxy-async-")
+        .prefix("murvix-async-")
         .tempdir_in("/tmp")?;
     let listener = UnixListener::bind(directory.path().join("server.sock"))?;
     let (started, pending) = mpsc::channel();

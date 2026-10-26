@@ -176,7 +176,7 @@ impl AppModel {
             source: match request.gate {
                 Gate::Exec => "exec",
                 Gate::HttpFetch => "http",
-                _ => "muxy-api",
+                _ => "murvix-api",
             }
             .into(),
         };
@@ -433,7 +433,7 @@ impl AppModel {
         .detach();
     }
 
-    /// `muxy.dialog.*`: at most one per extension, queued behind other sheets.
+    /// `murvix.dialog.*`: at most one per extension, queued behind other sheets.
     pub(super) fn extension_dialog(
         &mut self,
         call: Call,

@@ -300,11 +300,11 @@ fn navigation_scripts_hidden_screenshots_and_extension_isolation() {
     page.loaded();
     assert_eq!(page.eval("return await Promise.resolve(42)"), json!(42));
     assert_eq!(
-        page.eval("return typeof window.webkit?.messageHandlers?.muxy"),
+        page.eval("return typeof window.webkit?.messageHandlers?.murvix"),
         json!("undefined")
     );
     assert_eq!(
-        page.eval("return typeof window.__muxyPaste"),
+        page.eval("return typeof window.__murvixPaste"),
         json!("undefined")
     );
     page.eval("history.pushState({}, '', '/next'); document.title = 'Changed'; return true;");
@@ -361,7 +361,7 @@ fn navigation_scripts_hidden_screenshots_and_extension_isolation() {
 #[ignore = "Requires WebKitGTK and a display; runs in the Linux desktop guard"]
 fn profiles_share_their_own_persistent_data_and_clear_only_the_selected_profile() {
     let _serial = super::super::tests::alone();
-    let root = std::env::temp_dir().join(format!("muxy-browser-profile-{}", std::process::id()));
+    let root = std::env::temp_dir().join(format!("murvix-browser-profile-{}", std::process::id()));
     let manager = ProfileManager::open_at(&root).unwrap();
     let first = manager.get_or_create("First").unwrap();
     let second = manager.get_or_create("Second").unwrap();
@@ -448,7 +448,7 @@ fn closing_or_navigating_a_page_cancels_pending_automation() {
 #[ignore = "Requires WebKitGTK and a display; runs in the Linux desktop guard"]
 fn retirement_drains_an_inflight_cookie_import_before_deleting_data() {
     let _serial = super::super::tests::alone();
-    let root = std::env::temp_dir().join(format!("muxy-browser-retirement-{}", std::process::id()));
+    let root = std::env::temp_dir().join(format!("murvix-browser-retirement-{}", std::process::id()));
     let manager = ProfileManager::open_at(&root).unwrap();
     let profile = manager.get_or_create("Importing").unwrap();
     let server = Server::new();

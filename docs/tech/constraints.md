@@ -53,7 +53,7 @@ has:
   sandbox, as Ubuntu 24.04 does for an app without an AppArmor profile.
 
 On Ubuntu, download `murvix-desktop.apparmor` from the
-[latest stable release](https://github.com/muxy-app/muxy/releases/latest) to allow
+[latest stable release](https://github.com/murvix-app/murvix/releases/latest) to allow
 WebKit's sandbox at the default installation paths for all three Linux formats.
 An administrator can install it:
 
@@ -85,7 +85,7 @@ Voice input uses local `parec` capture and `whisper-cli` transcription. Install
 PulseAudio's utilities (`pulseaudio-utils` on Ubuntu) and
 [whisper.cpp](https://github.com/ggml-org/whisper.cpp), v1.9.5 or later. The
 audio service must expose its local PulseAudio socket, as PipeWire's PulseAudio
-compatibility service does. Muxy records the default input device; choose it
+compatibility service does. Murvix records the default input device; choose it
 and control access in the desktop's sound settings. There is no separate
 microphone permission dialog in this backend.
 
@@ -103,11 +103,11 @@ detection model
 `~/.local/share/murvix/voice/ggml-silero-v6.2.0.bin` when `XDG_DATA_HOME` is unset.
 Its SHA256 is
 `2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987`.
-This model is required even when the voice model is stored elsewhere. Muxy
+This model is required even when the voice model is stored elsewhere. Murvix
 checks for it before opening the microphone and uses it to discard audio
 without detected speech before transcription. This reduces invented text from
 silence or keyboard noise; speech detection and recognition can still make
-mistakes. Model downloads are manual; Muxy does not download anything for
+mistakes. Model downloads are manual; Murvix does not download anything for
 dictation.
 
 Audio stays in memory and is sent through a pipe to the local model when the
@@ -157,7 +157,7 @@ the iOS app needs local network permission.
 
 macOS charges a process's privacy permissions, such as Local Network, to the app
 process that started it. The desktop app starts the server through a small copy
-of itself that lives as long as the server, so terminals keep Muxy's permissions
+of itself that lives as long as the server, so terminals keep Murvix's permissions
 after the app quits.
 
 ## Terminal engine

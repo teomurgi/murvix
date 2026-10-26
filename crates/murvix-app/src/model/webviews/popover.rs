@@ -120,7 +120,7 @@ impl AppModel {
         cx.notify();
     }
 
-    /// `muxy.popover.close()`: the page's `onBeforeClose` may keep it open.
+    /// `murvix.popover.close()`: the page's `onBeforeClose` may keep it open.
     pub(crate) fn request_close_popover(&mut self, owner: &str, cx: &mut Context<Self>) {
         let Some(popover) = self
             .webviews

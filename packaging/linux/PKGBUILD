@@ -2,7 +2,7 @@
 pkgname=murvix
 pkgver=2.3.0.beta.1189
 pkgrel=1
-pkgdesc="GPU-accelerated terminal multiplexer with GUI, CLI and server components (Omarchy-integrated fork of muxy)"
+pkgdesc="GPU-accelerated terminal multiplexer with GUI, CLI and server components (Omarchy-integrated fork of murvix)"
 arch=('x86_64' 'aarch64')
 url="https://github.com/teomurgi/Murvix"
 license=('MIT')
@@ -12,7 +12,7 @@ optdepends=('vulkan-intel: Vulkan driver for Intel GPUs'
             'nvidia-utils: Vulkan driver for NVIDIA GPUs'
             'vulkan-swrast: software Vulkan fallback')
 makedepends=('rustup' 'git' 'pkgconf' 'python')
-conflicts=('muxy' 'muxy-bin' 'muxy-git' 'murvix-bin' 'murvix-git')
+conflicts=('murvix' 'murvix-bin' 'murvix-git' 'murvix-bin' 'murvix-git')
 options=('!lto')  # -flto=auto breaks bundled C deps (sqlite3) linked by rust-lld
 _zigver=0.15.2
 source=("git+https://github.com/teomurgi/Murvix.git#branch=main"

@@ -141,14 +141,14 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: bash scripts/notarize-release.sh "$PACKAGE_DIR/muxy-$VERSION-macos-$ARCH.zip"
+        run: bash scripts/notarize-release.sh "$PACKAGE_DIR/murvix-$VERSION-macos-$ARCH.zip"
       - name: Verify packaged pair, desktop bytes and standalone installation
         if: runner.os == 'macOS'
         # The universal system Python runs as the packaged architecture, so the
         # x86_64 pair is installed and exercised under Rosetta.
         run: >-
           arch "-$ARCH" /usr/bin/python3 scripts/verify-release-package.py
-          "$PACKAGE_DIR/muxy-$VERSION-macos-$ARCH.zip"
+          "$PACKAGE_DIR/murvix-$VERSION-macos-$ARCH.zip"
           --version "$VERSION" --dmg "$PACKAGE_DIR/Murvix-$VERSION-$ARCH.dmg"
           --notarized
       - name: Build and package the native glibc 2.35 pair
@@ -158,7 +158,7 @@ jobs:
         if: runner.os == 'Linux'
         run: >-
           python3 scripts/verify-release-package.py
-          "$PACKAGE_DIR/muxy-$VERSION-linux-$ARCH.tar.gz"
+          "$PACKAGE_DIR/murvix-$VERSION-linux-$ARCH.tar.gz"
           --version "$VERSION"
       - name: Upload distribution archives
         uses: actions/upload-artifact@v4

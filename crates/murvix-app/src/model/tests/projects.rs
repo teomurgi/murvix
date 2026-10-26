@@ -229,13 +229,13 @@ fn one_x_projects_join_the_running_app_and_keep_what_is_there(cx: &mut TestAppCo
 }
 
 #[gpui::test]
-#[ignore = "requires a built server and a fresh MUXY_DIR under /tmp/muxy-catalog-"]
+#[ignore = "requires a built server and a fresh MUXY_DIR under /tmp/murvix-catalog-"]
 fn server_first_legacy_migration_walkthrough(cx: &mut TestAppContext) {
     migration_walkthrough(cx, true).expect("server-first migration");
 }
 
 #[gpui::test]
-#[ignore = "requires a built server and a fresh MUXY_DIR under /tmp/muxy-catalog-"]
+#[ignore = "requires a built server and a fresh MUXY_DIR under /tmp/murvix-catalog-"]
 fn desktop_first_legacy_migration_walkthrough(cx: &mut TestAppContext) {
     migration_walkthrough(cx, false).expect("desktop-first migration");
 }
@@ -245,7 +245,7 @@ fn migration_walkthrough(cx: &mut TestAppContext, server_first: bool) -> Result 
     assert!(
         directory
             .to_string_lossy()
-            .starts_with("/tmp/muxy-catalog-")
+            .starts_with("/tmp/murvix-catalog-")
     );
     assert!(!directory.join("state.json").exists());
     let mut state = AppState::bootstrap()?;
@@ -474,7 +474,7 @@ fn project_removal_requires_confirmation_and_persists_offline_cleanup(cx: &mut T
 
 #[gpui::test]
 fn missing_folder_hides_its_terminal_until_refresh_finds_it_again(cx: &mut TestAppContext) {
-    let directory = std::env::temp_dir().join(format!("muxy-project-status-{}", ProjectId::new()));
+    let directory = std::env::temp_dir().join(format!("murvix-project-status-{}", ProjectId::new()));
     std::fs::create_dir(&directory).expect("mkdir");
     let mut state = AppState::bootstrap().expect("state");
     let project = state
@@ -550,7 +550,7 @@ fn removal_save_failure_keeps_projects_and_never_discards(cx: &mut TestAppContex
 }
 
 #[gpui::test]
-#[ignore = "requires a built muxy CLI and a fresh MUXY_DIR under /tmp/muxy-phase24-"]
+#[ignore = "requires a built murvix CLI and a fresh MUXY_DIR under /tmp/murvix-phase24-"]
 fn projects_live_walkthrough(cx: &mut TestAppContext) {
     run_projects_live_walkthrough(cx).expect("phase 24 walkthrough");
 }
@@ -560,7 +560,7 @@ fn run_projects_live_walkthrough(cx: &mut TestAppContext) -> Result {
     assert!(
         directory
             .to_string_lossy()
-            .starts_with("/tmp/muxy-phase24-")
+            .starts_with("/tmp/murvix-phase24-")
     );
     assert!(!directory.join("state.json").exists());
     let first_path = directory.join("Alpha");
@@ -705,7 +705,7 @@ fn verify_removal(
 
 #[gpui::test]
 fn command_o_opens_the_picker_and_existing_paths_select_the_project(cx: &mut TestAppContext) {
-    let root = std::env::temp_dir().join(format!("muxy-open-project-{}", ProjectId::new()));
+    let root = std::env::temp_dir().join(format!("murvix-open-project-{}", ProjectId::new()));
     std::fs::create_dir_all(root.join("Alpha")).expect("mkdir");
     let mut state = AppState::bootstrap().expect("state");
     let project = state
@@ -911,7 +911,7 @@ fn folders_arriving_after_connection_failure_open_with_saved_projects(cx: &mut T
 
 #[gpui::test]
 fn creating_a_project_folder_requires_the_explicit_create_confirmation(cx: &mut TestAppContext) {
-    let root = std::env::temp_dir().join(format!("muxy-create-project-{}", ProjectId::new()));
+    let root = std::env::temp_dir().join(format!("murvix-create-project-{}", ProjectId::new()));
     std::fs::create_dir_all(&root).expect("root");
     let (mut boot, _) = stub_boot(AppState::bootstrap().expect("state"));
     boot.settings.projects.search_root = Some(root.clone());

@@ -443,7 +443,7 @@ unsafe fn web_view(g: &Api, context: gpointer, data: usize, browser: bool) -> (g
             manager,
             handler.as_ptr(),
             if browser {
-                c"muxy-browser".as_ptr()
+                c"murvix-browser".as_ptr()
             } else {
                 ptr::null()
             },
@@ -850,7 +850,7 @@ impl Page {
                 script.as_ptr(),
                 -1,
                 if self.browser.is_some() {
-                    c"muxy-browser".as_ptr()
+                    c"murvix-browser".as_ptr()
                 } else {
                     ptr::null()
                 },
@@ -1237,7 +1237,7 @@ impl Page {
         }
         self.evaluate(
             runtime,
-            &format!("window.__muxyPaste&&__muxyPaste({})", quoted(text)),
+            &format!("window.__murvixPaste&&__murvixPaste({})", quoted(text)),
         );
     }
 
@@ -1281,7 +1281,7 @@ fn guard(token: &str) -> String {
          window.webkit.messageHandlers.{name};if(!handler)return;\
          const post=handler.postMessage.bind(handler);const stamp='{token}';\
          Object.defineProperty(handler,'postMessage',{{value:body=>post({{document:stamp,body}})}});\
-         Object.defineProperty(window,'__muxyHandler',{{value:handler}});\
+         Object.defineProperty(window,'__murvixHandler',{{value:handler}});\
          const copy=text=>{{if(text)post({{document:stamp,copied:String(text)}}).catch(()=>{{}})}};\
          const copied=event=>{{if(!event.isTrusted)return;const field=document.activeElement;\
          const chosen=event.clipboardData&&event.clipboardData.getData('text/plain');\
@@ -1295,7 +1295,7 @@ fn guard(token: &str) -> String {
          (copy(text),Promise.resolve()):\
          Promise.reject(new DOMException('The request is not allowed','NotAllowedError'));\
          let offered=null;\
-         Object.defineProperty(window,'__muxyPaste',\
+         Object.defineProperty(window,'__murvixPaste',\
          {{value:text=>{{offered=[String(text),performance.now()]}}}});\
          addEventListener('keydown',event=>{{\
          if(event.defaultPrevented||event.altKey||event.metaKey)return;\

@@ -6,7 +6,7 @@ Most numbers come from early prototypes, measured on an Apple M3 with release
 builds. Every candidate replayed the same recorded terminal output: an idle
 shell, large log dumps, a vim session, a full-screen monitor, heavy color
 changes, Unicode, and long lines with resizes, plus 100 sessions at once. The
-[benchmark reports](https://github.com/muxy-app/muxy/blob/6b98443d27633738c108309e80a9a1ffa55f4aea/docs/tech/benchmarks.md)
+[benchmark reports](https://github.com/murvix-app/murvix/blob/6b98443d27633738c108309e80a9a1ffa55f4aea/docs/tech/benchmarks.md)
 are in git history.
 
 | | Decision | In short |

@@ -255,7 +255,7 @@ fn try_pkg_config(link_mode: LinkMode) -> bool {
                     && header.contains("GHOSTTY_TERMINAL_OPT_DEFAULT_GRAPHEME_CLUSTER")
             })
         }),
-        "Muxy requires libghostty-vt with patches/clear-screen.patch and patches/grapheme-cluster.patch applied"
+        "Murvix requires libghostty-vt with patches/clear-screen.patch and patches/grapheme-cluster.patch applied"
     );
     if let LinkMode::Static = link_mode {
         emit_static_pkg_config_metadata(&lib);

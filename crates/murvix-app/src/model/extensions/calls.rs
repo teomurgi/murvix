@@ -154,7 +154,7 @@ impl AppModel {
         cx.notify();
     }
 
-    /// `muxy.browser`: the same requests `muxy browser` makes, answered when
+    /// `murvix.browser`: the same requests `murvix browser` makes, answered when
     /// the page is done.
     fn extension_browser_call(&mut self, call: Call, window: &mut Window, cx: &mut Context<Self>) {
         let args = crate::model::browsers::automation::extension_args(&call.verb, &call.args);
@@ -617,7 +617,7 @@ impl AppModel {
                     model.extension_evaluate(
                         &call.reply,
                         &format!(
-                            "globalThis.__muxyResolveExec?.({}, {});",
+                            "globalThis.__murvixResolveExec?.({}, {});",
                             json!(id),
                             envelope(result)
                         ),

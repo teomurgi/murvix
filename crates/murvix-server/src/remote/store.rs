@@ -175,7 +175,7 @@ mod tests {
 
     fn directory() -> io::Result<PathBuf> {
         let directory = std::env::temp_dir().join(format!(
-            "muxy-remote-{}",
+            "murvix-remote-{}",
             murvix_protocol::OperationId::new()
         ));
         fs::create_dir(&directory)?;

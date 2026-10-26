@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use crate::{AppError, AppState, Axis, Layout, Pane, PaneContent, PaneId, ProjectId, Tab};
 
-pub const DIRECTORY: &str = ".muxy/layouts";
+pub const DIRECTORY: &str = ".murvix/layouts";
 const MAX_BYTES: usize = 256 * 1024;
 const MAX_DEPTH: usize = 32;
 const MAX_PANES: usize = 64;

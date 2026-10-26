@@ -5,7 +5,7 @@ the top bar or a shortcut.
 
 ## 1. Create the files
 
-An extension is a folder with a `package.json`. Muxy loads the folder's `dist/`
+An extension is a folder with a `package.json`. Murvix loads the folder's `dist/`
 build output when it has one, otherwise the folder itself, so a plain HTML page
 needs no build step.
 
@@ -21,7 +21,7 @@ hello/
 {
   "name": "hello",
   "version": "0.1.0",
-  "muxy": {
+  "murvix": {
     "description": "Says hello",
     "permissions": ["panels:write", "notifications:write"],
     "panels": [{ "id": "hello", "title": "Hello", "entry": "panel.html" }],
@@ -44,11 +44,11 @@ hello/
 
 ```html
 <!doctype html>
-<body style="background: var(--muxy-background); color: var(--muxy-foreground)">
+<body style="background: var(--murvix-background); color: var(--murvix-foreground)">
   <button id="hi">Say hello</button>
   <script>
     document.getElementById("hi").onclick = () =>
-      muxy.notifications.notify({ title: "Hello", body: "From my extension" });
+      murvix.notifications.notify({ title: "Hello", body: "From my extension" });
   </script>
 </body>
 ```
@@ -64,7 +64,7 @@ pages don't load otherwise.
 4. Click the sparkles icon in the top bar, or press `Ctrl+Opt+H`.
 
 The extension shows an **Unpacked** badge. After editing, choose **Reload**.
-**Unload folder** removes it from Muxy and keeps your files.
+**Unload folder** removes it from Murvix and keeps your files.
 
 ## 3. Use a build tool
 
@@ -99,8 +99,8 @@ the build. Only `dist/` is published.
 
 Most 1.x extensions work unchanged. The differences:
 
-- **Install folder.** Extensions live in Muxy 2's profile folder, not
-  `~/.config/muxy/extensions`. Importing the installed 1.x copies them over.
+- **Install folder.** Extensions live in Murvix 2's profile folder, not
+  `~/.config/murvix/extensions`. Importing the installed 1.x copies them over.
 - **No scaffold.** There is no **Create** button or starter kit. Use
   **Load Unpacked…**.
 - **Lowercase names.** Pages only load for names made of `a-z`, `0-9`, `.`,

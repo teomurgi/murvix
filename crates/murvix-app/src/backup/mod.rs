@@ -31,7 +31,7 @@ pub(super) const ROOTS: &[&str] = &[
 ];
 pub(super) const MAX_BYTES: u64 = 64 * 1024 * 1024;
 pub(super) const MAX_FILE_BYTES: u64 = 16 * 1024 * 1024;
-pub(super) const PENDING: &str = "pending-import.muxy";
+pub(super) const PENDING: &str = "pending-import.murvix";
 /// Marks a profile whose one automatic import of the installed 1.x was decided.
 const MIGRATION_CHECKED: &str = "legacy-import-checked";
 const LEGACY_SETTINGS: &[&str] = &[
@@ -87,7 +87,7 @@ impl LegacyProjects {
     /// What to tell the user once the app added this many projects.
     pub(crate) fn summary(&self, projects: usize) -> Result<String> {
         let mut summary = tr!(
-            "Added %lld projects from Muxy 1.x. Projects and tabs you already had are unchanged.",
+            "Added %lld projects from Murvix 1.x. Projects and tabs you already had are unchanged.",
             projects
         )
         .to_string();
@@ -109,7 +109,7 @@ pub(crate) fn projects_from(source: &Path) -> Result<LegacyProjects> {
         &mut settings,
     )?;
     if report.imported == 0 {
-        let mut reason = tr!("Muxy 1.x has no projects to import.").to_string();
+        let mut reason = tr!("Murvix 1.x has no projects to import.").to_string();
         describe_left_out(&mut reason, &report)?;
         return Err(reason.into());
     }
@@ -121,13 +121,13 @@ pub(crate) fn projects_from(source: &Path) -> Result<LegacyProjects> {
 }
 
 fn legacy_directory() -> Result<PathBuf> {
-    installed_legacy()?.ok_or_else(|| tr!("No Muxy 1.x configuration was found on this computer. Choose a 1.x backup file instead.").to_string().into())
+    installed_legacy()?.ok_or_else(|| tr!("No Murvix 1.x configuration was found on this computer. Choose a 1.x backup file instead.").to_string().into())
 }
 
 fn installed_legacy() -> Result<Option<PathBuf>> {
     let home =
         std::env::home_dir().ok_or_else(|| tr!("Home directory is unavailable").to_string())?;
-    let path = home.join("Library/Application Support/Muxy");
+    let path = home.join("Library/Application Support/Murvix");
     Ok(path.is_dir().then_some(path))
 }
 
@@ -151,8 +151,8 @@ pub(crate) fn migrate_installed(profile: &Path) -> Result<Option<String>> {
     )
 }
 
-/// Muxy 2.0.0 opened profiles without importing, so a profile it left with
-/// nothing but Home still gets the import. Muxy 2.1.0 imported without
+/// Murvix 2.0.0 opened profiles without importing, so a profile it left with
+/// nothing but Home still gets the import. Murvix 2.1.0 imported without
 /// marking the profile, so an import applied earlier counts as done.
 fn migrate_once(
     profile: &Path,
@@ -185,7 +185,7 @@ fn migrate_into(
     Ok((!import.attention.is_empty()).then(|| {
         format!(
             "{}\n{}",
-            tr!("Muxy 1.x was imported. Check these items:"),
+            tr!("Murvix 1.x was imported. Check these items:"),
             checklist(&import.attention)
         )
     }))
@@ -290,7 +290,7 @@ fn prepare_from(
         write!(
             summary,
             " {}",
-            tr!("Adds %lld extensions from Muxy 1.x.", copies.names.len())
+            tr!("Adds %lld extensions from Murvix 1.x.", copies.names.len())
         )?;
     }
     if restore == Restore::Merge && files.contains_key("server.toml") {

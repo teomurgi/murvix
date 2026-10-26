@@ -10,7 +10,7 @@ use serde_json::Value;
 mod version;
 pub(crate) use version::is_update;
 
-const BASE: &str = "https://muxy.app";
+const BASE: &str = "https://murvix.app";
 const MAX_ARCHIVE: u64 = 256 * 1024 * 1024;
 const MAX_EXPANDED: u64 = 512 * 1024 * 1024;
 
@@ -144,7 +144,7 @@ pub(crate) fn download(details: &Value, directory: &Path) -> Result<tempfile::Te
     )
     .map_err(|error| error.to_string())?;
     if url.scheme() != "https"
-        || url.host_str() != Some("muxy.app")
+        || url.host_str() != Some("murvix.app")
         || url.port_or_known_default() != Some(443)
         || !url.username().is_empty()
         || url.password().is_some()
@@ -402,7 +402,7 @@ mod tests {
         std::fs::write(
             root.join("package.json"),
             serde_json::json!({
-                "name": name, "version": version, "muxy": {}
+                "name": name, "version": version, "murvix": {}
             })
             .to_string(),
         )

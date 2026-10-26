@@ -1,6 +1,6 @@
 # App model
 
-How people use Muxy: the apps, navigation, settings, and updates.
+How people use Murvix: the apps, navigation, settings, and updates.
 
 ## The apps
 
@@ -16,8 +16,8 @@ their server and path. There is no global "current server".
 
 The **Remote** section at the bottom of the sidebar shows each remote server's
 state. Its popover adds servers (host, user, port, key file, or a password that
-Muxy asks for and keeps only in memory) and manages them. **Add Project →
-Remote** browses that server's folders. When a server lacks Muxy, a released
+Murvix asks for and keeps only in memory) and manages them. **Add Project →
+Remote** browses that server's folders. When a server lacks Murvix, a released
 app offers to install the same version there; when its version can't talk to
 the app, the section explains how to update it. Removing a server only forgets
 its projects in this app.
@@ -67,11 +67,11 @@ flowchart LR
 ## Worktrees
 
 New Worktree has a name, a new or existing branch, and Default, Template, or
-Folder location choices. Worktrees default to `~/.muxy/worktrees/<project>/<name>`.
+Folder location choices. Worktrees default to `~/.murvix/worktrees/<project>/<name>`.
 Settings → General sets the global location; each project remembers its choice. Templates support `{branch}`, `{base-dir}`, and `{project-name}`.
 
 Optional setup and teardown commands come from the source project's
-`.muxy/worktree.json` and `$XDG_CONFIG_HOME/murvix/worktree.json` (by default,
+`.murvix/worktree.json` and `$XDG_CONFIG_HOME/murvix/worktree.json` (by default,
 `~/.config/murvix/worktree.json`):
 
 ```json
@@ -111,8 +111,8 @@ stop.
   the terminal.
 - **Settings → Appearance → App language** picks the interface language. English
   is built in; other languages come from language-pack extensions, the same ones
-  made for Muxy 1.x. Untranslated text stays English, and while the chosen pack is
-  unavailable Muxy shows English.
+  made for Murvix 1.x. Untranslated text stays English, and while the chosen pack is
+  unavailable Murvix shows English.
 - Server settings, such as the shell and history size, apply to this
   computer's server. `murvix --host` changes another computer's. Stopping or
   restarting it asks first.
@@ -123,7 +123,7 @@ stop.
   copy in `Backups`. Existing projects are kept; matching projects receive the
   saved layouts. Server settings take effect after restarting the server.
 - Import supported 1.x settings and local projects from the installed app, a
-  `.muxy` backup, or `settings.json`. Unsupported options are listed before import.
+  `.murvix` backup, or `settings.json`. Unsupported options are listed before import.
   A 1.x import adds to what is already there: existing projects and tabs are
   kept. A profile with no projects yet imports the installed 1.x automatically,
   once, including its extensions. Profiles chosen with `MUXY_DIR` are left
@@ -159,7 +159,7 @@ ends.
 - **Extensions.** Add tabs, panels, a sidebar, toolbar and status bar items,
   shortcuts, and background scripts. They are managed in Settings → Extensions,
   declare their permissions, and ask before sensitive actions. Most extensions
-  made for Muxy 1.x work unchanged; see the
+  made for Murvix 1.x work unchanged; see the
   [compatibility limits](../extensions/get-started.md#coming-from-1x).
 - **Git and AI.** For Git projects, the footer shows the branch and changes,
   commits and pushes with an AI-written message, and creates or manages pull

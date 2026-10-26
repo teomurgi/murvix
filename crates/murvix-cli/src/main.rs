@@ -69,7 +69,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 &murvix_core::executable::current_path()?,
             )?;
             murvix_client::bridge::serve(
-                &murvix_core::dirs::muxy_dir()?.join("server.sock"),
+                &murvix_core::dirs::murvix_dir()?.join("server.sock"),
                 &murvix_client::local::server_executable()?,
                 start,
             )?;
