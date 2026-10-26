@@ -262,7 +262,7 @@ fn upload_for(
             image.bytes.clone(),
             image_extension(&image.bytes),
         )),
-        gpui::ClipboardEntry::String(_) | gpui::ClipboardEntry::ExternalPaths(_) => None,
+        gpui::ClipboardEntry::String(_) => None,
     })
 }
 
