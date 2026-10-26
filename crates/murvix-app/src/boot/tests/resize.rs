@@ -176,7 +176,10 @@ fn resize_server(
 
 #[test]
 fn reconnect_discards_old_resizes_and_stale_completion_unblocks_new_work() -> TestResult {
-    let directory = PathBuf::from(format!("/tmp/murvix-resize-reconnect-{}", std::process::id()));
+    let directory = PathBuf::from(format!(
+        "/tmp/murvix-resize-reconnect-{}",
+        std::process::id()
+    ));
     fs::create_dir(&directory)?;
     let socket = directory.join("server.sock");
     let listener = UnixListener::bind(&socket)?;

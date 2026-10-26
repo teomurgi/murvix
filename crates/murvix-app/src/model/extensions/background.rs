@@ -112,7 +112,10 @@ impl AppModel {
                             );
                         }
                         Err(error) => {
-                            model.extension_log(&owner, format!("[murvix] failed to start: {error}"));
+                            model.extension_log(
+                                &owner,
+                                format!("[murvix] failed to start: {error}"),
+                            );
                         }
                     }
                 });

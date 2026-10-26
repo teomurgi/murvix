@@ -391,8 +391,10 @@ mod tests {
     struct TestDirectory(PathBuf);
     impl TestDirectory {
         fn new() -> Self {
-            let path = std::env::temp_dir()
-                .join(format!("murvix-exec-{}", murvix_protocol::OperationId::new()));
+            let path = std::env::temp_dir().join(format!(
+                "murvix-exec-{}",
+                murvix_protocol::OperationId::new()
+            ));
             std::fs::create_dir(&path).unwrap();
             Self(path)
         }

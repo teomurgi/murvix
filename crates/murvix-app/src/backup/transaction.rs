@@ -141,7 +141,11 @@ fn restore(profile: &Path, pending: &Path) -> Result<()> {
     } else {
         Restore::Partial
     };
-    archive::write(&recovery.join("recovery.murvix"), &portable, recovery_restore)?;
+    archive::write(
+        &recovery.join("recovery.murvix"),
+        &portable,
+        recovery_restore,
+    )?;
     fs::write(recovery.join("roots.json"), serde_json::to_vec(&roots)?)?;
     fs::write(
         recovery.join("extensions.json"),

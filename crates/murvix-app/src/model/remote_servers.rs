@@ -82,7 +82,8 @@ pub(crate) fn update_command(version: &str) -> String {
 }
 
 /// Prints the version of Murvix installed there, found as the bridge finds it.
-const VERSION_COMMAND: &str = "sh -c 'export PATH=\"$PATH:$HOME/.local/bin\"; exec murvix --version'";
+const VERSION_COMMAND: &str =
+    "sh -c 'export PATH=\"$PATH:$HOME/.local/bin\"; exec murvix --version'";
 
 /// Why Murvix on another computer can't talk to this app, and how to fix it.
 /// `there` is the version installed there, when it could be read. When it is
@@ -667,7 +668,11 @@ impl AppModel {
             let Ok(printed) = version.await else {
                 return;
             };
-            let version = printed.trim().trim_start_matches("murvix").trim().to_owned();
+            let version = printed
+                .trim()
+                .trim_start_matches("murvix")
+                .trim()
+                .to_owned();
             let _ = model.update(cx, |model, cx| {
                 let Some(runtime) = model.servers.get_mut(server) else {
                     return;

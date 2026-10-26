@@ -448,7 +448,8 @@ fn closing_or_navigating_a_page_cancels_pending_automation() {
 #[ignore = "Requires WebKitGTK and a display; runs in the Linux desktop guard"]
 fn retirement_drains_an_inflight_cookie_import_before_deleting_data() {
     let _serial = super::super::tests::alone();
-    let root = std::env::temp_dir().join(format!("murvix-browser-retirement-{}", std::process::id()));
+    let root =
+        std::env::temp_dir().join(format!("murvix-browser-retirement-{}", std::process::id()));
     let manager = ProfileManager::open_at(&root).unwrap();
     let profile = manager.get_or_create("Importing").unwrap();
     let server = Server::new();
