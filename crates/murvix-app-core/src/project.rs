@@ -122,10 +122,18 @@ pub const PROJECT_COLORS: [(&str, &str); 12] = [
 ];
 
 impl Project {
+    /// The directories in this project's scope, agent-agnostic: the project
+    /// folder first, then its extra roots.
+    pub fn workspace(&self) -> Vec<PathBuf> {
+        let mut roots = Vec::with_capacity(self.extra_directories.len() + 1);
+        roots.push(self.directory.clone());
+        roots.extend(self.extra_directories.iter().cloned());
+        roots
+    }
+
     pub fn status(&self) -> ProjectStatus {
         self.status
     }
-
     /// Another computer's Home, which stands for its server.
     pub fn is_remote_home(&self) -> bool {
         self.home && !self.server_id.is_local()

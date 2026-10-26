@@ -28,13 +28,14 @@ Muxy sets `MUXY_SESSION_ID` and `MUXY_SERVER_ID` in every terminal. Session
 commands then default to your own terminal, and `session create` to your
 project, so most commands need no IDs.
 
-Every terminal also carries its project's workspace: `MUXY_WORKSPACE_COUNT`
-plus `MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on. Index 0 is the project
-directory; the rest are the extra roots set with
-`murvix project workspace`. Read them by incrementing the index while the name
-exists, whatever agent you are — this is the directory set in scope, not just
-the shell's current folder. Roots are captured when the terminal starts;
-Files, search, exec, and Git still target the project folder.
+Every terminal also carries its project's workspace: the project directory
+first, then the extra roots set with `murvix project workspace`. Read it with
+`murvix project here` — one root per line, or `--json` for text plus byte
+arrays — whatever agent you are; this is the directory set in scope, not just
+the shell's current folder. (The same roots are also in `MUXY_WORKSPACE_COUNT`
+plus `MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on.) Roots are captured
+when the terminal starts; Files, search, exec, and Git still target the
+project folder.
 ## Start a terminal and capture its ID
 
 `session create` prints the new session ID. Everything after `--` is typed into

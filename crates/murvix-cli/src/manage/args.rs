@@ -76,6 +76,9 @@ pub(crate) enum Project {
     ClearWorkspace {
         project: String,
     },
+    /// Prints the calling terminal's workspace: index 0 is the project
+    /// directory, the rest are its extra roots. No server round-trip.
+    WorkspaceHere,
     Delete(String),
 }
 
@@ -333,6 +336,10 @@ fn project(verb: &str, o: &mut Options<'_>) -> io::Result<Project> {
             Ok(Project::ClearWorkspace {
                 project: o.word(0)?.into(),
             })
+        }
+        "here" => {
+            o.count(0)?;
+            Ok(Project::WorkspaceHere)
         }
         "delete" => {
             o.count(1)?;
@@ -844,6 +851,11 @@ mod tests {
                 project: "App".into(),
             })
         );
+        assert_eq!(
+            action(&["project", "here"])?,
+            Action::Project(Project::WorkspaceHere)
+        );
+        assert!(action(&["project", "here", "App"]).is_err());
         assert!(action(&["project", "workspace", "App"]).is_err());
         Ok(())
     }

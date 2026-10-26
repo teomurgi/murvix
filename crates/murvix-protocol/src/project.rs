@@ -193,6 +193,17 @@ impl ProjectDescriptor {
 pub const MAX_EXTRA_DIRECTORIES: usize = 16;
 pub const MAX_EXTRA_DIRECTORIES_BYTES: usize = 16 * 1024;
 
+/// The directories in a project's scope, agent-agnostic: the project's own
+/// directory first, then its extra roots. This is the workspace every agent
+/// running in the project's terminals sees, however that agent reads its
+/// environment; empty extras mean the workspace is just `directory`.
+pub fn workspace_roots(descriptor: &ProjectDescriptor) -> Vec<ServerPath> {
+    let mut roots = Vec::with_capacity(descriptor.extra_directories.len() + 1);
+    roots.push(descriptor.directory.clone());
+    roots.extend(descriptor.extra_directories.iter().cloned());
+    roots
+}
+
 pub fn validate_extra_directories(
     directory: &ServerPath,
     extra: &[ServerPath],

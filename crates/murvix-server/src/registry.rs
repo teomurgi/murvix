@@ -929,21 +929,15 @@ fn session_directory(directory: &Path) -> Result<ServerPath, ServerError> {
     Ok(ServerPath(bytes.into()))
 }
 
-/// The roots a new session inherits: the project's directory first, then its
-/// extra workspace roots. Falls back to the session directory when the
-/// project is gone, so terminal spawn never depends on catalog timing.
+/// The roots a new session inherits: the project's workspace, or the session
+/// directory when the project is gone, so spawn never depends on catalog timing.
 fn workspace_roots(
     catalog: &crate::catalog::Catalog,
     project: murvix_protocol::ProjectId,
     directory: ServerPath,
 ) -> Vec<ServerPath> {
     match catalog.project(project) {
-        Ok(descriptor) => {
-            let mut roots = Vec::with_capacity(descriptor.extra_directories.len() + 1);
-            roots.push(descriptor.directory);
-            roots.extend(descriptor.extra_directories);
-            roots
-        }
+        Ok(descriptor) => murvix_protocol::workspace_roots(&descriptor),
         Err(_) => vec![directory],
     }
 }

@@ -116,7 +116,8 @@ fn workspace_items(project: &Project) -> Vec<Item> {
     if project.extra_directories.is_empty() {
         return items;
     }
-    let mut roots = project.extra_directories.clone();
+    let mut roots = project.workspace();
+    roots.remove(0);
     roots.sort();
     for root in roots {
         items.push(Item::action(

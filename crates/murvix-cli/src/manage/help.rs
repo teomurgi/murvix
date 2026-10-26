@@ -104,13 +104,17 @@ pub(crate) const PROJECT: &str = "Usage: murvix project <action> [--json]
   set-icon <project> [icon]        Omit icon to clear it
   workspace <project> <directory>...   Set the extra workspace roots
   clear-workspace <project>
+  here                             Print this terminal's workspace, one root per line
   delete <project> --yes          Ends its terminals and deletes child projects;
                                  files and worktree folders stay on disk
 
 Add creates a distinct project even when its directory is already registered;
 --reuse prints the existing one instead. --create makes the directory first.
 Workspace roots plus the project directory form the workspace every agent in
-its terminals sees; at most 16 extra roots. JSON lists carry them as workspace
+its terminals sees; at most 16 extra roots. Inside a Murvix terminal,
+`project here` prints the calling terminal's workspace without a server
+round-trip, so any agent reads its directory scope with one command.
+JSON lists carry them as workspace
 and extra_directories text plus workspace_bytes and extra_directory_bytes
 byte arrays. Text list columns: id, name, directory (tab-separated).";
 pub(crate) const SESSION: &str = "Usage: murvix session <action> [--json]
