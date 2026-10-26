@@ -29,6 +29,10 @@ env:
 
 jobs:
   build:
+    if: >-
+      github.repository == 'teomurgi/murvix' &&
+      contains(fromJSON('["teomurgi"]'), github.actor) &&
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
     name: Build (${{ matrix.platform }}, ${{ matrix.arch }})
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-build-${{ matrix.target }}
@@ -81,10 +85,6 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-          key: release-${{ matrix.target }}-baseline
       - name: Stamp the build version without committing a bump
         run: |
           rm -rf target/packages
@@ -194,6 +194,10 @@ jobs:
           rm -f "$RUNNER_TEMP/murvix-release-certificate.p12"
 
   omarchy:
+    if: >-
+      github.repository == 'teomurgi/murvix' &&
+      contains(fromJSON('["teomurgi"]'), github.actor) &&
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
     name: Build (Omarchy desktop, ${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
@@ -227,10 +231,6 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: desktop-release-${{ matrix.target }}
-          cache-on-failure: true
       - name: Stamp and build the desktop with matching helpers
         run: |
           rm -rf target/packages
