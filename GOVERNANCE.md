@@ -47,6 +47,27 @@ Configure the repository Actions secret `RELEASE_TOKEN` before the first release
 
 The maintainer-owned token is required by the existing policy: Actions' standard `GITHUB_TOKEN` cannot create PRs here, and only administrators can create, move, or delete `v*` tags. It also means the generated PR is authored by the token's maintainer account, not `github-actions[bot]`, and its creation can trigger normal maintainer-authorized CI. A PR created or updated with `GITHUB_TOKEN` would not trigger PR CI automatically. Do not enable a main-branch bypass, loosen tag restrictions, or change Actions' PR-approval policy to make releases work.
 
+The release jobs install Python 3.12 explicitly, including a matching-architecture
+interpreter for macOS package verification. macOS signing uses
+`DEVELOPER_ID_APPLICATION_CERTIFICATE` (base64 PKCS#12 with its private key),
+`DEVELOPER_ID_APPLICATION_PASSWORD` (that file's export password, not the Apple ID
+password), and `KEYCHAIN_PASSWORD` (a separate temporary-keychain password).
+The import helper validates the bundle and normalizes its encryption for the
+native keychain; it never falls back to unsigned packages.
+
+If bundle validation reports a certificate/password mismatch, re-export the
+**Developer ID Application** identity and its private key from Keychain Access
+as a `.p12`, setting a new export password. Replace both matching secrets:
+
+```bash
+base64 -i /path/to/DeveloperID.p12 | gh secret set DEVELOPER_ID_APPLICATION_CERTIFICATE --repo teomurgi/murvix
+gh secret set DEVELOPER_ID_APPLICATION_PASSWORD --repo teomurgi/murvix
+```
+
+Enter the export password at the hidden prompt; do not paste it into a chat or
+commit it. GitHub does not expose stored secret values, so a mismatched pair
+cannot be recovered from the repository.
+
 ### Release runbook
 
 Local release tooling requires Python 3.11 or newer and Git; it has no third-party Python dependencies.
@@ -57,7 +78,13 @@ Local release tooling requires Python 3.11 or newer and Git; it has no third-par
 4. The release PR must still be based on the latest `main`. If `main` has advanced, close the stale release PR, delete its release branch, and dispatch **Release** again from current `main`; review and authorize CI for the replacement head. Do not merge `main` into the version branch or add source changes to it. Resolve review conversations and merge through the protected PR path only.
 5. The maintainer's merge triggers verification: `python3 scripts/release.py verify --source <pre-version-source> --release <merged-sha>` recomputes the planned version and requires the release tree to equal that source plus exactly the three stamped files. Any other source change or incorrect version stops publishing. The workflow creates `vX.Y.Z` at the exact merged SHA, builds that same revision, and publishes its artifacts and update metadata.
    Publication stays in draft until every expected asset has been uploaded and its size verified; only then is the release made public and marked latest.
-6. If a build or publication fails after the merge, rerun the original merged-PR workflow. The tag is created before the builds; starting a new manual **Release** run would plan a different release rather than retry the failed one. Do not move or delete an existing release tag to retry publishing.
+6. If only transient infrastructure or corrected secrets caused a failure, rerun the original merged-PR workflow. If workflow/tooling changes are needed, merge those fixes first, then run **Release** on `main` with `retry_version` set to the existing version, for example `0.3.0`. This uses the repaired workflow and signing tooling while building the original tag's source, with no new bump or tag movement. The tag must be reachable from `main`, and its committed repository/crate versions must match. Public releases are immutable; only missing or draft releases may be retried.
+
+   ```bash
+   gh workflow run release.yml --repo teomurgi/murvix --ref main -f retry_version=0.3.0
+   ```
+
+   Leave `retry_version` empty only when proposing a new release. Never move or delete a release tag to retry publication.
 
 The release and reusable build workflows separately verify both the original actor and rerun actor against the maintainer allowlist. A closed, unmerged PR is not a release authorization. Never publish unreviewed contributor code or expose signing credentials to PR CI.
 

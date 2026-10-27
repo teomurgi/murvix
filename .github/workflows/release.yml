@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      retry_version:
+        description: 'Retry an existing stable tag (e.g. 0.3.0), without a version bump; leave empty for a new release PR'
+        required: false
+        type: string
   pull_request:
     branches: [main]
     types: [closed]
@@ -16,7 +21,7 @@ concurrency:
 jobs:
   propose:
     if: >-
-      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.retry_version == '' &&
       github.repository == 'teomurgi/murvix' &&
       contains(fromJSON('["teomurgi"]'), github.actor) &&
       contains(fromJSON('["teomurgi"]'), github.triggering_actor)
@@ -28,6 +33,9 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Calculate the highest SemVer bump from unreleased commits
         id: plan
         run: |
@@ -73,10 +81,11 @@ jobs:
 
   prepare:
     if: >-
-      github.event_name == 'pull_request' && github.event.pull_request.merged == true &&
-      startsWith(github.event.pull_request.head.ref, 'release/v') &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      contains(fromJSON('["teomurgi"]'), github.event.pull_request.user.login) &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.retry_version != '') ||
+       (github.event_name == 'pull_request' && github.event.pull_request.merged == true &&
+        startsWith(github.event.pull_request.head.ref, 'release/v') &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(fromJSON('["teomurgi"]'), github.event.pull_request.user.login))) &&
       github.repository == 'teomurgi/murvix' &&
       contains(fromJSON('["teomurgi"]'), github.actor) &&
       contains(fromJSON('["teomurgi"]'), github.triggering_actor)
@@ -89,31 +98,45 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Verify the merged release contains only the calculated version bump
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Resolve and verify the exact release source
         id: version
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
           RELEASE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          RETRY_VERSION: ${{ inputs.retry_version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin "$HEAD_SHA"
-          PARENTS=$(git show -s --format=%P "$HEAD_SHA")
-          if [[ "$PARENTS" == *' '* || -z "$PARENTS" ]]; then
-            echo 'Release branch must contain one version commit on its source revision.' >&2
-            exit 1
+          if [[ -n "$RETRY_VERSION" ]]; then
+            python3 scripts/release.py retry "$RETRY_VERSION" --main "$GITHUB_SHA" > "$RUNNER_TEMP/release-plan.json"
+            if DRAFT=$(gh release view "v$RETRY_VERSION" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft); then
+              [[ "$DRAFT" == true ]] || { echo 'Published releases are immutable; refusing retry.' >&2; exit 1; }
+            fi
+          else
+            git fetch origin "$HEAD_SHA"
+            PARENTS=$(git show -s --format=%P "$HEAD_SHA")
+            if [[ "$PARENTS" == *' '* || -z "$PARENTS" ]]; then
+              echo 'Release branch must contain one version commit on its source revision.' >&2
+              exit 1
+            fi
+            python3 scripts/release.py verify --source "$PARENTS" --release "$RELEASE_SHA" > "$RUNNER_TEMP/release-plan.json"
+            [[ "$HEAD_BRANCH" == "release/v$(jq -er '.version' "$RUNNER_TEMP/release-plan.json")" ]]
           fi
-          python3 scripts/release.py verify --source "$PARENTS" --release "$RELEASE_SHA" > "$RUNNER_TEMP/release-plan.json"
           VERSION=$(jq -er '.version' "$RUNNER_TEMP/release-plan.json")
-          [[ "$HEAD_BRANCH" == "release/v$VERSION" ]]
+          SOURCE=$(jq -er '.source' "$RUNNER_TEMP/release-plan.json")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "source=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
-          echo "build_number=$(git rev-list --count "$RELEASE_SHA")" >> "$GITHUB_OUTPUT"
+          echo "source=$SOURCE" >> "$GITHUB_OUTPUT"
+          echo "build_number=$(git rev-list --count "$SOURCE")" >> "$GITHUB_OUTPUT"
       - name: Tag the exact merged release commit
+        if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
@@ -153,6 +176,9 @@ jobs:
           ref: ${{ needs.prepare.outputs.source }}
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - uses: actions/download-artifact@v4
         with:
           pattern: distribution-*

@@ -178,6 +178,46 @@ def committed_tree(root, commit):
     return entries
 
 
+def committed_blob(root, tree, path):
+    entry = tree.get(path)
+    if not entry or entry[1] != "blob" or entry[0] not in ("100644", "100755"):
+        raise ValueError(f"expected a regular committed file: {path}")
+    return git_bytes(root, "cat-file", "blob", entry[2])
+
+
+def retry_release(root, version, main):
+    """Resolve an existing stable release without modifying its source or tag."""
+    check_version(version)
+    source = resolve_commit(root, f"refs/tags/v{version}")
+    trusted = resolve_commit(root, main)
+    ancestry = subprocess.run(
+        ["git", "-C", str(root), "merge-base", "--is-ancestor", source, trusted],
+        check=False,
+    )
+    if ancestry.returncode == 1:
+        raise ValueError("release tag is not an ancestor of trusted main")
+    if ancestry.returncode:
+        raise ValueError("could not verify release tag ancestry")
+    tree = committed_tree(root, source)
+    originals = {path: committed_blob(root, tree, path) for path in RELEASE_PATHS}
+    manifests = {
+        path: committed_blob(root, tree, path).decode() for path in tree
+        if re.fullmatch(r"crates/[^/]+/Cargo\.toml", path)
+    }
+    expected = stamped_files(
+        version, originals["Cargo.toml"].decode(), originals["Cargo.lock"].decode(),
+        manifests,
+    )
+    for path in RELEASE_PATHS:
+        if originals[path] != expected[path]:
+            raise ValueError(f"release tag does not contain version {version}: {path}")
+    return {
+        "version": version,
+        "source": source,
+        "build_number": int(git(root, "rev-list", "--count", source)),
+    }
+
+
 def verify_release(root, source, release):
     """Verify the complete committed tree against the precisely stamped source tree."""
     plan = plan_release(root, source)
@@ -188,10 +228,7 @@ def verify_release(root, source, release):
     after = committed_tree(root, release)
 
     def blob(tree, path):
-        entry = tree.get(path)
-        if not entry or entry[1] != "blob" or entry[0] not in ("100644", "100755"):
-            raise ValueError(f"expected a regular committed file: {path}")
-        return git_bytes(root, "cat-file", "blob", entry[2])
+        return committed_blob(root, tree, path)
 
     originals = {path: blob(before, path) for path in RELEASE_PATHS}
     manifests = {
@@ -296,6 +333,9 @@ def main():
     verify = commands.add_parser("verify")
     verify.add_argument("--source", required=True)
     verify.add_argument("--release", required=True)
+    retry = commands.add_parser("retry")
+    retry.add_argument("version")
+    retry.add_argument("--main", required=True)
     check = commands.add_parser("check-build")
     check.add_argument("version")
     check.add_argument("executable", type=Path)
@@ -315,6 +355,8 @@ def main():
             print(json.dumps(plan_release(ROOT, args.source)))
         elif args.command == "verify":
             print(json.dumps(verify_release(ROOT, args.source, args.release)))
+        elif args.command == "retry":
+            print(json.dumps(retry_release(ROOT, args.version, args.main)))
         elif args.command == "version":
             version = checkout_version(ROOT)
             print(f"version={version}")
