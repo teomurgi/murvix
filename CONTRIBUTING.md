@@ -104,8 +104,11 @@ must include the latest `main`. If `main` advances, close the stale PR, delete
 its release branch, and dispatch **Release** again; do not merge `main` into the
 version branch. Merge only after review: the merge event verifies the version-only
 change, tags the exact merged commit, and builds and publishes the release.
-If a build or publication fails, rerun that original merged-PR workflow instead
-of starting a new release. Local release tooling requires Python 3.11 or newer.
+If a build or publication fails, rerun the original merged-PR workflow for
+transient failures or corrected secrets. After merging workflow repairs, use
+**Release → retry_version** to rebuild the unchanged existing tag with repaired
+tooling, without bumping or moving the tag. Local release tooling requires
+Python 3.11 or newer; Actions installs Python 3.12 explicitly.
 See the [release runbook](GOVERNANCE.md#releases) for credentials and operational
 details. Main-branch protection is never bypassed.
 

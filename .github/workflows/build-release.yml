@@ -73,15 +73,29 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.source }}
+          persist-credentials: false
+      - name: Install Rosetta to run the x86_64 build on Apple silicon
+        if: runner.os == 'macOS' && matrix.arch == 'x86_64'
+        run: arch -x86_64 /usr/bin/true || sudo softwareupdate --install-rosetta --agree-to-license
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: ${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}
+      - name: Check out trusted release tooling
+        if: runner.os == 'macOS'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .release-tools
+          persist-credentials: false
+          sparse-checkout: scripts/import-signing-certificate.py
+          sparse-checkout-cone-mode: false
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config binutils
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.92.0
           targets: ${{ matrix.target }}
-      - name: Install Rosetta to run the x86_64 build on Apple silicon
-        if: runner.os == 'macOS' && matrix.arch == 'x86_64'
-        run: arch -x86_64 /usr/bin/true || sudo softwareupdate --install-rosetta --agree-to-license
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
@@ -93,21 +107,7 @@ jobs:
           CERTIFICATE_P12: ${{ secrets.DEVELOPER_ID_APPLICATION_CERTIFICATE }}
           CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          KEYCHAIN_PATH="$RUNNER_TEMP/murvix-release-signing.keychain-db"
-          : "${CERTIFICATE_P12:?Developer ID certificate is required}"
-          : "${CERTIFICATE_PASSWORD:?Certificate password is required}"
-          : "${KEYCHAIN_PASSWORD:?Keychain password is required}"
-          umask 077
-          CERTIFICATE="$RUNNER_TEMP/murvix-release-certificate.p12"
-          trap 'rm -f "$CERTIFICATE"' EXIT
-          printf '%s' "$CERTIFICATE_P12" | base64 --decode > "$CERTIFICATE"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security list-keychains -d user -s "$KEYCHAIN_PATH" "$HOME/Library/Keychains/login.keychain-db"
-          security import "$CERTIFICATE" -k "$KEYCHAIN_PATH" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+        run: python3 .release-tools/scripts/import-signing-certificate.py --keychain "$RUNNER_TEMP/murvix-release-signing.keychain-db"
       - name: Resolve signing identity
         if: runner.os == 'macOS'
         id: identity
@@ -142,10 +142,9 @@ jobs:
         run: bash scripts/notarize-release.sh "$PACKAGE_DIR/murvix-$VERSION-macos-$ARCH.zip"
       - name: Verify packaged pair, desktop bytes and standalone installation
         if: runner.os == 'macOS'
-        # The universal system Python runs as the packaged architecture, so the
-        # x86_64 pair is installed and exercised under Rosetta.
+        # Use the configured Python and the packaged architecture, including Rosetta.
         run: >-
-          arch "-$ARCH" /usr/bin/python3 scripts/verify-release-package.py
+          arch "-$ARCH" python3 scripts/verify-release-package.py
           "$PACKAGE_DIR/murvix-$VERSION-macos-$ARCH.zip"
           --version "$VERSION" --dmg "$PACKAGE_DIR/Murvix-$VERSION-$ARCH.dmg"
           --notarized
@@ -217,6 +216,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.source }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - run: >-
           sudo apt-get update && sudo apt-get install -y
           build-essential pkg-config clang cmake binutils libfontconfig1-dev libfreetype-dev

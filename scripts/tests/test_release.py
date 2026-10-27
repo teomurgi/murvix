@@ -273,6 +273,91 @@ checksum = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
         self.git("commit", "--quiet", "-m", "chore(release): v0.3.0")
         return source, self.git("rev-parse", "HEAD")
 
+    def prepare_retry(self, annotated=False):
+        _, release = self.prepare_release()
+        self.git("checkout", "--quiet", "main")
+        self.git("merge", "--ff-only", "--quiet", release)
+        if annotated:
+            self.git("tag", "--annotate", "v0.3.0", "-m", "Stable release", release)
+        else:
+            self.git("tag", "v0.3.0", release)
+        self.commit("ci: repair release workflow")
+        return release
+
+    def retry_snapshot(self):
+        state = self.snapshot()
+        return state, (self.root / ".git/index").read_bytes(), self.git("show-ref")
+
+    def test_retry_uses_existing_tag_not_fixed_main_or_dirty_checkout(self):
+        release = self.prepare_retry()
+        self.write("source.txt", "staged local edit\n")
+        self.git("add", "source.txt")
+        self.write("source.txt", "unstaged local edit\n")
+        self.write("VERSION", "9.9.9\n")
+        self.write("untracked.txt", "preserve this file\n")
+        before = self.retry_snapshot()
+        result = json.loads(self.cli("retry", "0.3.0", "--main", "main").stdout)
+        self.assertEqual(result, {
+            "version": "0.3.0", "source": release,
+            "build_number": int(self.git("rev-list", "--count", release)),
+        })
+        self.assertNotEqual(result["source"], self.git("rev-parse", "main"))
+        self.assertEqual(self.retry_snapshot(), before)
+
+    def test_retry_accepts_annotated_tag_and_exact_trusted_commit(self):
+        release = self.prepare_retry(annotated=True)
+        trusted = self.git("rev-parse", "main")
+        result = json.loads(self.cli("retry", "0.3.0", "--main", trusted).stdout)
+        self.assertEqual(result["source"], release)
+        self.assertEqual(result["version"], "0.3.0")
+        self.assertEqual(result["build_number"], int(self.git("rev-list", "--count", release)))
+
+    def test_retry_rejects_tag_outside_trusted_main_without_mutation(self):
+        release = self.prepare_retry()
+        self.git("branch", "trusted-main", self.baseline)
+        before = self.retry_snapshot()
+        result = self.cli("retry", "0.3.0", "--main", "trusted-main", success=False)
+        self.assertIn("not an ancestor", result.stderr)
+        self.assertEqual(self.retry_snapshot(), before)
+        self.assertEqual(self.git("rev-parse", "refs/tags/v0.3.0"), release)
+
+    def test_retry_rejects_nonexistent_unsafe_and_prerelease_tags(self):
+        self.prepare_retry()
+        self.git("tag", "v0.3.0-rc.1")
+        self.git("branch", "v8.8.8")
+        before = self.retry_snapshot()
+        for version in (
+            "8.8.8", "0.3.0-rc.1", "v0.3.0", "../0.3.0", "0.3.0^{commit}",
+            "0.3.0+build.1", "00.3.0", "--bad-option", "",
+        ):
+            with self.subTest(version=version):
+                self.cli("retry", version, "--main", "main", success=False)
+                self.assertEqual(self.retry_snapshot(), before)
+        self.cli("retry", "0.3.0", "--main", "missing-main", success=False)
+        self.assertEqual(self.retry_snapshot(), before)
+
+    def test_retry_rejects_inconsistent_committed_versions(self):
+        cases = (
+            ("VERSION", "0.2.2", "0.2.1"),
+            ("Cargo.toml", 'version = "0.2.2"', 'version = "0.2.1"'),
+            ("Cargo.lock", 'name = "example-app"\nversion = "0.2.2"',
+             'name = "example-app"\nversion = "0.2.1"'),
+            ("Cargo.lock", 'name = "example-core"\nversion = "0.2.2"',
+             'name = "example-core"\nversion = "0.2.1"'),
+            ("crates/example-core/Cargo.toml", "version.workspace = true",
+             'version = "0.2.2"'),
+        )
+        for index, (path, old, new) in enumerate(cases):
+            with self.subTest(path=path, replacement=new):
+                self.git("checkout", "--quiet", "-b", f"retry-invalid-{index}", self.baseline)
+                target = self.root / path
+                self.write(path, target.read_text().replace(old, new))
+                invalid = self.commit("chore: commit inconsistent release")
+                self.git("update-ref", "refs/tags/v0.2.2", invalid)
+                before = self.retry_snapshot()
+                self.cli("retry", "0.2.2", "--main", "HEAD", success=False)
+                self.assertEqual(self.retry_snapshot(), before)
+
     def test_verify_accepts_exact_release_merge_without_checkout_changes(self):
         source, release = self.prepare_release()
         self.git("checkout", "--quiet", "main")
