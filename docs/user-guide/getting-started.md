@@ -1,9 +1,15 @@
 # Getting Started
 
-Install: [macOS](#macos-desktop-app) · [Linux](#linux-desktop-app) ·
-[CLI and server only](#cli-and-server-only)
+Start with [Building from source](#building-from-source). Release packaging:
+[macOS](#macos-desktop-app) · [Linux](#linux-desktop-app) ·
+[CLI and server only](#cli-and-server-only).
 
-After installing: [First steps](#first-steps) · [Upgrading from 1.x](#upgrading-from-murvix-1x)
+After installing: [First steps](#first-steps) · [Importing from 1.x](#importing-from-murvix-1x)
+
+This fork has no published GitHub release at present. Build from source below.
+The later package names and installer commands document the repository's release
+packaging, not currently available downloads. Use them only after a release
+containing the required assets has been published.
 
 ## Requirements
 
@@ -12,9 +18,54 @@ After installing: [First steps](#first-steps) · [Upgrading from 1.x](#upgrading
 | Desktop app | macOS 14 or newer, on Apple Silicon or Intel; experimental Linux packages target Ubuntu 24.04 on x86_64 and ARM64 |
 | `murvix` CLI and server | macOS 14 or newer, or Linux with glibc 2.35 or newer, on x86_64 or ARM64. musl is unsupported. |
 
+## Building from source
+
+Install Git, [Rust](https://rustup.rs) (the repository pins its toolchain), and
+[Zig 0.15.2](https://ziglang.org/download/). On macOS, also install the Xcode
+Command Line Tools (`xcode-select --install`).
+On Linux, install a C/C++ build toolchain and `pkg-config` as well.
+
+```sh
+git clone https://github.com/teomurgi/Murvix.git
+cd Murvix
+```
+
+For the CLI and server on macOS or Linux:
+
+```sh
+cargo build --locked -p murvix-cli -p murvix-server
+./target/debug/murvix
+```
+
+For the macOS desktop app, build the matching app and helpers together:
+
+```sh
+cargo build --locked -p murvix-app -p murvix-cli -p murvix-server
+./target/debug/murvix-app
+```
+
+On Arch Linux / Omarchy, the repository includes a source package. Install the
+Arch build tools (`base-devel`), `rustup`, and the desktop WebKit runtime
+(`webkit2gtk-4.1`), then, from the checkout:
+
+```sh
+cd packaging/linux
+makepkg -si
+```
+
+This recipe fetches the fork's `main` branch and Zig 0.15.2, builds the desktop
+app and helpers, and installs them in `/usr/bin`. It is not a prebuilt release.
+Other Linux desktop source builds can use `scripts/build-desktop-linux.sh` with
+the required native development libraries installed; see
+[Linux platform constraints](../tech/constraints.md#experimental-linux-desktop).
+
+Debug builds keep data separate from installed release builds: `Murvix Dev` on
+macOS and `murvix-dev` on Linux. See [Contributing](../../CONTRIBUTING.md) for
+development details.
+
 ## macOS desktop app
 
-1. From the [latest release](https://github.com/teomurgi/murvix/releases/latest),
+1. From the [latest release](https://github.com/teomurgi/Murvix/releases/latest),
    download `Murvix-<version>-arm64.dmg` for Apple Silicon or
    `Murvix-<version>-x86_64.dmg` for Intel.
 2. Drag **Murvix** to `/Applications` and open it.
@@ -22,7 +73,8 @@ After installing: [First steps](#first-steps) · [Upgrading from 1.x](#upgrading
 To use [`murvix`](../features/murvix-cli.md) in your shell, choose **Install Command
 Line Tool…** from the app menu. It links `~/.local/bin/murvix`.
 
-The app updates itself. Running terminals keep going through most updates.
+Packaged macOS builds include an in-app updater; it requires a published update
+feed. Running terminals normally remain on the existing server until it restarts.
 
 ## Linux desktop app
 
@@ -32,7 +84,7 @@ with glibc 2.39 or newer and a working Vulkan driver. See the
 
 Choose the [quick installer](#quick-installer-with-in-app-updates) for in-app
 updates, a [Debian package](#debian-package), or an [AppImage](#appimage).
-All three include the desktop app, CLI and server. Use one format per channel
+All three include the desktop app, CLI and server. Use one installation format
 to avoid conflicting CLI commands.
 
 ### Quick installer with in-app updates
@@ -51,7 +103,7 @@ The installer detects your architecture and verifies the download:
 
 ```sh
 curl -fsSL --proto '=https' --proto-redir '=https' \
-  https://github.com/murvix-app/murvix/releases/latest/download/install-desktop-linux.py \
+  https://github.com/teomurgi/Murvix/releases/latest/download/install-desktop-linux.py \
   | python3 - install
 ```
 
@@ -63,7 +115,7 @@ Open **Murvix** from Applications. The app, CLI and server install into
 
 Download `murvix-desktop_<version>_amd64.deb` or
 `murvix-desktop_<version>_arm64.deb` from the
-[latest stable release](https://github.com/murvix-app/murvix/releases/latest).
+[latest stable release](https://github.com/teomurgi/Murvix/releases/latest).
 Use `dpkg --print-architecture` to check which you need. In your download
 directory, replace the filename below with your download:
 
@@ -79,7 +131,7 @@ and `murvix-server` in `/usr/bin`.
 Install the [runtime libraries above](#quick-installer-with-in-app-updates), then
 download `Murvix-<version>-linux-x86_64.AppImage` or
 `Murvix-<version>-linux-arm64.AppImage` from the
-[latest stable release](https://github.com/murvix-app/murvix/releases/latest).
+[latest stable release](https://github.com/teomurgi/Murvix/releases/latest).
 Use `uname -m` to check: `aarch64` means ARM64. Replace the filename below with
 your download and run it without `sudo`:
 
@@ -125,8 +177,7 @@ saved session data.
 - **AppImage:** delete the downloaded file, its matching unpacked copy listed
   above, and any CLI link or Applications entry pointing into that copy. The entry
   is in `${XDG_DATA_HOME:-$HOME/.local/share}/applications/com.murvix.app.desktop`
-Do not delete a copy still used by
-  another running app or server.
+  Do not delete a copy still used by another running app or server.
 
 ## CLI and server only
 
@@ -135,13 +186,13 @@ For a Linux computer or Mac without the desktop app. This installs `murvix` and
 
 ### Install script
 
-Set `VERSION` to the newest version on the
-[releases page](https://github.com/murvix-app/murvix/releases/latest), without the
+Set `VERSION` to the version on the
+[releases page](https://github.com/teomurgi/Murvix/releases/latest), without the
 leading `v`:
 
 ```bash
-VERSION=2.1.0
-curl -fsSL "https://github.com/murvix-app/murvix/releases/download/v$VERSION/install-murvix.sh" \
+VERSION='<version>'
+curl -fsSL "https://github.com/teomurgi/Murvix/releases/download/v$VERSION/install-murvix.sh" \
   | sh -s -- --version "$VERSION"
 export PATH="$HOME/.local/bin:$PATH"
 ```
@@ -160,28 +211,29 @@ Run `murvix --version` and `murvix-server --version`, then `murvix` to open the
 running [server](../features/server.md#lifetime); stop it to switch to the new
 version.
 
-## Upgrading from Murvix 1.x
+## Importing from Murvix 1.x
 
-Murvix 1.x offers Murvix 2 as an update, or you can install Murvix 2 over it. Unless
-you already have projects in Murvix 2, the first launch imports your 1.x setup:
+If you have an installed Murvix 1.x configuration, the first launch imports it
+unless the current profile already has projects:
 supported settings, shortcuts, local projects, terminal tabs, the default shell,
 and extensions. Projects and extensions that could not be imported are listed,
 and your 1.x data stays where it was. To import again later, open
 **Settings → Backup & Restore** and choose **Import installed 1.x**; it adds to
 what you already have.
 
-Some 1.x features work differently or are not in 2.x yet. Most extensions keep
-working; see [Coming from 1.x](../extensions/get-started.md#coming-from-1x).
+Some 1.x features work differently or are not available. See
+[Legacy compatibility](../extensions/get-started.md#legacy-compatibility) for extension migration.
 
 ## First steps
 
 1. **Add a project.** Choose **Add Project** at the bottom of the sidebar, or
-   press `Cmd+O`, and pick a folder.
-2. **Open a terminal.** `Cmd+T` opens a tab in the project. `Cmd+N` opens one
-   in Home.
-3. **Split it.** `Cmd+D` splits right, `Cmd+Shift+D` splits down.
-4. **Quit freely.** Terminals keep running in the background. Reopen Murvix and
-   everything is where you left it.
+   press `Cmd+O` on macOS / `Ctrl+Shift+O` on Linux, and pick a folder.
+2. **Open a terminal.** `Cmd+T` / `Ctrl+Shift+T` opens a tab in the project.
+   `Cmd+N` / `Ctrl+Shift+N` opens one in Home.
+3. **Split it.** `Cmd+D` / `Ctrl+Shift+D` splits right;
+   `Cmd+Shift+D` / `Ctrl+Shift+Alt+D` splits down.
+4. **Quit freely.** Terminals keep running in the background. Reopen Murvix to
+   reconnect to them.
 
 ## Next
 

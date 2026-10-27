@@ -6,9 +6,12 @@ How people use Murvix: the apps, navigation, settings, and updates.
 
 | App | Connects to |
 | --- | --- |
-| Desktop app (macOS) | The server on the same computer, starting it if needed, and the servers of remote devices over SSH. |
+| Desktop app (macOS and Linux) | The server on the same computer, starting it if needed, and servers on other computers over SSH. Linux uses X11 or Wayland. |
 | `murvix` terminal UI | The server on the same computer, starting it if needed, or with `--host`, the server on another computer over SSH. Ships with the desktop app and also on its own. |
-| Phone app | A paired computer's server, over the local network or a VPN, or any computer's server over SSH. |
+
+The server's TLS listener, device credentials, and pairing controls are
+implemented, but no phone app is shipped in this repository. A phone UI and
+phone-to-server SSH connection are planned client behavior, not current apps.
 
 Every project knows which server it lives on, so the desktop app shows
 projects from several servers in one sidebar. Remote projects are marked with
@@ -22,10 +25,10 @@ app offers to install the same version there; when its version can't talk to
 the app, the section explains how to update it. Removing a server only forgets
 its projects in this app.
 
-**New Tab in Project…** (⌘⇧N) lists local and remote projects. Picking one
-opens a tab there and shows it in the sidebar if needed; a remote server opens
-in its Home, connecting first if needed. Clicking a server in the Remote popover
-offers **New Tab** too.
+**New Tab in Project…** (⌘⇧N on macOS, Ctrl+Alt+N on Linux) lists local and remote
+projects. Picking one opens a tab there and shows it in the sidebar if needed;
+a remote server opens in its Home, connecting first if needed. Clicking a server
+in the Remote popover offers **New Tab** too.
 
 Files and images dropped or pasted on a remote terminal, or sent from the
 composer, are copied to that computer and its path is pasted. Clicking a file
@@ -101,8 +104,8 @@ stop.
 
 ## Settings
 
-- Settings is one window, separate from projects. It works while offline, and
-  changes apply immediately.
+- Settings is one window, separate from projects. App preferences can be changed
+  offline and apply immediately; server settings require its connection.
 - App preferences live in `settings.toml`, terminal preferences in
   `terminal.toml`, and custom themes in `themes/`.
 - Every app shortcut can be changed in Settings → Keyboard. Terminal key
@@ -114,10 +117,12 @@ stop.
   made for Murvix 1.x. Untranslated text stays English, and while the chosen pack is
   unavailable Murvix shows English.
 - Server settings, such as the shell and history size, apply to this
-  computer's server. `murvix --host` changes another computer's. Stopping or
-  restarting it asks first.
-- **Settings → Mobile** turns phone access on, shows a pairing code, and lists
-  paired phones. `murvix mobile` does the same without the desktop app.
+  computer's server. Use `murvix --host <computer> settings get` or
+  `murvix --host <computer> settings set <key> <value>` for another computer's
+  server settings. Stopping or restarting it asks first in the desktop app.
+- **Settings → Mobile** and `murvix mobile` manage the server's TLS listener,
+  pairing codes, and paired-device credentials. These controls do not include a
+  phone app.
 - **Settings → Backup & Restore** exports settings, themes, extension preferences,
   projects, and layouts. Restore applies on the next launch and keeps a recovery
   copy in `Backups`. Existing projects are kept; matching projects receive the
@@ -134,6 +139,11 @@ stop.
   their server.
 
 ## Updates
+
+The in-app updater is implemented for installed release builds on macOS and
+Linux, not debug builds. Release availability is separate from this implemented
+flow. The following choices concern this computer's app and server; remote
+servers are installed or updated separately.
 
 ```mermaid
 flowchart TD
@@ -154,13 +164,14 @@ ends.
   the active terminal or to every visible split. Each project keeps its own
   draft, and a failed send keeps it.
 - **Web views.** Extension pages as tabs, docked panels, popovers, or dialogs.
-  They stay alive while hidden. Extension panels belong to a project: switching
-  projects closes them, and switching back reopens them.
+  Hidden tab pages stay alive. Extension panels belong to a root project:
+  switching to another root closes them, and switching back reopens them;
+  switching between that project's worktrees keeps them.
 - **Extensions.** Add tabs, panels, a sidebar, toolbar and status bar items,
   shortcuts, and background scripts. They are managed in Settings → Extensions,
-  declare their permissions, and ask before sensitive actions. Most extensions
-  made for Murvix 1.x work unchanged; see the
-  [compatibility limits](../extensions/get-started.md#coming-from-1x).
+  declare their permissions, and ask before sensitive actions. Murvix supports
+  a subset of the 1.x extension API; see the
+  [compatibility limits](../extensions/get-started.md#legacy-compatibility).
 - **Git and AI.** For Git projects, the footer shows the branch and changes,
   commits and pushes with an AI-written message, and creates or manages pull
   requests. It uses an AI command-line tool you already have, chosen in

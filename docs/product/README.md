@@ -9,12 +9,15 @@ once.
 flowchart LR
     subgraph COMPUTER["Your computer"]
         SERVER["murvix-server<br/>projects · terminals · history"]
-        DESKTOP["Desktop app"] <--> SERVER
+        DESKTOP["Desktop app · macOS / Linux"] <--> SERVER
         TUI["murvix terminal UI"] <--> SERVER
     end
-    PHONE["Phone app"] <-->|"paired · local network or VPN"| SERVER
     DESKTOP <-->|"SSH"| REMOTE["murvix-server<br/>on another computer"]
 ```
+
+The desktop app and terminal UI are implemented here. The server also implements
+TLS access and pairing for mobile clients, but this repository does not ship a
+phone app; phone UI and phone SSH support are design intent, not current apps.
 
 Three ideas explain most of Murvix:
 
@@ -22,8 +25,9 @@ Three ideas explain most of Murvix:
   server, not in the apps.
 - **Each app owns its view.** Tabs, split layouts, and project order
   are private to each app.
-- **Terminals outlive apps.** Quitting or crashing an app never ends a terminal.
-  Closing the last pane that shows it does.
+- **Terminals outlive apps.** Quitting or crashing an app does not end its
+  terminals. By default, closing the last pane in connected apps that references
+  a terminal ends it; detaching keeps it running.
 
 ## Read next
 

@@ -7,8 +7,9 @@ popovers, a sidebar, top bar and status bar items, palette commands, shortcuts,
 background logic, and app languages. You build it with any web tooling and Murvix
 loads the build output.
 
-Most extensions made for Murvix 1.x work unchanged. A few 1.x features are not
-available yet; see [Coming from 1.x](get-started.md#coming-from-1x).
+The loader retains several legacy manifest fields, but this is not a blanket
+compatibility guarantee. Check [legacy compatibility](get-started.md#legacy-compatibility)
+and the API availability table when migrating an extension.
 
 ## Where code runs
 
@@ -18,7 +19,10 @@ available yet; see [Coming from 1.x](get-started.md#coming-from-1x).
 | **Scripts** | A `runScript` command. Runs once in JavaScriptCore on its own thread. | `murvix`, synchronous |
 | **Background** | The optional `background` script. Runs while the extension is enabled. Receives events. | `murvix`, synchronous |
 
-Not every API exists everywhere. See the [API reference](api.md#availability).
+Not every API exists everywhere. Pages use native WebKit on macOS and
+WebKitGTK on Linux; scripts use the corresponding JavaScriptCore runtime.
+Linux requires those runtime libraries. See the
+[API reference](api.md#availability) and [Linux constraints](../tech/constraints.md#experimental-linux-desktop).
 
 File, Git, and `exec` work runs on the project's server, so it works the same
 for local and remote projects. Web requests run in the desktop app.
@@ -40,7 +44,7 @@ for local and remote projects. Web requests run in the desktop app.
 | [Files](files.md) | Reading and writing project files |
 | [Git](git.md) | Repository, branches, pull requests, and worktrees |
 | [Localizations](localizations.md) | Language packs |
-| [Contributing](contributing.md) | Publish to the marketplace |
+| [Contributing](contributing.md) | Package sharing and current marketplace limitations |
 
 ## Where extensions live
 
@@ -55,12 +59,18 @@ Extensions start disabled after installing or loading.
 ## Security
 
 - **Declared permissions.** Most API calls need a
-  [permission](permissions.md) in the manifest. Web requests, dialogs, and
-  events need none.
+  [permission](permissions.md) in the manifest. The `http.fetch` bridge, dialogs,
+  and event subscription need none, though some app events need read permissions.
 - **Runtime prompts.** Running programs, typing into terminals, writing files or
   Git, web requests, and deleting projects ask the user first.
 - **Declared events.** An extension only receives the app events it
   lists in its manifest.
-- **Own files only.** Pages load only from the extension's own folder.
-- **Verified installs.** Marketplace packages are checked against their listing
-  before they are installed.
+- **Extension page resources.** Bundled resources resolve inside the extension's
+  own folder, including symlink checks. Page navigation is restricted to its
+  own extension origin and blank documents. This is not a process or network
+  sandbox: `exec` runs programs with the server user's access, and browser
+  automation can access signed-in browser profiles.
+- **Checked installs.** Marketplace downloads must come from `https://murvix.app`
+  on port 443 and match the listing's size, SHA-256, name, version, and declared
+  permissions. These checks establish consistency with the listing, not a
+  guarantee that extension code is safe.

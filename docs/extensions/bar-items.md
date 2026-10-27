@@ -35,5 +35,6 @@ murvix.topbar.show("hello");
 ```
 
 `set` takes `id` plus any of `icon`, `visible`, and, for the status bar,
-`text` (`null` clears it). Changes are not saved; items start from the
-manifest again after a restart.
+`text`. Passing `null` or `""` removes the runtime text override and restores
+the manifest text; it does not clear a nonempty manifest value. Changes are not
+saved; items start from the manifest again after a restart or reload.

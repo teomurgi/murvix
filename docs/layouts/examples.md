@@ -1,6 +1,10 @@
 # Layout Examples
 
-Save any of these in a project's `.murvix/layouts/` folder.
+Save any of these in a project's `.murvix/layouts/` folder and apply it from the
+desktop app. Commands run in that project's folder on its server: the examples
+using `nvim` or `npm` require those tools and, for npm commands, a
+project with the matching scripts. A named terminal with no command starts the
+configured shell.
 
 ## `side-by-side.yaml`
 

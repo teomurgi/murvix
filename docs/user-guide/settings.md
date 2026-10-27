@@ -1,7 +1,8 @@
 # Settings
 
-Open Settings with `Cmd+,`. Use the search box to find a setting. Changes apply
-immediately, and Settings works while the server is offline.
+Open Settings with `Cmd+,` on macOS or `Ctrl+,` on Linux. Use the search box to
+find a setting. App preferences work while the server is offline; server-backed
+settings require a connection to the local server.
 
 ## Sections
 
@@ -11,12 +12,12 @@ immediately, and Settings works while the server is offline.
 | Quick Terminal | Global shortcut, size, transparency |
 | Composer | Dictation, clearing, image submission, font |
 | Appearance | Language, light and dark themes, sidebar, status bar, tips |
-| Keyboard | Every shortcut. See [Keyboard shortcuts](keyboard-shortcuts.md) |
+| Keyboard | App shortcuts. See [Keyboard shortcuts](keyboard-shortcuts.md) |
 | Commands | Your own commands, each run in a new tab, with optional shortcuts |
 | Terminal | Fonts, spacing, transparency, vibrancy, colors, cursor, padding, selection, scrolling, Option keys, key bindings |
 | Browser | The [built-in browser](../features/browser.md): terminal links, search engine, home page, profiles, import |
 | Server | This computer's [server](../features/server.md#settings): shell, history, shell integration, stop and restart |
-| Mobile | [Phone access](../features/mobile.md) and paired phones |
+| Mobile | [Mobile access](../features/mobile.md), TLS pairing, and paired devices |
 | Extensions | Installed extensions and the marketplace |
 | AI | Tools and prompts for [Git](../features/git.md) actions |
 | Backup & Restore | Export, restore, and import from 1.x |
@@ -89,8 +90,8 @@ and glass presets become native background vibrancy.
 
 ## Themes
 
-Murvix ships about 490 themes. Pick the app's light and dark themes in
-**Settings → Appearance**, or press `Cmd+Shift+K`. Murvix follows the macOS
+Pick the app's bundled light and dark themes in **Settings → Appearance**, or
+press `Cmd+Shift+K` on macOS / `Ctrl+Alt+K` on Linux. Murvix follows the system
 appearance.
 
 Custom themes in the profile's `themes/` folder show up too. The chosen theme
@@ -103,13 +104,15 @@ colors the app and its terminals.
   projects with their layouts.
 - **Choose file…** under **Restore backup** restores on the next launch. Murvix
   keeps a recovery copy in the profile's `Backups/` folder. Existing projects
-  are kept and get the saved layouts.
+  are kept; matching projects get the saved layouts. Restart the server from
+  Settings to apply restored server settings.
 - Backups never include running terminals, paired phones, extension packages,
   remote projects, or project files.
 
 ## Import from Murvix 1.x
 
-**Import installed 1.x** reads Murvix 1.x's settings from this Mac. **Import
+**Import installed 1.x** reads Murvix 1.x's settings from this computer's
+`~/Library/Application Support/Murvix` folder. **Import
 projects** reads only its projects and worktrees. **Choose file…** takes a 1.x
 `.murvix` backup or `settings.json`. Murvix imports supported settings, shortcuts,
 custom commands, local projects, worktrees, and terminal tabs, and lists what it
@@ -125,3 +128,12 @@ your own? See [Extensions](../extensions/overview.md).
 
 Language packs are extensions too. Pick a language in **Settings → Appearance →
 App language**, or choose **Browse language extensions…**.
+
+## Linux dictation
+
+Dictation uses local tools on Linux. Install `parec` and `whisper-cli`, then set
+**Settings → Composer → Offline voice model** to a multilingual GGML model.
+Leaving it blank uses
+`${XDG_DATA_HOME:-$HOME/.local/share}/murvix/voice/ggml-base.bin`.
+The same `murvix/voice` folder must contain `ggml-silero-v6.2.0.bin` for speech
+detection. Audio stays on the computer and is transcribed after recording ends.

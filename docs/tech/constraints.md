@@ -6,20 +6,21 @@ Supported platforms, and lessons that shape the code.
 
 | Part | Supported |
 | --- | --- |
-| Desktop app | macOS 14 and later |
+| Desktop app | macOS 14 and later; experimental Linux support described below |
 | `murvix` and `murvix-server` | macOS 14 and later, and Linux with glibc 2.35 or later, on x86_64 and ARM64 |
-| Mobile SDK | iOS and Android |
+| Paired-device transport | TLS server and Rust client support; no iOS/Android SDK or phone app in this workspace |
 
 Not yet supported: Windows, and musl or Alpine Linux. Linux builds must be
 built and run natively on both architectures to count as supported.
 
 ### Experimental Linux desktop
 
-The Linux desktop port is under development. It is tried on Ubuntu 24.04 ARM64
-in SwiftVM on Apple Silicon, with GNOME and KDE Plasma, each on Wayland and X11.
-This does not establish support for other distributions, x86_64 desktop builds,
-or hardware GPU drivers. SwiftVM uses Mesa's software Vulkan renderer, so its
-performance is not representative of a native GPU.
+The Linux desktop port is under development. The current CI runs the desktop
+guard in an Arch Linux x86_64 container with Xvfb and software Vulkan; it does
+not exercise a full Omarchy session. Earlier manual checks used Ubuntu 24.04
+ARM64 in SwiftVM on Apple Silicon, with GNOME and KDE Plasma on Wayland and X11.
+Neither setup establishes hardware GPU performance or full desktop compatibility
+on every distribution.
 
 The system draws the window: frame, buttons, shadow, resizing and tiling. GNOME
 on Wayland draws no frame, so there the app shows its own buttons and the
@@ -37,13 +38,14 @@ One app runs per profile: a second launch, and `murvix <folder>`, hand their
 folders to the app that is running. The app, the `murvix` tool and the server are
 installed in one directory and find each other there.
 
-Extensions run on the system's WebKitGTK 4.1, version 2.40 or later, which the
-app loads once an extension is enabled. Without it the app still runs, and
-Settings says why extensions are off. Scripts use its JavaScriptCore, the engine
-macOS uses. A GPUI window cannot hold a WebKitGTK view, so pages render off
-screen and the app draws them and passes them input. Browser panes use the same
-renderer and need WebKitGTK 2.42 or later for cookie automation. On Linux a page therefore
-has:
+Extensions and browser panes use the system's WebKitGTK 4.1, version 2.40 or
+later. The app primes WebKit on the main thread at startup when available;
+page rendering runs on a dedicated GTK thread. Without WebKitGTK the app still
+runs, and Settings reports unavailable extension backends. Scripts use its
+JavaScriptCore, the engine macOS uses. A GPUI window cannot hold a WebKitGTK
+view, so pages render offscreen and the app draws them and passes them input.
+Browser cookie automation additionally needs WebKitGTK 2.42 or later. On Linux
+a page therefore has:
 
 - no context menu, tooltips, or drag and drop;
 - text only on the clipboard, and no clipboard inside a frame;
@@ -52,13 +54,13 @@ has:
 - content processes outside WebKit's sandbox where the system forbids the
   sandbox, as Ubuntu 24.04 does for an app without an AppArmor profile.
 
-On Ubuntu, download `murvix-desktop.apparmor` from the
-[latest stable release](https://github.com/murvix-app/murvix/releases/latest) to allow
-WebKit's sandbox at the default installation paths for all three Linux formats.
-An administrator can install it:
+On Ubuntu, the repository includes an optional
+[`murvix-desktop.apparmor`](../../packaging/linux/murvix-desktop.apparmor) profile
+to allow WebKit's sandbox at the default installation paths for all three Linux
+formats. From the checkout root, an administrator can install it:
 
 ```sh
-sudo install -m 644 murvix-desktop.apparmor /etc/apparmor.d/murvix-desktop
+sudo install -m 644 packaging/linux/murvix-desktop.apparmor /etc/apparmor.d/murvix-desktop
 sudo apparmor_parser -r /etc/apparmor.d/murvix-desktop
 ```
 
@@ -118,11 +120,13 @@ uses at most four CPU threads and times out after ten minutes. One dictation
 session can run in the app at a time. macOS keeps its native speech service and
 resolves language selections imported from Linux to installed speech locales.
 
-Linux releases installed with the user-local installer use a versioned installation
-with an atomic `current` link, verified downloads and the shared session-compatibility
-rules. Debian packages are managed by APT; AppImages are replaced manually. Neither
-uses the in-app updater. AppImages retain a private, unpacked copy so background
-servers and CLI commands do not depend on a temporary FUSE mount.
+The Linux user-local installer and in-app updater implement versioned
+installations with an atomic `current` link, verified downloads and the shared
+session-compatibility rules. They require published release artifacts; this fork
+has no published release at the time of this audit. Debian packages are managed
+by APT; AppImages are replaced manually. Neither uses the in-app updater.
+AppImages retain a private, unpacked copy so background servers and CLI commands
+do not depend on a temporary FUSE mount.
 See [Linux desktop installation and updates](../user-guide/getting-started.md#linux-desktop-app).
 The package baseline is Ubuntu 24.04 and glibc 2.39; this does not change the
 standalone CLI/server floor of 2.35.
@@ -146,14 +150,14 @@ Visual checks are performed by a person: start the app from a desktop terminal,
 open a project, create and split terminals, exercise shell input and Ctrl+C,
 copy/paste Unicode text, scroll history, open Settings and a folder picker, then
 cancel a close confirmation before confirming another. Check both Wayland and
-X11 sessions. Next milestones are native x86_64 and hardware GPU validation,
-package installation and upgrade acceptance, and the deferred platform backends.
+X11 sessions. Container checks do not replace native hardware GPU and full
+desktop-session validation, or package installation and upgrade acceptance.
 
 On Linux hosts that end a user's processes at logout, run
 `loginctl enable-linger` so the server keeps running after an SSH session ends.
 
-Turning on mobile access may show a macOS firewall prompt for `murvix-server`, and
-the iOS app needs local network permission.
+Turning on paired-device access may show a macOS firewall prompt for
+`murvix-server`. A future iOS app would also need local network permission.
 
 macOS charges a process's privacy permissions, such as Local Network, to the app
 process that started it. The desktop app starts the server through a small copy

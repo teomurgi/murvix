@@ -17,6 +17,10 @@ pick the AI tool, whether to include unstaged changes or only what's staged,
 and whether to push. Murvix remembers these choices for next time. You can also
 add one-off instructions for the AI.
 
+Both actions require a branch with uncommitted changes and no merge conflicts.
+Including unstaged changes stages them before asking the AI for text; a later
+failure does not automatically restore the previous index.
+
 ## Create a pull request
 
 **Create PR** creates a new branch, commits your changes, pushes, and opens a
@@ -45,7 +49,13 @@ their prompts. A project can have its own pull request prompt, set from the
 **Create PR** menu.
 
 - Sign in to the tool in a terminal first. Murvix runs it without prompts.
-- The tool runs on this Mac, in the project folder. For a
-  [remote project](remote-servers.md), the same folder must exist here.
+- The AI tool runs on the desktop computer, in the project folder. For a
+  [remote project](remote-servers.md), that path must also exist locally.
+  Git operations and `gh` run on the project's server.
 - Murvix itself always does the staging, committing, pushing, and pull request.
-  The AI only writes the text.
+  The AI is asked to generate metadata, not perform Git operations; restrictions
+  on other actions depend on the selected tool's headless mode.
+
+If a later step fails, earlier staging, branch creation, commits, or pushes may
+already have succeeded. Read the failure details and inspect the repository
+before retrying.

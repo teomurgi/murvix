@@ -3,9 +3,11 @@
 `murvix.git` reads and changes the project's repository. It runs on the project's
 server, so it works for remote projects too, and is available everywhere.
 
-Calls take an optional options object. Pass `project` in it to target a
-project or worktree by ID; otherwise a tab uses its own project and other views
-use the current one.
+Calls take an optional options object. Pass `project` to select a project or
+worktree by ID, case-insensitive name, or path; a top-level project selector
+resolves to its preferred worktree. A tab defaults to its own project, command
+scripts retain their starting project, and other surfaces/background scripts
+use the current project.
 
 ```js
 const status = await murvix.git.status();
@@ -57,11 +59,11 @@ where `kind` is `hunk`, `context`, `addition`, or `deletion`.
 | Call | Options |
 | --- | --- |
 | `worktree.add` | `path`, `branch`, `createBranch`, `baseBranch`. Returns the new folder |
-| `worktree.remove` | `path`, `force`. Refuses uncommitted changes unless `force` |
+| `worktree.remove` | `path`, `force`. Refuses uncommitted changes unless `force`; the worktree must be registered (refresh first). Returns `{ path, dirRemoved: true }` |
 | `worktree.switchTo` | `identifier` |
 
-Paths are relative to the project folder, or start with `~/` for the home
-folder.
+Paths are resolved on the project's server: relative to the project folder,
+absolute, or prefixed with `~/` for that server's Home folder.
 
 ## Pull requests
 
@@ -76,7 +78,7 @@ Pull request calls use the `gh` CLI on the project's server.
 | `pr.create` | `title`, `body`, `baseBranch`, `draft` |
 | `pr.merge` | `number`, `method` (`merge`, `squash`, `rebase`), `deleteBranch` (default `true`) |
 | `pr.close`, `pr.checkout` | `number` |
-| `pr.checkoutWorktree` | `number`, `path` |
+| `pr.checkoutWorktree` | `number`, `path`. Returns `{ branch }` |
 
 A pull request looks like `{ number, url, title, author, headBranch, headOid,
 baseBranch, state, isDraft, updatedAt, mergeable, mergeStateStatus,

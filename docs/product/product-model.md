@@ -25,13 +25,13 @@ flowchart TB
 | Piece | What it is |
 | --- | --- |
 | Server | Runs on a computer. Owns projects, terminal sessions, and server settings. |
-| Project | A folder on a server, with a name, color, and optional icon or logo. |
+| Project | A primary folder on a server, with a name, color, and optional icon or logo; it can also have extra workspace folders for agent context. |
 | Home | The built-in project for your home folder. |
 | Worktree project | A Git worktree, shown under the project it came from. |
 | Tab | Belongs to one project and holds one or more panes. |
 | Pane | One view in a tab: a terminal, a web page, or an extension view. |
 | Session | A running terminal. Belongs to exactly one project. |
-| Paired device | A phone allowed to connect to the server. |
+| Paired device | A client credential allowed to connect over the server's TLS listener. The pairing infrastructure exists; a phone app is not shipped here. |
 
 **Shared or private.** Project names, icons, colors, and deletions reach every
 app. Tabs, layouts, and project order stay in the app that made them.
@@ -40,8 +40,8 @@ app. Tabs, layouts, and project order stay in the app that made them.
 
 - A project is an identity that points to a folder. Two projects can point to
   the same folder. They share its files but are otherwise separate.
-- A new project is named after its folder. Its name, icon, logo, and color can
-  be changed.
+- A new project is named after its folder. Its name, logo, and color can
+  be changed; the built-in icon picker is available on macOS.
 - If the folder disappears, the project shows as failed and can only be
   deleted. An offline server does not make its projects fail.
 - Changing directory inside a terminal never moves it to another project.
@@ -64,8 +64,8 @@ These are fixed modes, not saved groups.
 
 A worktree project is a child of a normal project, pointing to a Git worktree's
 folder. You can create one from a branch or add a worktree that already exists.
-It takes the branch name and its parent's color, and has its own tabs.
-Worktrees can't have children of their own.
+Its name defaults to the branch name but can be changed. It starts with its
+parent's color and has its own tabs. Worktrees can't have children of their own.
 
 Worktrees made outside Murvix show up automatically. A new project shows
 worktrees only if its repository already has some; turn them on or off from
@@ -82,14 +82,20 @@ flowchart LR
 
 ## Deleting
 
-Deleting always asks first and explains what will end.
+Desktop removal actions ask first and explain what will end. Removing a project
+also discards its terminals' saved output.
 
-| You delete | What happens |
+| Action | What happens |
 | --- | --- |
-| A project | It disappears from every app and its terminals end. Files stay on disk. |
-| A worktree project | The same, and its worktree folder is removed too. |
-| A project with worktrees | Its worktree projects are deleted too. Their folders stay on disk. |
-| Home | Not allowed. |
+| Remove a project | It disappears from every connected app and its terminals end. Files stay on disk. |
+| Remove Worktree and Files | Removes the worktree project, ends its terminals, and removes its worktree folder. Dirty worktrees require explicit approval to force removal. |
+| Remove a project with worktrees | Its worktree projects are deleted too. Their folders stay on disk. |
+| Remove an already-missing worktree project | Removes the registration and its terminal history; its folder is already gone. |
+| Remove Home | Not allowed. |
+
+The CLI distinguishes `murvix project delete <project> --yes` (remove the
+registration, leaving files) from `murvix worktree remove <project> --yes`
+(remove the worktree and its files).
 
 ## Tabs and panes
 
@@ -100,9 +106,11 @@ Deleting always asks first and explains what will end.
   group. Each group has its own tab strip.
 - Closing a group's last tab removes the group.
 - Tabs can have a custom title and color, and can be pinned. Pinned tabs stay
-  first and can't be closed until unpinned.
-- A terminal's title is the one its program sets, otherwise the running
-  program's name, otherwise its folder.
+  first and are protected from ordinary close actions; applying a project layout
+  replaces them too.
+- A terminal's title is the one its program sets, otherwise the foreground
+  non-shell program's name, otherwise its folder. Decorative symbols are
+  filtered from display titles.
 - New terminals open in the project's folder, or optionally in the folder of
   the pane they were split from.
 - Terminals support selection, copy and paste, search, links, the mouse, input
@@ -112,10 +120,12 @@ Deleting always asks first and explains what will end.
 ## Project layouts
 
 Named layouts live in `.murvix/layouts/` inside a project or worktree. Use YAML,
-YML, or JSON files; the filename is the layout's name. Choose **Apply Layout…**
-from the project menu or the layout button in the top bar. Layouts are never
-applied automatically. Confirmation replaces that project's tabs in this app;
-terminals still shown by another app keep running.
+YML, or JSON files; the filename without its extension is the layout's name.
+Choose **Apply Layout…** from the desktop project's menu or the layout button
+in the top bar. Layouts are never applied automatically. Confirmation replaces
+that project's tabs in this app, including pinned tabs; terminals still
+referenced by another connected app keep running. The terminal UI does not load
+these files.
 
 ```yaml
 layout: horizontal

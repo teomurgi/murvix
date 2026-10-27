@@ -14,7 +14,8 @@ const unsubscribe = murvix.events.subscribe("agent.status", (event) => {
 });
 ```
 
-Every payload value is a string.
+Every **app-event** payload value is a string; unavailable context keys are
+omitted. Extension-local messages can contain arbitrary JSON.
 
 ## App events
 
@@ -37,9 +38,10 @@ Every payload value is a string.
 
 **Tab context:** `tabID`, `projectID`, `worktreeID`, `areaID`, `title`,
 `projectPath`, and `kind` (`terminal`, `extensionWebView`, or `browser`).
-Terminal tabs add `paneID` and `cwd`. Extension tabs add `extensionID`,
-`tabTypeID`, `tabInstanceID`, and `data` as a JSON string. Browser tabs add
-`paneID` and `url`.
+Terminal tabs add `paneID` and, when known, `cwd`. Extension tabs add `extensionID`,
+`tabTypeID`, `tabInstanceID`, and non-null `data` as a JSON string. Browser tabs
+add `paneID` and `url`. Pane creation/closure events are emitted for terminal
+panes only, even when a tab also contains web views.
 
 - `projectID` is the top-level project. `worktreeID` is the project or
   worktree the tab belongs to.
@@ -48,16 +50,25 @@ Terminal tabs add `paneID` and `cwd`. Extension tabs add `extensionID`,
 - `agent.status` reports the busiest agent per worktree; `providerID` is
   `claude`, `codex`, `opencode`, `cursor`, `copilot`, `droid`, `pi`, `grok`,
   `kiro`, `xal`, `antigravity`, `omp`, or `other`.
+- `pane.focused` reports moving between split panes within the same tab, not
+  ordinary tab/project switches; its payload does not include a pane ID.
+- `worktree.headChanged` currently reports changes to a previously known branch
+  name, not every new commit on the same branch.
+- Terminal title changes reach `tab.updated` after settling for 500 ms.
 
 ## Command events
 
-A command with the `event` action sends `command.<id>` to the extension. No
-declaration needed.
+A command with the `event` action sends `command.<id>` to the extension with
+`{ extension: "<extension name>", command: "<command id>" }`. Runtime shortcuts
+send the same payload. No event declaration is needed for manifest commands or
+currently registered runtime shortcuts.
 
 ## Extension messages
 
-An extension's pages and background script can message each other with
-`extension.*` events. No declaration needed; they never leave the extension.
+An extension's pages send `extension.*` messages to its background script, and
+the background script broadcasts them to its pages. Pages do not send directly
+to other pages, and the sender does not receive an automatic echo. No manifest
+declaration is needed; messages never cross extension boundaries.
 
 ```js
 // page
@@ -67,8 +78,9 @@ await murvix.events.emit("extension.refresh", { reason: "button" });
 murvix.events.subscribe("extension.refresh", (payload) => { /* ... */ });
 ```
 
-A page's message needs the background script running. Payloads are JSON, up to
-64 KiB.
+A page's message fails if its background script is not running. Payloads are
+JSON, up to 64 KiB. Names must be `extension.` followed by at least one of
+`A-Z`, `a-z`, `0-9`, `.`, `_`, `:`, or `-`, at most 200 characters in total.
 
 ## Background scripts
 
@@ -79,10 +91,14 @@ state, or update [bar items](bar-items.md). Most extensions don't need one.
 
 ```js
 // background.js
+// Manifest needs events: ["tab.focused"] and
+// permissions: ["agents:read", "panels:write"] for this example.
 murvix.events.subscribe("tab.focused", () => {
   murvix.statusbar.set({ id: "count", text: String(murvix.agents.list().length) });
 });
 ```
 
 Background scripts run in-process on their own thread. Errors and `console`
-output go to the extension's log.
+output go to the extension's log. Disabling an extension retires its host calls
+and requests that its script loop stop; it does not forcibly interrupt
+JavaScript already executing. Do not treat this runtime as a process sandbox.

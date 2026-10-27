@@ -2,8 +2,9 @@
 
 Murvix can work with projects on other computers over SSH. Each computer runs its
 own `murvix-server`, so remote terminals keep running when you disconnect, just
-like local ones. Remote projects sit in the same sidebar as local ones, marked
-with their server.
+like local ones. In the desktop app, remote projects sit in the same sidebar
+as local ones, marked with their server. A CLI or TUI invocation selects one
+server at a time.
 
 ```mermaid
 flowchart LR
@@ -14,7 +15,8 @@ flowchart LR
 
 - SSH access to the computer with your keys, agent, or certificates. The
   desktop app also supports password logins.
-- A trusted host key. Run `ssh <host>` once to accept it.
+- A trusted host key. You can run `ssh <host>` once to check and accept it, or
+  review the fingerprint offered by the desktop app's Test Connection flow.
 - Murvix [installed there](../user-guide/getting-started.md#cli-and-server-only),
   on `PATH` or in `~/.local/bin`, at a version that speaks the same protocol as yours.
 - macOS 14 or newer, or Linux with glibc 2.35 or newer, on x86_64 or ARM64.
@@ -28,10 +30,18 @@ On Linux hosts that end your processes when you log out, run
    **Add Server…**.
 2. Enter the SSH host (a host name, address, or `~/.ssh/config` alias), and
    optionally the user, port, and identity file.
-3. Choose **Test Connection**. If Murvix isn't installed there, the app offers to
-   install the same version into `~/.local/bin`.
+3. Choose **Test Connection**. If Murvix isn't installed there, a release build
+   offers to install its matching version into `~/.local/bin` using `curl`.
+   A debug desktop build instead uses a separately prepared
+   `target/linux-dev/murvix-dev-linux-x86_64.tar.gz` archive; that path supports
+   x86_64 glibc Linux only and fails if the archive has not been built.
 4. Add projects with **Add Project → Remote**, which browses the server's
    folders.
+
+The release installer downloads from this fork's GitHub releases. This
+repository currently has no published release assets, so do not assume the
+automatic install offer can succeed; install a source-built CLI/server pair
+on the host, or use the prepared development archive described above.
 
 - Passwords are asked when connecting and kept only in memory until you quit.
 - A dropped server reconnects on its own, waiting longer each time. It stops
@@ -89,27 +99,44 @@ Put `--host` first to use another computer's server:
 
 ```bash
 murvix --host devbox                 # terminal UI
-murvix --host devbox project list    # any CLI command
+murvix --host devbox project list    # server-backed CLI command
 murvix --host ssh://me@devbox:2222   # with a user and port
 ```
 
-`--host` takes `user@host`, an `~/.ssh/config` alias, or
-`ssh://user@host:port`. It never prompts, so use a key or an agent. Folder
-arguments must be absolute paths on that computer.
+`--host` takes `user@host`, a `~/.ssh/config` alias, or
+`ssh://user@host:port`. It never prompts, so use a key or an agent and trust the
+host key beforehand. Directory arguments to management commands must be
+absolute paths on that computer, for example:
+
+```bash
+murvix --host devbox project add /srv/my-app --reuse
+murvix --host devbox session create /srv/my-app
+```
+
+`murvix --host devbox /srv/my-app` is not supported: the folder-opening shortcut
+is local-only. Browser and skill-installation commands are local-only too.
+The CLI's `MUXY_DIR` is not forwarded to the remote server; that server uses
+its remote profile. SSH does not require enabling Mobile access or exposing
+port `7419`.
 
 ## Working with remote files
 
 - Files dropped or pasted into a remote terminal, or sent from the
   [composer](composer.md), are uploaded and their remote path is pasted.
-- `Cmd`-clicking a remote file offers a read-only copy on this Mac, or its path.
+- Modified-clicking a remote file (**Cmd** on macOS, **Ctrl** on Linux) offers
+  a read-only local copy or its path. The file must be reachable within the
+  server's allowed project roots for **Open a Copy**.
 - Git runs on the server. Pull request features need `gh` installed and signed
   in there.
-- AI commit and pull request actions run on this Mac, so they only work when
-  the project's folder also exists here.
+- AI commit and pull request actions obtain repository state and apply changes
+  through the server, but the AI provider runs on the desktop computer in the
+  project's directory. That same directory must exist locally for generation;
+  remote-only checkouts are not supported by these AI actions.
 
 ## Updating
 
 Murvix never updates a remote computer by itself. When versions can't talk, the
 app shows the command to run there. To update by hand, follow
 the [installation instructions](../user-guide/getting-started.md#cli-and-server-only)
-on that computer with `--replace`, choosing the same channel and a compatible version.
+on that computer with `--replace` and an exact `--version` compatible with your
+client. The standalone installer has no channel option.

@@ -41,30 +41,34 @@ A project is a workspace: its directory plus the extra roots set with
 `murvix project workspace`, or right-click → Workspace → Add Folder… in the
 desktop app. Every terminal in the project inherits all of them as
 `MUXY_WORKSPACE_COUNT` with `MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so
-on — index 0 is the project directory. Any agent reads the same variables, so
-the directory set in scope never depends on which agent runs there. Roots are
-captured when the terminal starts; existing terminals keep theirs. Files,
-search, exec, and Git still target the project folder.
+on — index 0 is the project directory. These variables are available to any
+program in the terminal; whether an agent uses them to add folders to its own
+context depends on that agent. Murvix does not configure the agent's workspace
+or permissions. Roots are captured when the terminal starts; existing terminals
+keep theirs. Files, search, exec, and Git still target the project folder.
 
 ## Notifications
 
-The desktop app sends a macOS notification when an agent needs your attention
-or finishes working.
+The desktop app sends a native notification when an agent needs your attention
+or finishes working, when the operating system's notification service allows it.
 
 - No notification is shown for the pane you are looking at, or for detached
   terminals.
 - Looking at the terminal clears the alert in every app.
 - Clicking a notification jumps to its pane.
-- Only one app notifies, so alerts are never doubled.
-- Turn notifications off in **System Settings → Notifications → Murvix**.
+- The server coordinates notification delivery between apps to avoid duplicates.
+- On macOS, turn notifications off in **System Settings → Notifications →
+  Murvix**. On Linux, delivery needs the session D-Bus and a service implementing
+  `org.freedesktop.Notifications`; manage permissions in your desktop's settings.
 
 Alerts live in memory on the server, at most one per terminal. Restarting the
 server clears them.
 
 ## Agents panel
 
-`Cmd+Opt+A` shows the agents panel, focuses it, and hides it once it has
-focus. Use the arrow keys and Return to open a row.
+`Cmd+Opt+A` on macOS or `Ctrl+Shift+Alt+A` on Linux shows the agents panel,
+focuses it, and hides it once it has focus. Use the arrow keys and Return to
+open a row.
 
 - It sits at the bottom of the expanded sidebar; drag its top edge to make it
   taller or shorter. With the sidebar collapsed it
