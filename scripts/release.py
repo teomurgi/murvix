@@ -6,10 +6,15 @@ import json
 import plistlib
 import re
 import subprocess
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION_PATTERN = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
+VERSION_PATTERN = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
+COMMIT_PATTERN = re.compile(r"([a-z][a-z0-9-]*)(?:\([^()\n]+\))?(!)?: [^\n]+")
+TRAILER_PATTERN = re.compile(r"(?:[A-Za-z0-9-]+|BREAKING CHANGE)(?:: | #)\S")
+BREAKING_PATTERN = re.compile(r"^BREAKING(?: CHANGE|-CHANGE): \S", re.MULTILINE)
+RELEASE_PATHS = ("VERSION", "Cargo.toml", "Cargo.lock")
 APP_NAME = "Murvix"
 APP_IDENTIFIER = "com.murvix.app"
 # Linux is branded as Murvix and uses the same application ID as macOS.
@@ -30,7 +35,7 @@ def build_metadata(root=ROOT):
 
 def check_version(version):
     if not VERSION_PATTERN.fullmatch(version or ""):
-        raise ValueError("release version must be X.Y.Z")
+        raise ValueError("release version must be X.Y.Z without leading zeros")
     return version
 
 
@@ -38,9 +43,66 @@ def git(root, *args):
     return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
 
 
+def git_bytes(root, *args):
+    return subprocess.check_output(["git", "-C", str(root), *args])
+
+
+def resolve_commit(root, ref):
+    return git(root, "rev-parse", "--verify", "--end-of-options", f"{ref}^{{commit}}")
+
+
+def commit_bump(message):
+    """Classify a Conventional Commit, including multiline breaking-change footers."""
+    paragraphs = re.split(r"\n[ \t]*\n", message.strip())
+    header = COMMIT_PATTERN.fullmatch(paragraphs[0].split("\n", 1)[0])
+    if not header:
+        return None
+    breaking = any(
+        TRAILER_PATTERN.match(paragraph) and BREAKING_PATTERN.search(paragraph)
+        for paragraph in paragraphs[1:]
+    )
+    if header[2] or breaking:
+        return "major"
+    if header[1] == "feat":
+        return "minor"
+    if header[1] in ("fix", "perf", "refactor"):
+        return "patch"
+    return None
+
+
+def plan_release(root, source="HEAD"):
+    """Derive the next release from stable ancestor tags and complete commit messages."""
+    source = resolve_commit(root, source)
+    tags = git(root, "tag", "--merged", source).splitlines()
+    stable = [tag for tag in tags if tag.startswith("v") and VERSION_PATTERN.fullmatch(tag[1:])]
+    tag = max(stable, key=lambda value: version_key(value[1:]), default=None)
+    previous = tag[1:] if tag else check_version(
+        git_bytes(root, "show", f"{source}:VERSION").decode().strip()
+    )
+    revision = f"refs/tags/{tag}..{source}" if tag else source
+    messages = git_bytes(root, "log", "--format=%B%x00", revision).decode().split("\0")
+    bumps = {commit_bump(message) for message in messages}
+    bump = next((kind for kind in ("major", "minor", "patch") if kind in bumps), None)
+    version = None
+    if bump:
+        major, minor, patch = version_key(previous)
+        if bump == "major":
+            version = f"{major + 1}.0.0"
+        elif bump == "minor":
+            version = f"{major}.{minor + 1}.0"
+        else:
+            version = f"{major}.{minor}.{patch + 1}"
+    return {
+        "version": version,
+        "tag": f"v{version}" if version else None,
+        "source": source,
+        "previous": previous,
+        "bump": bump,
+    }
+
+
 def checkout_version(root):
-    # The VERSION file holds the version being prepared; the pushed vX.Y.Z tag
-    # is what a release is actually built from.
+    # VERSION records the version prepared by the release PR.
     version = (root / "VERSION").read_text().strip()
     return check_version(version)
 
@@ -56,11 +118,9 @@ def replace_once(pattern, replacement, text, label):
     return updated
 
 
-def stamp_version(root, version):
+def stamped_files(version, manifest, lock, manifests):
+    """Return only the three stamped files, leaving dependency resolutions untouched."""
     check_version(version)
-    manifest_path = root / "Cargo.toml"
-    lock_path = root / "Cargo.lock"
-    manifest = manifest_path.read_text()
     pattern = r'(\[workspace\.package\]\nversion = ")([^"\n]+)(")'
     current = re.search(pattern, manifest)
     if not current:
@@ -68,24 +128,91 @@ def stamp_version(root, version):
     manifest = replace_once(
         pattern, lambda match: match[1] + version + match[3], manifest, "workspace version"
     )
-    lock = lock_path.read_text()
-    manifests = sorted(root.glob("crates/*/Cargo.toml"))
     if not manifests:
         raise ValueError("workspace crates not found")
-    for crate in manifests:
-        name = re.search(r'^name = "([^"]+)"$', crate.read_text(), re.MULTILINE)
+    names = set()
+    for path, contents in sorted(manifests.items()):
+        package = tomllib.loads(contents).get("package", {})
+        name = package.get("name")
         if not name:
-            raise ValueError(f"package name not found in {crate}")
+            raise ValueError(f"package name not found in {path}")
+        if package.get("version") != {"workspace": True}:
+            raise ValueError(f"{path} must inherit the workspace version")
+        if name in names:
+            raise ValueError(f"duplicate workspace package {name}")
+        names.add(name)
         pattern = (
-            r'(\[\[package\]\]\nname = "' + re.escape(name[1])
+            r'(\[\[package\]\]\nname = "' + re.escape(name)
             + r'"\nversion = ")' + re.escape(current[2]) + r'(")'
         )
         lock = replace_once(
-            pattern, lambda match: match[1] + version + match[2], lock, name[1]
+            pattern, lambda match: match[1] + version + match[2], lock, name
         )
     # Only local package versions change. All third-party resolutions stay locked.
-    manifest_path.write_text(manifest)
-    lock_path.write_text(lock)
+    return {
+        "VERSION": (version + "\n").encode(),
+        "Cargo.toml": manifest.encode(),
+        "Cargo.lock": lock.encode(),
+    }
+
+
+def stamp_version(root, version):
+    files = stamped_files(
+        version,
+        (root / "Cargo.toml").read_bytes().decode(),
+        (root / "Cargo.lock").read_bytes().decode(),
+        {str(path.relative_to(root)): path.read_bytes().decode()
+         for path in root.glob("crates/*/Cargo.toml")},
+    )
+    for path, contents in files.items():
+        (root / path).write_bytes(contents)
+
+
+def committed_tree(root, commit):
+    """Map all committed paths to their mode, object type and object ID."""
+    entries = {}
+    for entry in git_bytes(root, "ls-tree", "-r", "-z", "--full-tree", commit).split(b"\0"):
+        if entry:
+            metadata, path = entry.split(b"\t", 1)
+            entries[path.decode(errors="surrogateescape")] = tuple(metadata.decode().split())
+    return entries
+
+
+def verify_release(root, source, release):
+    """Verify the complete committed tree against the precisely stamped source tree."""
+    plan = plan_release(root, source)
+    if not plan["version"]:
+        raise ValueError("source has no release changes")
+    release = resolve_commit(root, release)
+    before = committed_tree(root, plan["source"])
+    after = committed_tree(root, release)
+
+    def blob(tree, path):
+        entry = tree.get(path)
+        if not entry or entry[1] != "blob" or entry[0] not in ("100644", "100755"):
+            raise ValueError(f"expected a regular committed file: {path}")
+        return git_bytes(root, "cat-file", "blob", entry[2])
+
+    originals = {path: blob(before, path) for path in RELEASE_PATHS}
+    manifests = {
+        path: blob(before, path).decode() for path in before
+        if re.fullmatch(r"crates/[^/]+/Cargo\.toml", path)
+    }
+    expected = stamped_files(
+        plan["version"], originals["Cargo.toml"].decode(), originals["Cargo.lock"].decode(),
+        manifests,
+    )
+    changed = {path for path in before.keys() | after.keys() if before.get(path) != after.get(path)}
+    expected_changed = {path for path in RELEASE_PATHS if originals[path] != expected[path]}
+    if changed != expected_changed:
+        raise ValueError(
+            "release changes do not match version stamp: "
+            f"expected {sorted(expected_changed)}, found {sorted(changed)}"
+        )
+    for path in RELEASE_PATHS:
+        if before[path][:2] != after[path][:2] or blob(after, path) != expected[path]:
+            raise ValueError(f"release does not contain the expected stamp: {path}")
+    return {**plan, "source": release}
 
 
 def bundle_info(version, build):
@@ -164,6 +291,11 @@ def main():
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("version")
+    plan = commands.add_parser("plan")
+    plan.add_argument("--source", default="HEAD")
+    verify = commands.add_parser("verify")
+    verify.add_argument("--source", required=True)
+    verify.add_argument("--release", required=True)
     check = commands.add_parser("check-build")
     check.add_argument("version")
     check.add_argument("executable", type=Path)
@@ -179,7 +311,11 @@ def main():
             subparser.add_argument("--build", required=True, help="build number recorded as CFBundleVersion")
     args = parser.parse_args()
     try:
-        if args.command == "version":
+        if args.command == "plan":
+            print(json.dumps(plan_release(ROOT, args.source)))
+        elif args.command == "verify":
+            print(json.dumps(verify_release(ROOT, args.source, args.release)))
+        elif args.command == "version":
             version = checkout_version(ROOT)
             print(f"version={version}")
             print(f"tag=v{version}")

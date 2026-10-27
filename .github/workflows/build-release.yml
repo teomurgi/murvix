@@ -85,10 +85,8 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
-      - name: Stamp the build version without committing a bump
-        run: |
-          rm -rf target/packages
-          python3 scripts/release.py stamp "$VERSION"
+      - name: Prepare package output for the committed release version
+        run: rm -rf target/packages
       - name: Import signing certificate
         if: runner.os == 'macOS'
         env:
@@ -231,10 +229,9 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
-      - name: Stamp and build the desktop with matching helpers
+      - name: Build the committed desktop version with matching helpers
         run: |
           rm -rf target/packages
-          python3 scripts/release.py stamp "$VERSION"
           bash scripts/build-desktop-release-linux.sh "$ARCH" "$VERSION"
       - name: Verify install, helpers, leases and uninstall without a display
         run: >-

@@ -1,24 +1,82 @@
 name: Release
 
-# Push a vX.Y.Z tag to release: the tag's commit is built for macOS +
-# Omarchy (Linux desktop) and published on the GitHub release page with
-# generated notes. To fix notes after the fact, edit them on the release
-# page; pushing the tag again only fills in missing assets.
 on:
-  push:
-    tags:
-      - "v[0-9]*.[0-9]*.[0-9]*"
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    types: [closed]
 
 permissions:
   contents: read
 
 concurrency:
-  group: murvix-release-${{ github.ref }}
+  group: murvix-release
   cancel-in-progress: false
 
 jobs:
+  propose:
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.repository == 'teomurgi/murvix' &&
+      contains(fromJSON('["teomurgi"]'), github.actor) &&
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Calculate the highest SemVer bump from unreleased commits
+        id: plan
+        run: |
+          python3 scripts/release.py plan --source HEAD > "$RUNNER_TEMP/release-plan.json"
+          cat "$RUNNER_TEMP/release-plan.json"
+          VERSION=$(jq -r '.version // empty' "$RUNNER_TEMP/release-plan.json")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ -z "$VERSION" ]]; then
+            echo 'No release-worthy commits since the last stable version.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Open a synchronized version PR
+        if: steps.plan.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          VERSION: ${{ steps.plan.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${GH_TOKEN:?Configure RELEASE_TOKEN with maintainer Contents and Pull requests write permissions}"
+          SOURCE=$(git rev-parse HEAD)
+          BRANCH="release/v$VERSION"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          gh auth setup-git
+          if git ls-remote --exit-code --heads origin "$BRANCH"; then
+            git fetch origin "refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
+            python3 scripts/release.py verify --source "$SOURCE" --release "origin/$BRANCH"
+            git switch --track "origin/$BRANCH"
+          else
+            git switch -c "$BRANCH"
+            python3 scripts/release.py stamp "$VERSION"
+            git add VERSION Cargo.toml Cargo.lock
+            git commit -m "chore(release): $VERSION"
+            git push --set-upstream origin "$BRANCH"
+          fi
+          PR=$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" --state open --json url --jq '.[0].url // empty')
+          if [[ -z "$PR" ]]; then
+            PR=$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
+              --title "chore(release): $VERSION" \
+              --body "Synchronize VERSION, the workspace package version, and every inherited crate lockfile version to $VERSION, derived from commit history. Merge after macos and omarchy pass to tag and publish this release. If main changes, close this PR, delete its branch, and run Release again rather than merging main into this branch.")
+          fi
+          echo "Release PR: $PR" >> "$GITHUB_STEP_SUMMARY"
+
   prepare:
     if: >-
+      github.event_name == 'pull_request' && github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/v') &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(fromJSON('["teomurgi"]'), github.event.pull_request.user.login) &&
       github.repository == 'teomurgi/murvix' &&
       contains(fromJSON('["teomurgi"]'), github.actor) &&
       contains(fromJSON('["teomurgi"]'), github.triggering_actor)
@@ -26,45 +84,64 @@ jobs:
     timeout-minutes: 10
     outputs:
       version: ${{ steps.version.outputs.version }}
-      build_number: ${{ steps.count.outputs.count }}
+      source: ${{ steps.version.outputs.source }}
+      build_number: ${{ steps.version.outputs.build_number }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
-      - name: Derive the release version from the tag
+          persist-credentials: false
+      - name: Verify the merged release contains only the calculated version bump
         id: version
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          RELEASE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        shell: bash
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          VERSION="${TAG#v}"
-          python3 scripts/release.py check-version "$VERSION"
-          if [[ "$(git rev-parse "$TAG^{commit}")" != "$GITHUB_SHA" ]]; then
-            echo "Error: $TAG does not point to the pushed commit" >&2
+          set -euo pipefail
+          git fetch origin "$HEAD_SHA"
+          PARENTS=$(git show -s --format=%P "$HEAD_SHA")
+          if [[ "$PARENTS" == *' '* || -z "$PARENTS" ]]; then
+            echo 'Release branch must contain one version commit on its source revision.' >&2
             exit 1
           fi
+          python3 scripts/release.py verify --source "$PARENTS" --release "$RELEASE_SHA" > "$RUNNER_TEMP/release-plan.json"
+          VERSION=$(jq -er '.version' "$RUNNER_TEMP/release-plan.json")
+          [[ "$HEAD_BRANCH" == "release/v$VERSION" ]]
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-      - name: Count commits for the macOS bundle version
-        id: count
-        run: echo "count=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+          echo "source=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "build_number=$(git rev-list --count "$RELEASE_SHA")" >> "$GITHUB_OUTPUT"
+      - name: Tag the exact merged release commit
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SOURCE: ${{ steps.version.outputs.source }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${GH_TOKEN:?Configure RELEASE_TOKEN with administrator release-tag authority}"
+          gh auth setup-git
+          TAG="v$VERSION"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG"; then
+            git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+            [[ "$(git rev-parse "$TAG^{commit}")" == "$SOURCE" ]]
+          else
+            git tag "$TAG" "$SOURCE"
+            git push origin "refs/tags/$TAG"
+          fi
 
   build:
-    if: >-
-      github.repository == 'teomurgi/murvix' &&
-      contains(fromJSON('["teomurgi"]'), github.actor) &&
-      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
     needs: prepare
     uses: ./.github/workflows/build-release.yml
     with:
       version: ${{ needs.prepare.outputs.version }}
-      source: ${{ github.sha }}
+      source: ${{ needs.prepare.outputs.source }}
       build_number: ${{ needs.prepare.outputs.build_number }}
     secrets: inherit
 
   release:
-    if: >-
-      github.repository == 'teomurgi/murvix' &&
-      contains(fromJSON('["teomurgi"]'), github.actor) &&
-      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
     needs: [prepare, build]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -73,8 +150,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ needs.prepare.outputs.source }}
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           pattern: distribution-*
