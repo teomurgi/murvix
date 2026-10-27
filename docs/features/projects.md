@@ -6,11 +6,15 @@ and project order are kept by each app.
 
 ## Projects
 
+Shortcuts below use the macOS defaults. Linux bindings that differ are listed
+in [Keyboard shortcuts](../user-guide/keyboard-shortcuts.md).
+
 - Add one with **Add Project** at the bottom of the sidebar, **File → Open
   Project…**, or `Cmd+O`. Type to search folders, or type a path. With remote
   servers set up, choose **Local** or a server.
 - `murvix <folder>` in a shell opens a folder in the desktop app.
-- Right-click a project to rename it, or change its icon, logo, or color.
+- Right-click a project to rename it or change its logo or color. Choosing a
+  system-symbol icon is macOS-only; Linux shows a logo or the project's initial.
 - **Remove Project…** removes it from every app and ends its terminals. Files
   stay on disk.
 - If a project's folder disappears, it shows as missing and can only be
@@ -26,7 +30,8 @@ can't be removed. `Cmd+N` opens a tab in Home.
   - **Project Focused** (default): projects, with worktrees under them.
   - **Tab Focused**: projects with their tabs listed in the sidebar.
   - **Agents Focused**: only tabs running an [AI agent](ai-agents.md).
-- Sort by **Manual Order** and drag to reorder, or by **Name**.
+- Sort by **Manual Order** and drag to reorder, **Name (A–Z)**,
+  **Name (Z–A)**, **Recently Active**, or **Date Added**.
 - `Ctrl+1`–`Ctrl+9` jumps to a project. Hold a modifier to see the numbers.
 - The filter in the sidebar header shows **All Projects**, **Focus Current
   Project**, or **Remote Servers** when a remote server has connected.
@@ -59,8 +64,9 @@ ends its terminals. Murvix warns about uncommitted changes.
 ### Setup and teardown commands
 
 Murvix can run commands when it creates or removes a worktree. List them in
-`.murvix/worktree.json` in the project, or for every project in
-`~/.config/murvix/worktree.json` (`$XDG_CONFIG_HOME/murvix/worktree.json`):
+`.murvix/worktree.json` in the primary project checkout, or for every project in
+`~/.config/murvix/worktree.json` (`$XDG_CONFIG_HOME/murvix/worktree.json`) on the
+project's server:
 
 ```json
 {

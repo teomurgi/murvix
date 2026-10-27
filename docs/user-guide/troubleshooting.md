@@ -16,12 +16,17 @@ Common problems and fixes. If yours isn't here, please
 
 ## The app doesn't open
 
-Usually `settings.toml` has an error or an unknown key. Start the app from a
-terminal to see why:
+A malformed `settings.toml` (including unknown keys) can prevent startup. Start
+the app from a terminal to see the error. On macOS:
 
 ```bash
 "/Applications/Murvix.app/Contents/MacOS/murvix-app"
 ```
+
+On a quick-installer Linux installation, run
+`"${XDG_DATA_HOME:-$HOME/.local/share}/murvix-desktop/current/murvix-app"`.
+For a Debian package, run `murvix-app`; for an AppImage, launch the downloaded
+AppImage from the terminal.
 
 Fix the line it names, or move `settings.toml` out of the profile folder to
 start with defaults.
@@ -37,14 +42,17 @@ the error, often a typo in `server.toml`:
 
 ## `murvix` is not found, or is the wrong version
 
-The desktop app and the install script put `murvix` in `~/.local/bin`. Add it to
+The desktop app's **Install Command Line Tool…** action links `murvix` into
+`~/.local/bin`; the install scripts also use that directory by default. Debian
+packages install it in `/usr/bin`. For a user-local installation, add it to
 your `PATH`:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-If `murvix --version` shows 1.x, Murvix 1.x's CLI comes first on your `PATH`.
+If the version is unexpected, run `command -v murvix` to see which installation
+comes first on your `PATH`.
 
 ## A remote server won't connect
 
@@ -55,12 +63,14 @@ If `murvix --version` shows 1.x, Murvix 1.x's CLI comes first on your `PATH`.
   installer there. See [Remote servers](../features/remote-servers.md).
 - **Incompatible version:** install the same version on both computers. If the
   version is right but the old server is still running, run
-  `pkill -x murvix-server` there. This ends its terminals.
+  `murvix server stop --force` on that computer, then reconnect. This ends its terminals.
 - **Terminals end when SSH disconnects (Linux):** run `loginctl enable-linger`.
 
 ## No agent notifications
 
-- Allow notifications in **System Settings → Notifications → Murvix**.
+- On macOS, allow notifications in **System Settings → Notifications → Murvix**.
+  On Linux, check that your desktop's `org.freedesktop.Notifications` service is
+  running and notifications are not muted.
 - Murvix doesn't notify for the pane you're looking at, or for detached
   terminals.
 - Recognition is best effort. `murvix activity list` shows what the server sees.
@@ -71,14 +81,14 @@ If `murvix --version` shows 1.x, Murvix 1.x's CLI comes first on your `PATH`.
   a terminal, then try again.
 - Pull request features need `gh` installed and signed in on the project's
   server: `gh auth login`.
-- AI actions run on this Mac. For a remote project, the same folder must exist
-  here.
+- AI tools run on the computer running the desktop app. For a remote project,
+  the same folder path must exist locally.
 - Actions are disabled on a clean tree, a detached HEAD, during conflicts, or
   while another action runs.
 
 ## Keys don't work as expected
 
-- `Option` acts as `Alt` in terminals. Choose **Neither** under
+- On macOS, Option acts as Alt in terminals. Choose **Neither** under
   **Settings → Terminal → Option as Alt** to type special characters.
 - Key bindings in **Settings → Terminal → Key bindings** win over app
   shortcuts while a terminal is focused.
@@ -102,8 +112,16 @@ shortcut.
 2. Quit Murvix.
 3. Move the [profile folder](../features/server.md#files) somewhere else.
 
-Murvix 1.x data and `~/.config/ghostty` are not touched. The next launch imports
-Murvix 1.x again; to start empty, also move `~/Library/Application Support/Murvix`.
+The release profile is `~/Library/Application Support/Murvix` on macOS, or
+`${XDG_STATE_HOME:-$HOME/.local/state}/murvix` on Linux. `MUXY_DIR` overrides it;
+development builds use `Murvix Dev` / `murvix-dev`. Keep the moved folder until
+you are sure you no longer need its settings or saved sessions.
+
+The next launch may import legacy `settings.json` data if it finds an installed
+1.x configuration at `~/Library/Application Support/Murvix`. On macOS, moving
+the release profile already moves that location. On Linux, move that separate
+legacy folder too if it exists and you want to avoid importing it.
+`~/.config/ghostty` is not touched.
 
 ## Reporting a bug
 

@@ -142,6 +142,13 @@ The [terminal UI guide](docs/features/terminal-ui.md) covers scrollback, mouse s
 
 Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, and the project's contribution rules, and follow the [Code of Conduct](CODE_OF_CONDUCT.md). Security reports should follow [SECURITY.md](SECURITY.md).
 
+Releases follow a reviewed PR flow: a maintainer runs **Actions → Release** on
+`main`, automation computes the SemVer bump from Conventional Commits and opens
+a synchronized version PR, and required CI and review complete before merge.
+Merging verifies the version-only change, then tags, builds, and publishes the
+exact merged commit. Manual version bumps and tag pushes are not the release
+procedure. See the [release runbook](GOVERNANCE.md#releases).
+
 Maintainer roles, merge restrictions, and CI authorization are defined in
 [GOVERNANCE.md](GOVERNANCE.md).
 

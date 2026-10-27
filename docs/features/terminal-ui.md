@@ -11,23 +11,23 @@ murvix --host devbox     # the server on another computer, over SSH
 
 ## Keys
 
-Every command starts with the prefix `Ctrl-B`, like tmux. Press `Ctrl-B ?` for
-help.
+Layout commands start with the prefix `Ctrl-B`, like tmux; ordinary keys go to
+the focused terminal. Press `Ctrl-B ?` for help.
 
 | After `Ctrl-B` | Action |
 | --- | --- |
 | `c` | New tab in the project folder |
 | `n` / `p` | Next / previous tab |
 | `1`–`9`, `0` | Go to tabs 1–9, or tab 10 |
-| `%` | Split side by side |
-| `"` | Split top and bottom |
-| Arrows | Move focus between panes |
-| `Ctrl` + Arrows | Resize the split |
-| `r` | Enter resize mode; use arrows, then `Esc` to leave |
-| `o` / `Tab` | Next pane |
+| `%` / `v` | Split side by side |
+| `"` / `-` | Split top and bottom |
+| Arrows / `h`, `j`, `k`, `l` | Move focus between panes |
+| `Ctrl` or `Alt` + Arrows / `h`, `j`, `k`, `l` | Resize the split |
+| `r` | Enter resize mode; use arrows or `h`, `j`, `k`, `l`, then `Esc`, `Enter`, `q`, or `r` to leave |
+| `o` / `Tab`; `Shift-Tab` | Next pane; previous pane |
 | `z` | Zoom the pane |
 | `x` | Close the pane |
-| `s` | Switch project |
+| `s` / `g` | Switch project |
 | `(` / `)` | Previous / next project |
 | `b` | Toggle the sidebar |
 | `m` | Toggle mouse support |
@@ -39,12 +39,21 @@ help.
 ## Behavior
 
 - The first run opens one shell in Home. After that, it restores your layout.
-- Several `murvix` windows share one layout, and changes in one show in the
-  others.
-- Quitting or detaching never ends a terminal. Closing a pane ends its terminal
-  unless another app still shows it, and asks first if a program is running.
-- With `--host`, the layout for that server is kept on this computer.
-- A tab holds up to 16 panes, and a project up to 64 tabs.
+- TUI instances on the **same computer and profile**, connected to the same
+  server, share a saved layout. Layout mutations reload the shared file before
+  saving; this is not live layout synchronization between different computers
+  or an automatic mirror of every other window.
+- Quitting or detaching does not end a terminal. Closing its last pane ends it
+  **and discards its saved output**, unless another connected client still
+  references it. Closing asks for confirmation if a foreground program may be
+  running.
+- With `--host`, the layout is kept locally at
+  `servers/<server-id>/tui-state.json`, separately from the local server's layout.
+- A tab holds up to 16 panes, a project up to 64 tabs, and one TUI layout up to
+  256 panes in total.
+- When a terminal exits, the TUI removes its panes. If no other connected
+  client references that session, this also discards its saved output; do not
+  rely on an exited TUI pane remaining available as a saved transcript.
 - The sidebar shows AI agent activity.
 
 ## Mouse and scrollback
@@ -54,10 +63,16 @@ Drag across text to select it; it is copied on release. Double-click selects a
 word and triple-click a line. Right-click opens a menu. When a program uses the
 mouse, hold `Shift` to select.
 
-`Ctrl-B [` or `Ctrl-B PageUp` opens scrollback. Scroll with the arrows,
-`PageUp`, and `PageDown`; `q` or `Esc` returns to the live screen. The mouse
-wheel scrolls history too, unless the program uses the mouse or fills the
-screen; then hold `Shift`.
+`Ctrl-B [` enters scrollback; `Ctrl-B PageUp` also scrolls back a page.
+Use arrows or `j`/`k` for rows, `PageUp`/`PageDown` for pages, and `Home`/`g`
+for the oldest loaded history. `Ctrl-U`/`Ctrl-D` move half a page; `Space` or
+`Ctrl-F` moves a page toward the live screen. `q`, `Esc`, `End`, or `G` returns
+to the live screen. `y` or `Enter` copies a mouse selection and returns live.
+
+The mouse wheel scrolls history unless mouse tracking or alternate-screen
+scrolling sends it to the terminal program; hold `Shift` to scroll history
+instead. Clipboard copying uses a system clipboard tool when available, or
+the host terminal's OSC 52 clipboard support; the host may require permission.
 
 ## Not supported
 

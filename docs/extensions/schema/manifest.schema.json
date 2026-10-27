@@ -1,10 +1,10 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://murvix.app/schema/manifest.schema.json",
   "title": "Murvix Extension package.json",
-  "description": "Schema for published Murvix extension packages. Identity (name, version) lives at the top level of package.json; all Murvix manifest fields live under the `murvix` key. The app's loader is the source of truth (crates/murvix-app-core/src/extensions/manifest.rs); this schema adds publishing rules, such as a build script and names that pages can load under.",
+  "description": "Authoring schema for Murvix extension package.json files. The runtime loader is the source of truth (crates/murvix-app-core/src/extensions/manifest.rs). This schema catches unknown manifest keys and recommends nonempty IDs, but cannot validate resource files or cross-references. The loader also accepts null for optional fields.",
   "type": "object",
-  "required": ["name", "version", "scripts", "murvix"],
+  "required": ["name", "version", "murvix"],
   "properties": {
     "$schema": {
       "type": "string",
@@ -12,28 +12,27 @@
     },
     "name": {
       "type": "string",
-      "description": "Extension identifier. Must equal the directory name. Lowercase ASCII letters, digits, dash, dot; no leading dot. Pages don't load for other names. The name foundation is reserved.",
-      "pattern": "^(?!\\.)[a-z0-9.-]+$",
+      "description": "Extension identifier: ASCII letters, digits, underscore, dash, dot; no leading dot. Installed packages must match their directory name. Pages additionally require lowercase letters, digits, dash and dot only. The name foundation is reserved.",
+      "pattern": "^(?!\\.)[A-Za-z0-9_.-]+$",
       "not": { "const": "foundation" },
       "minLength": 1,
-      "maxLength": 64
+      "maxLength": 128
     },
     "version": {
       "type": "string",
-      "description": "Semver. A published name@version is immutable; bump for any change.",
-      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$"
+      "description": "Nonempty version string required by the loader. Use semver for marketplace updates.",
+      "minLength": 1
     },
     "scripts": {
       "type": "object",
-      "description": "npm scripts. A `build` script is required for publishing: it must produce dist/ with package.json and the extension's assets. Any build tool may be used.",
-      "required": ["build"],
+      "description": "Optional npm scripts. When using a build, produce dist/ with package.json and all referenced extension assets; no build script is required by the app loader.",
       "properties": {
         "build": { "type": "string", "minLength": 1 }
       }
     },
     "murvix": {
       "type": "object",
-      "description": "All Murvix-specific manifest fields. Entry/asset paths resolve against the build output (dist/).",
+      "description": "Murvix manifest fields. Entry/asset paths resolve against dist/ when that directory exists, otherwise the package folder.",
       "additionalProperties": false,
       "properties": {
         "$schema": {
@@ -41,8 +40,7 @@
           "description": "Optional pointer to this schema. Ignored by the app loader."
         },
         "description": {
-          "type": "string",
-          "maxLength": 200
+          "type": "string"
         },
         "background": {
           "type": "string",
@@ -50,7 +48,7 @@
         },
         "events": {
           "type": "array",
-          "description": "App events this extension may subscribe to (pane.created, pane.closed, pane.focused, tab.created, tab.updated, tab.closed, tab.focused, panel.opened, panel.closed, popover.opened, popover.closed, modal.opened, modal.closed, project.switched, projects.changed, worktree.switched, worktree.headChanged, notification.posted, agent.status, file.changed). worktree.offline is not emitted in Murvix 2. Same-extension `extension.*` events are local and are not declared here. Intercepting closes (murvix.lifecycle) needs no declaration.",
+          "description": "App events this extension may subscribe to (pane.created, pane.closed, pane.focused, tab.created, tab.updated, tab.closed, tab.focused, panel.opened, panel.closed, popover.opened, popover.closed, modal.opened, modal.closed, project.switched, projects.changed, worktree.switched, worktree.headChanged, notification.posted, agent.status, file.changed). worktree.offline is not emitted. Same-extension extension.* events are local and need no declaration. Intercepting closes (murvix.lifecycle) needs no declaration.",
           "items": { "type": "string" },
           "uniqueItems": true
         },
@@ -65,7 +63,7 @@
         },
         "homeViews": {
           "type": "array",
-          "description": "Legacy field accepted for Murvix 1.x compatibility. Home views are not implemented in Murvix 2.",
+          "description": "Parsed legacy compatibility field. Entries are validated, but no home-view UI is implemented.",
           "items": { "$ref": "#/$defs/homeView" }
         },
         "fileOpeners": {
@@ -75,7 +73,7 @@
         },
         "localizations": {
           "type": "array",
-          "description": "App-language providers backed by resource-only Apple bundles. Users choose among enabled providers in Settings.",
+          "description": "App-language providers backed by resource-only .bundle folders. Users choose among enabled providers in Settings.",
           "items": { "$ref": "#/$defs/localization" },
           "uniqueItems": true
         },
@@ -102,19 +100,18 @@
         },
         "settings": {
           "type": "array",
-          "description": "Preferences shown in Settings → Extensions. Murvix 2 does not yet expose their values to extension code; use storage for values needed at runtime.",
+          "description": "Preferences shown in Settings → Extensions. Their values are not exposed to extension code; use storage for values needed at runtime.",
           "items": { "$ref": "#/$defs/setting" }
         },
         "remoteMethods": {
           "type": "array",
-          "description": "Legacy field accepted for Murvix 1.x compatibility. Serving extension methods to mobile clients is not implemented in Murvix 2.",
+          "description": "Parsed legacy compatibility field. Mobile remote-method dispatch is not implemented.",
           "items": { "$ref": "#/$defs/remoteMethod" }
         },
         "marketplace": {
           "type": "object",
-          "description": "Listing metadata used by the marketplace. Required: icon + at least one screenshot. Ignored by the app loader. The pricing key is reserved for a future paid-extensions feature and is not yet enforced.",
-          "additionalProperties": false,
-          "required": ["icon", "screenshots"],
+          "description": "Optional listing metadata, ignored by the app loader. This repository does not define a current marketplace publishing pipeline or validate listing assets.",
+          "additionalProperties": true,
           "properties": {
             "author": { "type": "string" },
             "github": { "type": "string", "description": "Author's GitHub username." },
@@ -122,26 +119,12 @@
             "repository": { "type": "string", "format": "uri" },
             "categories": {
               "type": "array",
-              "items": { "type": "string" },
-              "uniqueItems": true
+              "items": { "type": "string" }
             },
-            "icon": {
-              "type": "string",
-              "description": "Relative path to the listing icon inside the build output. SVG (preferred) or square PNG ≥256×256.",
-              "pattern": "\\.(svg|png)$"
-            },
+            "icon": { "type": "string" },
             "screenshots": {
               "type": "array",
-              "description": "Relative paths to listing screenshots inside the build output. At least one required. PNG, 1600×1000 (16:10).",
-              "minItems": 1,
-              "maxItems": 6,
-              "uniqueItems": true,
-              "items": { "type": "string", "pattern": "\\.png$" }
-            },
-            "pricing": {
-              "type": "object",
-              "description": "Reserved. Not enforced in v1.",
-              "additionalProperties": true
+              "items": { "type": "string" }
             }
           }
         }
@@ -244,8 +227,9 @@
         "id": {
           "type": "string",
           "description": "Provider identifier unique within this extension.",
-          "pattern": "^[A-Za-z0-9._-]+$",
-          "minLength": 1
+          "pattern": "^(?!\\.)[A-Za-z0-9._-]+$",
+          "minLength": 1,
+          "maxLength": 128
         },
         "language": {
           "type": "string",
@@ -260,7 +244,7 @@
         },
         "bundle": {
           "type": "string",
-          "description": "Relative path inside dist to a resource-only .bundle containing <language>.lproj/Localizable.strings or Localizable.stringsdict.",
+          "description": "Relative path inside the resource root (dist/ when present) to a resource-only .bundle containing <language>.lproj/Localizable.strings or Localizable.stringsdict.",
           "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+\\.bundle$"
         }
       }
@@ -278,7 +262,7 @@
         "mode": { "enum": ["pinned", "floating"] },
         "hiddenControls": {
           "type": "array",
-          "items": { "enum": ["icon", "title", "close", "pin", "position"] },
+          "items": { "enum": ["icon", "title", "close", "pin", "mode", "position"] },
           "uniqueItems": true
         },
         "headerButtons": {
@@ -305,7 +289,7 @@
         "visible": {
           "type": "boolean",
           "default": true,
-          "description": "Murvix 2.x only. Whether the button is shown."
+          "description": "Whether the button is shown."
         }
       }
     },
@@ -357,7 +341,7 @@
       "properties": {
         "kind": {
           "enum": ["event", "openTab", "togglePanel", "openPanel", "openPopover", "openModal", "runScript"],
-          "description": "openPanel is Murvix 2.x only: it shows a panel without toggling it."
+          "description": "openPanel shows a panel without toggling it."
         }
       },
       "allOf": [

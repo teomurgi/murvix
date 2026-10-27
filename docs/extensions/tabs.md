@@ -21,7 +21,8 @@ from code.
 
 ## Opening tabs
 
-`tabs.open` needs `tabs:write` and returns the new tab's ID.
+`tabs.open` needs `tabs:write` and returns the tab ID (which can be an existing
+tab's ID when using `singleton`).
 
 ```js
 // a page from this or another extension
@@ -40,8 +41,12 @@ await murvix.tabs.open({ kind: "browser", url: "localhost:3000" });
 - `singleton: true` focuses an existing tab of that type instead of opening
   another.
 - Running a command, or opening another extension's tab, asks the user first.
-- A terminal's `directory` must be a folder inside the current project, and
-  works for local projects only.
+- A terminal's `directory` is checked on the desktop computer and must resolve
+  to an existing folder inside the current project's local path. Omit it for
+  remote terminals; it is not resolved against the remote server.
+- Browser tabs require the built-in browser to be enabled. `murvix.browser`
+  uses browser **pane** IDs; obtain them with `browser.list()` rather than
+  passing the enclosing tab ID from `tabs.open`.
 
 ## Page data
 
@@ -53,6 +58,10 @@ murvix.onDataChange(render);
 murvix.tabs.setTitle("Report");
 murvix.tabs.setIcon({ symbol: "doc.text" });   // or { svg: "..." }, or null
 ```
+
+`setTitle` and `setIcon` work only from a tab, not panels or other page surfaces,
+and require `tabs:write`. An empty title resets the title override; `null`
+resets the icon. These runtime overrides are not saved across app restarts.
 
 ## Theme
 
@@ -88,7 +97,7 @@ terminal, in one of its tab types.
 | Field | Notes |
 | --- | --- |
 | `tabType` | One of the extension's tab types. |
-| `patterns` | Globs matched against the project-relative path, case-insensitive. Default `["*"]`. |
+| `patterns` | `*`/`?` globs matched against the full project-relative path, case-insensitive. `*` can cross `/`; this is not a gitignore matcher. Default `["*"]`; an empty array matches everything. |
 | `singleton` | Reuse one tab. Default `true`. |
 
 Users pick it in **Settings → General → Open files with**; extensions never
@@ -98,8 +107,10 @@ with `filePath` relative to the project.
 
 ## Pages
 
-- Pages load only from the extension's own folder. Navigating elsewhere is
-  blocked.
+- Bundled resources resolve inside the extension's own folder, including
+  symlink checks. Navigation to other origins is blocked; blank documents
+  (`about:blank`/`about:srcdoc`) are allowed. The native bridge accepts messages
+  only from the registered main document.
 - Pages stay alive while hidden.
 - `murvix.lifecycle.onBeforeClose(fn)` can keep a tab open, for example to save
   first. See [API reference](api.md#page-only).

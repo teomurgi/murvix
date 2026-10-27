@@ -25,8 +25,10 @@ flowchart LR
     end
 ```
 
-- The desktop app ships the `murvix` and `murvix-server` executables, which are
-  also released on their own. Either app starts the server if it isn't running.
+- Desktop release packaging includes the `murvix` and `murvix-server`
+  executables; separate CLI/server packages can also be built. Either app
+  starts the server if it isn't running. See [installation](../user-guide/getting-started.md)
+  for current build and release availability.
 - The server keeps projects and which sessions belong to them. Apps keep tabs,
   panes, and order.
 - The desktop app keeps a connection per server: this computer's, and one per
@@ -54,11 +56,11 @@ flowchart TB
 | --- | --- |
 | `murvix-app` | The desktop app. |
 | `murvix-ui` | Reusable GPUI components and native web views. No app state. |
-| `murvix-app-core` | The app model without UI, shared by desktop and terminal UI: layouts, settings, extensions. |
+| `murvix-app-core` | UI-independent app models and services for layouts, settings, extensions, and desktop features; layout state is shared with the terminal UI. |
 | `murvix-cli` | The `murvix` command: CLI and terminal UI. |
 | `murvix-client` | Connects to a server, starting a local one if needed. |
 | `murvix-protocol` | Messages, encoding, screen types, and transports. |
-| `murvix-server` | The server: projects, sessions, history, Git, files, and mobile access. |
+| `murvix-server` | The server: projects, sessions, history, Git, files, and paired-device access. |
 | `murvix-terminal` | Wraps the Ghostty terminal and the PTY. |
 | `murvix-core` | Shared basics, such as folders, locks, the shortcut catalog, and the app language. |
 
@@ -72,7 +74,7 @@ sequenceDiagram
     participant Shell
     App->>Connection: Input
     Connection->>Session: Forward right away
-    Session->>Shell: Write to the PTY
+    Session->>Shell: Queue bytes to the PTY input writer
     Shell-->>Session: Output
     Note over Session: Next tick, about 16 ms later
     Session-->>Connection: Rows that changed
@@ -87,36 +89,43 @@ flowchart LR
     PTY["PTY"] -->|"output"| READER["PTY reader thread"]
     READER --> OWNER["Session thread<br/>owns the Ghostty terminal"]
     REQUESTS["Input · resize · attach"] --> OWNER
-    OWNER -->|"input"| PTY
+    OWNER -->|"input"| INPUT["PTY input writer thread"]
+    INPUT --> PTY
     OWNER -->|"changed rows"| OUTBOX["Outbox of each attached app"]
     OWNER -->|"checkpoints"| DISK["Saved screen and history"]
 ```
 
 - One thread owns each terminal for its whole life. The Ghostty terminal isn't
   thread-safe, so everything else sends that thread messages.
-- A separate thread only reads the PTY and forwards bytes. Chatty programs
-  produce many tiny reads.
+- A separate thread reads the PTY and forwards bytes. Chatty programs
+  produce many tiny reads. Another thread writes input, keeping a blocked PTY
+  write from stalling the terminal owner.
 - Every tick, if anything changed, the session sends the changed rows and the
   cursor. If nothing changed, nothing is sent.
 - When output goes quiet after a burst, history is compressed.
-- A background writer saves the screen and history, so they survive the program
-  and the server.
+- A background writer saves screen and history checkpoints, normally scheduled
+  one second after output starts changing, and a final snapshot when a session
+  ends. Saved output survives server restarts; running processes do not, and an
+  abrupt failure can lose output not yet written.
 
 ## Inside a connection
 
 ```mermaid
 flowchart LR
     READ["Reader"] -->|"input, acks, pings"| FAST["Handled right away"]
-    READ -->|"everything else"| WORKER["Ordered background worker"]
+    READ -->|"other requests"| WORKER["Bounded worker pools<br/>ordered mutations · parallel Git/file reads"]
     OUTBOX["Outbox<br/>control messages first<br/>one merged frame per session"] --> WRITE["Writer"]
 ```
 
-- Each app has its own connection and outbox, so a slow app never slows a fast
-  one.
-- The reader never waits on disk or on starting processes.
+- Each app has its own connection and outbox, so a slow app does not hold up
+  another app's frame acknowledgements.
+- The reader dispatches disk and process work without waiting for completion.
+  General requests, Git mutations, and file mutations each have an ordered
+  worker; Git and file reads use separate parallel pools. Exec jobs are
+  cancellable and run independently.
 - Screen updates merge: a newer frame folds into the one not yet sent, which
   goes out once the app acknowledges the previous one.
-- Replies and other control messages never wait behind screen data.
+- Replies and other control messages are selected before pending screen data.
 
 ## Drawing in the app
 
@@ -133,8 +142,9 @@ flowchart LR
 
 ## Extensions and web views
 
-- Web views are native WebKit views and stay alive while hidden. They have no
-  terminal or server state.
+- Web views use native WebKit on macOS and offscreen WebKitGTK on Linux, and
+  stay alive while hidden. Extensions access terminal and server state only
+  through the app's permission-checked API.
 - The app loads extensions, enforces their permissions, and asks before
   sensitive actions. Their scripts run in JavaScriptCore on their own threads.
 - File, Git, and process work goes through the server. Extension web requests
@@ -151,7 +161,9 @@ flowchart LR
   app content and shares the keyboard with Murvix's shortcuts.
 - The server knows nothing about browsers. `murvix browser` reaches the desktop
   app over its own socket in the profile folder, `app.sock`, which only this
-  user can open. One JSON request gets one JSON reply.
+  user can open. One JSON request gets one JSON reply. The app explicitly closes
+  the reply's write half after flushing it, so a completed call does not wait for
+  other socket handles to be dropped.
 
 ## AI activity
 
@@ -162,6 +174,10 @@ flowchart LR
 - One desktop app delivers system notifications, so alerts are never doubled.
 
 ## Updates
+
+The following is the implemented update policy for installed release packages.
+Automatic checks are disabled in debug builds, and downloads require a
+published update feed.
 
 - If the new app speaks the running server's protocol version, the server keeps
   running and is replaced once no terminals are left.

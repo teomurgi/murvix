@@ -6,7 +6,7 @@ How apps and the server talk. The exact messages live in `crates/murvix-protocol
 
 - The connection is a reliable byte stream: a Unix socket on the same computer,
   SSH to `murvix stdio` on another computer, or TLS for
-  [paired phones](./mobile.md).
+  [paired devices](../features/mobile.md).
 - Traffic is split into channels. Channel 0 carries control messages, and each
   attached session gets its own channel for screen updates and input.
 - Every frame starts with a small header: length, protocol version, channel, and
@@ -17,7 +17,7 @@ sequenceDiagram
     participant App
     participant Server
     App->>Server: Hello, with the versions I speak
-    Server-->>App: Hello reply, with the chosen version and features
+    Server-->>App: Hello reply, with supported versions, build identity, and features
     App->>Server: Attach to a session
     Server-->>App: Screen and recent history, on a new channel
     loop While attached
@@ -43,7 +43,8 @@ sequenceDiagram
   no Unicode width tables.
 - Frames carry only the visible rows that changed. A resize sends the whole
   screen.
-- History is never pushed. Apps page through it and search it on request.
+- Attach replies include recent history. Further history is not streamed with
+  screen updates; apps page through it and search it on request.
 
 ## Flow control
 
@@ -60,16 +61,21 @@ sequenceDiagram
     Server->>App: Frames 2 to 4, merged
 ```
 
-Memory stays small, and a slow app jumps straight to the latest screen. Control
-messages are always written first. Wire compression is planned but not built
+Pending screen data stays bounded, and a slow app jumps straight to the latest
+screen. Control messages are selected before waiting screen frames; they cannot
+preempt a write already in progress. Wire compression is planned but not built
 yet.
 
 ## Versions
 
-Two builds can talk when they share a protocol version, currently V2. Only a
-breaking change bumps the version. Fields and enum values have permanent numbers
-that are never reused, so a build skips fields it doesn't know and shows unknown
-values neutrally.
+Two builds can talk when they share a protocol version. This build supports only
+V2; V1 peers must update. The handshake exchanges supported-version lists rather
+than selecting a different wire version. Only a breaking change bumps the
+version. Fields and enum values have permanent numbers that are never reused.
+Unknown optional fields are skipped; open server enums retain unrecognized
+values. Unknown request variants get an "unsupported" reply, unreadable replies
+fail their request, and unknown event variants can be skipped. Screen frames
+remain strict because dropping one would break acknowledgements.
 
 | Change | Bumps the version? |
 | --- | --- |
@@ -82,6 +88,8 @@ values neutrally.
 
 Encoded samples of each version are kept in
 `crates/murvix-protocol/tests/fixtures/v<N>` and are only ever added to. CI
-checks that the current build reads every sample and that the last release
-reads the current ones. Saved user data must never be lost when a format
-changes.
+checks that the current build reads its version's samples. The cross-build
+helper currently selects legacy beta tags with matching fixtures, not stable
+release tags, and skips that check when none match. It therefore does not
+establish compatibility with the latest stable release. Saved user data must
+never be lost when a format changes.

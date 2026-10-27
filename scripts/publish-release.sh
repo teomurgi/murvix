@@ -49,7 +49,7 @@ if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
         -f "tag_name=$TAG" -f "target_commitish=$SOURCE" --jq .body \
         | bash "$ROOT/scripts/clean-changelog.sh" > release-notes.md
     gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$SOURCE" \
-        --title "Murvix $VERSION" --latest=false --notes-file release-notes.md
+        --title "Murvix $VERSION" --draft --latest=false --notes-file release-notes.md
     gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
         --json isDraft,isPrerelease,targetCommitish > release.json
 fi

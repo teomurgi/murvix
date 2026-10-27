@@ -5,7 +5,7 @@ The manifest is the `package.json` at the root of the extension. `name` and
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/murvix-app/murvix/main/docs/extensions/schema/manifest.schema.json",
+  "$schema": "./manifest.schema.json",
   "name": "hello",
   "version": "0.1.0",
   "scripts": { "build": "vite build && cp package.json dist/" },
@@ -18,10 +18,13 @@ The manifest is the `package.json` at the root of the extension. `name` and
 ```
 
 The [JSON schema](schema/manifest.schema.json) gives editor completion when
-`$schema` sits at the top level. In VS Code it replaces the built-in
-`package.json` schema for that file. The schema checks publishable packages, so
-it also requires `scripts.build`. Murvix ignores `$schema` and other keys it
-doesn't know.
+`$schema` sits at the top level. Download it alongside `package.json` for the
+relative reference above, or point to the schema in your checkout. In VS Code
+it replaces the built-in `package.json` schema for that file. The schema is an
+authoring aid, not the loader: it rejects unknown Murvix keys and recommends
+nonempty IDs, while the loader ignores unknown keys and treats optional `null`
+fields as absent. Resource existence, reference targets, and ID uniqueness
+are checked by the loader, not fully expressible in the schema.
 
 ## Loading
 
@@ -35,9 +38,9 @@ doesn't know.
 
 | Field | Required | Notes |
 | --- | --- | --- |
-| `name` | yes | The extension ID. Use `a-z`, `0-9`, `.`, and `-`; pages don't load for other names. Must match its folder name when published or installed. |
-| `version` | yes | Semver. Bump it for every published change. |
-| `scripts.build` | to publish | Must leave `package.json` in `dist/`. |
+| `name` | yes | The extension ID: 1–128 ASCII letters, digits, `_`, `.`, or `-`, with no leading `.`; `foundation` is reserved. For pages, use only lowercase letters, digits, `.`, and `-`. Installed packages must match their folder name; unpacked folders need not. |
+| `version` | yes | Nonempty string for loading. Use semver for marketplace updates. |
+| `scripts.build` | no | A build convention, not a runtime requirement. If using `dist/`, copy the manifest and assets there. |
 
 ## `murvix` fields
 
@@ -59,13 +62,15 @@ The `murvix` object is required; its fields are optional.
 | `statusBarItems` | object[] | [Bar items](bar-items.md) |
 | `localizations` | object[] | [Localizations](localizations.md) |
 | `settings` | object[] | [Settings](#settings) below |
-| `marketplace` | object | Listing details. [Contributing](contributing.md) |
+| `marketplace` | object | Listing metadata; ignored by the app loader. [Contributing](contributing.md) |
 
-`homeViews` and `remoteMethods` are accepted for 1.x compatibility but do
-nothing yet.
+`homeViews` and `remoteMethods` are parsed compatibility fields, but no home-view
+UI or mobile remote-method dispatch is implemented. Their entries still undergo
+manifest validation. Declaring them does not make those features available.
 
-IDs must be unique within their list, and every reference (a command's panel,
-an item's command) must exist.
+Use unique, nonempty IDs within each list. The loader checks uniqueness for
+surface/item/settings/localization/remote-method lists, but not command IDs.
+Every reference (a command's panel, an item's command) must exist.
 
 ## Icons
 

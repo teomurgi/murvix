@@ -1,7 +1,10 @@
 # Browser
 
 The desktop app has a built-in browser. A browser is a pane like a terminal,
-so it opens in a tab or a split, and its page keeps running while hidden.
+so it opens in a tab or a split. Once loaded, its page stays alive while hidden.
+Browser panes run in the desktop app, not on the terminal server: quitting the
+app stops them, and they are not shared with other clients. A browser in a remote
+project still uses this computer's network and browser profiles.
 
 ## Open a page
 
@@ -44,8 +47,20 @@ zoom, and back/forward history start fresh.
 
 ## Turning it off
 
-Turn off **Settings → Browser → Enable built-in browser** to disable browser
-tabs and `murvix browser`. Terminal links then open in your system browser.
+Turn off **Settings → Browser → Enable built-in browser** to unload browser
+pages and prevent opening or automating them. Existing pane records remain for
+when you enable it again. `murvix browser list` returns an empty list while it
+is disabled; other browser commands fail. Terminal links then open in your
+system browser.
+
+## Automation
+
+The CLI and extensions can open and list browser panes, navigate, evaluate
+JavaScript, interact with page elements, wait for page conditions, take
+screenshots, and manage cookies. They require the desktop app to be running;
+this is not an API exposed by a headless terminal server. See
+[Browser control](murvix-cli.md#browser-control) and the
+[extension API](../extensions/api.md).
 
 ## Linux
 

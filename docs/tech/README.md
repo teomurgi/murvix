@@ -23,10 +23,11 @@ The big ideas:
    of styled text and draw them.
 2. **Only changes are sent.** About 60 times a second the server sends the rows
    that changed. A slow app gets one merged update, never a backlog.
-3. **One client library.** The desktop app, the terminal UI, and the phone apps
-   all use the same Rust client and protocol.
-4. **The protocol only grows.** New fields and messages don't break older
-   builds.
+3. **One client library.** The desktop app, terminal UI, and management CLI
+   share the Rust client and protocol. Paired-device TLS support is implemented,
+   but this workspace does not contain phone apps or a mobile SDK.
+4. **Additive protocol changes preserve compatibility.** Breaking changes
+   require a new protocol version; peers must share a supported version.
 
 ## Read next
 

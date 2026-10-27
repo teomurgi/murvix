@@ -26,8 +26,8 @@ A panel docks to the right or bottom of the window, or floats over it.
 | `id`, `entry` | Required. |
 | `title`, `icon` | Shown in the panel header. |
 | `position` | `right` (default) or `bottom`. |
-| `mode` | `floating` (default) or `pinned`. Users can switch, and their choice is kept. |
-| `hiddenControls` | Hide header controls: `icon`, `title`, `close`, `pin`, `position`. |
+| `mode` | `floating` (default) or `pinned`. Users can switch, and their choice is kept unless the pin control is hidden. |
+| `hiddenControls` | Hide header controls: `icon`, `title`, `close`, `pin`, `position`; legacy `mode` is accepted as an alias for `pin`. |
 | `headerButtons` | Extra header buttons, shaped like [bar items](bar-items.md). |
 | `hideTopbar` | Hide the whole header. |
 | `defaultData` | Data used when opened without any. |
@@ -36,8 +36,9 @@ A panel docks to the right or bottom of the window, or floats over it.
   a page with `murvix.panels.open(id, data)`, `toggle(id, data)`, or
   `close(id)`. `close()` with no ID closes the calling panel. Needs
   `panels:write`.
-- Each project remembers its open panel: switching projects closes it, and
-  switching back reopens it.
+- Each top-level project remembers its open panel for the app session:
+  switching projects closes it, and switching back recreates it with its saved
+  data. This does not preserve the old page's JavaScript state.
 - A floating panel closes when you click elsewhere.
 
 ## Popovers
@@ -56,6 +57,9 @@ outside it.
 - `width` and `height` default to 320 × 360. `murvix.popover.resize(w, h)`
   changes them within 80–600 × 80–720.
 - `murvix.popover.close()` closes it.
+- Only one extension popover is open app-wide. Outside clicks and toggling its
+  bar item close it directly; `popover.close()` requests a close through the
+  page's before-close handler.
 
 ## Sidebar
 

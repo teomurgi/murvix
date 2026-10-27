@@ -19,7 +19,7 @@ English.
 
 | Field | Notes |
 | --- | --- |
-| `id` | Unique within the extension. |
+| `id` | Unique within the extension; 1–128 ASCII letters, digits, `_`, `.`, or `-`, with no leading `.`. |
 | `language` | Language tag such as `de` or `pt-BR`. Must match the `.lproj` folder name. |
 | `title` | Shown in Settings, ideally in the language itself. |
 | `bundle` | A folder ending in `.bundle` inside the extension. |
@@ -48,7 +48,10 @@ localization/
   position. Positional forms like `%1$@` may reorder them. A bundle with a
   mismatch is rejected.
 - Each file can be up to 4 MiB. The bundle must not contain executable code.
+- `Info.plist` is required and must not declare `CFBundleExecutable`. At least
+  one of `Localizable.strings` or `Localizable.stringsdict` must exist under
+  the declared language's `.lproj` folder; both are not required.
 - Load errors go to the pack's log in **Settings → Extensions**.
 
-Murvix 2 uses new English strings, so packs made for 1.x load but translate only
-part of the app.
+The current app uses different English strings from legacy versions, so an old
+pack can pass bundle validation yet translate only part of the app.

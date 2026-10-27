@@ -70,7 +70,7 @@ The extension shows an **Unpacked** badge. After editing, choose **Reload**.
 
 For anything bigger, use any web tooling, such as Vite. Point every `entry` at
 paths inside your build output, and copy `package.json` into `dist/` as part of
-the build. Only `dist/` is published.
+the build. The app treats `dist/` as the resource root whenever it exists.
 
 ```json
 "scripts": {
@@ -84,7 +84,8 @@ the build. Only `dist/` is published.
   to the extension's log, along with uncaught errors.
 - The extension's page in **Settings → Extensions** shows recent log lines,
   load errors, and **Reveal log**.
-- The log file is `logs/output.log` inside the extension's loaded folder.
+- The log file is `logs/output.log` inside the resource root (`dist/logs/output.log`
+  for an extension loaded from build output).
 
 ## Next
 
@@ -93,22 +94,23 @@ the build. Only `dist/` is published.
 - Add [tabs](tabs.md), [panels](panels.md), [bar items](bar-items.md), and
   [commands](commands.md).
 - Work with [files](files.md), [Git](git.md), and [events](events.md).
-- [Publish it](contributing.md).
+- [Prepare a shareable package](contributing.md).
 
-## Coming from 1.x
+## Legacy compatibility
 
-Most 1.x extensions work unchanged. The differences:
+Check the current [manifest](manifest.md) and [API availability](api.md#availability)
+rather than assuming an older extension works unchanged.
 
-- **Install folder.** Extensions live in Murvix 2's profile folder, not
-  `~/.config/murvix/extensions`. Importing the installed 1.x copies them over.
+- **Install folder.** Extensions live in the current profile folder. The
+  legacy `~/.config/murvix/extensions` location is not the active install root;
+  importing legacy app data can copy those extensions.
 - **No scaffold.** There is no **Create** button or starter kit. Use
   **Load Unpacked…**.
-- **Lowercase names.** Pages only load for names made of `a-z`, `0-9`, `.`,
-  and `-`.
+- **Page names.** Pages only load for extension names made of `a-z`, `0-9`,
+  `.`, and `-`, although the manifest loader accepts a wider identifier set.
 - **Background scripts run in-process,** in JavaScriptCore on their own thread.
-- **Not supported yet:** remote methods for the phone app, home views, reading
+- **Not implemented:** mobile remote-method dispatch, home views, reading
   extension settings at runtime, and the `worktree.offline` event.
-- **Bar items** always sit in the top bar. There is no icon rail.
-- **New:** the `openPanel` command action, `visible` on panel header buttons,
-  `execAsync` on pages and scripts, and the `modal.opened` and `modal.closed`
-  events.
+- **Bar items** appear in the top bar and status bar. There is no icon rail.
+- The API supports `openPanel`, `visible` on panel header buttons,
+  `execAsync` on pages and command scripts, and `modal.opened`/`modal.closed`.

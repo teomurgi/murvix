@@ -6,6 +6,9 @@ quit the app, and every app shows the same screen and history.
 
 ## Tabs and splits
 
+The shortcuts below are macOS defaults; see
+[Keyboard shortcuts](../user-guide/keyboard-shortcuts.md) for Linux bindings.
+
 | Action | Default shortcut |
 | --- | --- |
 | New tab | `Cmd+T` |
@@ -32,7 +35,9 @@ list.
 
 - Closing a pane ends its terminal, unless another pane in any app still shows
   it.
-- Murvix asks first when a program other than the shell is running.
+- By default, Murvix asks first when a program other than the shell is running.
+  Change **Settings → General → Confirm before closing a running process** to
+  turn this confirmation off.
 - **Detach Terminal** in the pane's right-click menu removes the pane but keeps
   the terminal running.
 - **Existing Terminals** (`Cmd+Opt+T`, or the project menu) lists the project's
@@ -46,9 +51,10 @@ list.
 
 ## Find
 
-`Cmd+F` searches the focused terminal, including all of its history. `Return`
+`Cmd+F` searches the focused terminal, including its retained history. `Return`
 or `Cmd+G` goes to the next match, `Cmd+Shift+G` to the previous. Search is
-plain text and case-insensitive; **Aa** makes it case-sensitive.
+plain text and case-insensitive; **Aa** makes it case-sensitive. History is
+bounded by the server's configured history budget.
 
 ## Copy and paste
 
@@ -86,14 +92,21 @@ A terminal that drops down from the top of the screen from anywhere. Record a
 global shortcut in **Settings → Quick Terminal** first; none is set by default.
 
 It keeps one terminal in Home, hides when it loses focus, and has its own size
-and transparency settings. `Cmd+W` closes it and ends its terminal, whatever
-the close setting, unless another pane still shows it.
+and transparency settings. `Cmd+W` on macOS or `Ctrl+Shift+W` on Linux closes it
+and ends its terminal, whatever the close setting, unless another pane still
+shows it.
+
+On Linux, Quick Terminal requires an X11 desktop session. Wayland, including
+running the app through XWayland in a Wayland session, is not supported for this
+feature.
 
 ## Appearance and configuration
 
-Fonts, colors, transparency, vibrancy, cursor, padding, selection, scrolling,
-and key bindings are in **Settings → Terminal**, saved to `terminal.toml`.
-Themes are in **Settings → Appearance**. See
+Fonts, colors, terminal transparency, background vibrancy, cursor, padding,
+selection, scrolling, and terminal key bindings are in **Settings → Terminal**,
+with terminal-rendering options saved to `terminal.toml`. Background vibrancy
+uses a native macOS material and is unavailable on Linux. Themes and sidebar
+vibrancy are in **Settings → Appearance**. See
 [Settings](../user-guide/settings.md#terminal-configuration).
 
 - `Cmd+=` and `Cmd+-` change the focused pane's font size. `Cmd+0` resets it.

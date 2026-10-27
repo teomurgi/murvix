@@ -65,12 +65,49 @@ repository permissions, and the CI authorization runbook.
 
 Only maintainers may merge PRs, authorize upstream workflow execution, or publish
 releases. Maintainer-opened or updated same-repository PRs targeting `main` run CI
-automatically. Fork PRs need a maintainer to review the exact commit and dispatch
-`ci` from `main` with the PR number and reviewed full head SHA after each update.
+automatically. Fork PRs and automation PRs without a maintainer-triggered CI run
+need a maintainer to review the exact commit and dispatch `ci` from `main` with
+the PR number and reviewed full head SHA after each update.
 Both `macos` and `omarchy` must pass on the current revision, the PR branch must
 include the latest `main`, and review conversations must be resolved before merge.
 While the project has one maintainer, an independent approval is not mandatory;
 `CODEOWNERS` requests review but does not enforce merge authority.
+
+### Commit messages and releases
+
+Use Conventional Commits in the history merged into `main`, for example
+`fix(terminal): preserve selection` or `feat(cli): add workspace selection`.
+When squash-merging, preserve the intended Conventional Commit subject and any
+breaking-change footer in the resulting commit.
+
+The release planner considers all commits since the highest stable `vX.Y.Z` tag
+reachable from the selected source. `feat` requests a minor release;
+`fix`, `perf`, and `refactor` request a patch. A Conventional Commit subject
+containing `!` or a `BREAKING CHANGE:` / `BREAKING-CHANGE:` footer requests a major
+release, including before 1.0. The largest requested bump wins. Other types and
+nonconventional commits do not request a release, so documentation-only or
+maintenance-only changes do not produce one. Prerelease and unrelated branch
+tags are ignored. Without a stable ancestor tag, the planner uses that source
+commit's `VERSION` as the baseline and considers its full history.
+
+Maintainers release through **Actions → Release → Run workflow** on `main`.
+The workflow creates an automated `release/vX.Y.Z` version PR; contributors do
+not manually bump versions or push release tags. The PR synchronizes `VERSION`,
+the workspace package version in `Cargo.toml`, and local package versions in
+`Cargo.lock`, without editing inherited crate manifests or resolving dependencies.
+The configured maintainer-owned `RELEASE_TOKEN` creates the PR, allowing the
+existing maintainer CI authorization to run normally. If CI does not run, review
+the exact head and use the [manual CI runbook](GOVERNANCE.md#authorizing-ci);
+the standard `GITHUB_TOKEN` cannot trigger PR CI when it creates or updates a PR.
+Both required checks must pass on the exact current head, and the release branch
+must include the latest `main`. If `main` advances, close the stale PR, delete
+its release branch, and dispatch **Release** again; do not merge `main` into the
+version branch. Merge only after review: the merge event verifies the version-only
+change, tags the exact merged commit, and builds and publishes the release.
+If a build or publication fails, rerun that original merged-PR workflow instead
+of starting a new release. Local release tooling requires Python 3.11 or newer.
+See the [release runbook](GOVERNANCE.md#releases) for credentials and operational
+details. Main-branch protection is never bypassed.
 
 ## Code Standards
 
