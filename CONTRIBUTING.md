@@ -2,17 +2,13 @@
 
 Thank you for your interest in contributing to Murvix! This guide will help you get started.
 
-## Humans Only Policy
+## AI-assisted contributions
 
-Murvix is a community project and we want communication to stay between humans. You are welcome to use AI to help you write code, but **only humans may**:
-
-- Create commits and push changes
-- Open issues or pull requests
-- Interact with issues or pull requests, including comments, reviews, and replies
-
-These actions must be done without AI assistance. AI agents must not perform them, even when a human asks. Write commit messages and all GitHub text yourself, in your own words, without AI help. This includes issue and PR titles, descriptions, summaries, comments, discussion replies, and code review comments.
-
-Issues and PRs opened by AI or containing AI-generated text will be closed without review.
+AI tools and agents may assist with code, commits, pushes, issues, pull requests,
+and reviews when authorized by the contributor or maintainer responsible for
+those actions. That person remains accountable for accuracy, security, licensing,
+and compliance with project policies. AI assistance does not grant repository
+permissions or replace maintainer review and CI authorization.
 
 ## Getting Started
 
@@ -59,7 +55,22 @@ cargo xcheck              # clippy with warnings as errors
 cargo xtest               # all tests
 ```
 
-4. Commit your changes, push your branch, and open a pull request yourself
+4. Commit your changes, push your branch, and open a pull request
+
+### Review and CI authorization
+
+The current maintainer is [@teomurgi](https://github.com/teomurgi). See
+[GOVERNANCE.md](GOVERNANCE.md) for decision-making, maintainer membership,
+repository permissions, and the CI authorization runbook.
+
+Only maintainers may merge PRs, authorize upstream workflow execution, or publish
+releases. PR activity does not automatically run the governed CI workflow. A
+maintainer reviews the exact commit, then dispatches `ci` from `main` with the PR
+number and reviewed full head SHA. Further commits need another review and run.
+Both `macos` and `omarchy` must pass on the current revision, the PR branch must
+include the latest `main`, and review conversations must be resolved before merge.
+While the project has one maintainer, an independent approval is not mandatory;
+`CODEOWNERS` requests review but does not enforce merge authority.
 
 ## Code Standards
 
@@ -71,7 +82,7 @@ cargo xtest               # all tests
 
 ## Checks
 
-All PRs must pass CI. Run its main checks locally:
+All PRs must pass maintainer-authorized CI. Contributors should run its main checks locally before requesting review:
 
 ```bash
 cargo fmt --all --check
@@ -97,10 +108,10 @@ cargo test --locked -p murvix-cli --test tui exit_during_resize_keeps_tab_select
 ## Pull Request Guidelines
 
 - Keep PRs focused on a single change
-- Write a clear title and description yourself, in your own words, explaining the "why"
-- Ensure all checks pass before requesting review
+- Write a clear title and description explaining the "why"
+- Run local checks before requesting review; upstream CI needs maintainer authorization
 - Link any related issues
-- If you used AI to help write code, name the LLM in your own PR description
+- If you used AI assistance, name the LLM in the PR description
 
 ## Reporting Issues
 

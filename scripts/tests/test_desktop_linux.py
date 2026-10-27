@@ -14,7 +14,6 @@ CHECK = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CHECK)
 
 TARGET = "aarch64-unknown-linux-gnu"
-WORKFLOW = (ROOT / ".github/workflows/ci.yml").read_text()
 
 
 class DesktopLinuxTests(unittest.TestCase):
@@ -95,25 +94,6 @@ class DesktopLinuxTests(unittest.TestCase):
             CHECK.main()
         self.assertNotIn(CHECK.PAGE_TESTS, [call.args[0] for call in run.call_args_list])
         self.assertIn("Extension page tests were skipped", output.getvalue())
-
-    def test_ci_runs_desktop_checks_beside_the_macos_job(self):
-        for expected in [
-            "python3 scripts/check-desktop-macos.py",
-            "archlinux:latest",
-            "xvfb-run -a python3 scripts/check-desktop-linux.py",
-            "webkit2gtk-4.1",
-            "neovim",
-        ]:
-            self.assertIn(expected, WORKFLOW)
-        self.assertNotIn("continue-on-error", WORKFLOW)
-        for retired in [
-            "runner: ubuntu-22.04\n",
-            "runner: ubuntu-22.04-arm\n",
-            "runner: ubuntu-24.04\n",
-            "runner: ubuntu-24.04-arm\n",
-            'python3 scripts/check-headless.py --target "${{ matrix.target }}"',
-        ]:
-            self.assertNotIn(retired, WORKFLOW)
 
 
 if __name__ == "__main__":

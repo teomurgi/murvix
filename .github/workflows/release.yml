@@ -18,7 +18,10 @@ concurrency:
 
 jobs:
   prepare:
-    if: github.repository == 'teomurgi/murvix'
+    if: >-
+      github.repository == 'teomurgi/murvix' &&
+      contains(fromJSON('["teomurgi"]'), github.actor) &&
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -45,6 +48,10 @@ jobs:
         run: echo "count=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
 
   build:
+    if: >-
+      github.repository == 'teomurgi/murvix' &&
+      contains(fromJSON('["teomurgi"]'), github.actor) &&
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
     needs: prepare
     uses: ./.github/workflows/build-release.yml
     with:
@@ -54,6 +61,10 @@ jobs:
     secrets: inherit
 
   release:
+    if: >-
+      github.repository == 'teomurgi/murvix' &&
+      contains(fromJSON('["teomurgi"]'), github.actor) &&
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
     needs: [prepare, build]
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -3,12 +3,20 @@ name: ci
 on:
   push:
     branches: [main, linux, linux-platform, 'linux/**']
-  pull_request:
-  workflow_call:
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: 'Open PR number to test; leave empty to check main'
+        required: false
+        type: string
+      head_sha:
+        description: 'Reviewed full PR head SHA; required when testing a PR'
+        required: false
+        type: string
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ inputs.pull_request || github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -18,17 +26,80 @@ env:
   LIBGHOSTTY_VT_SYS_OPTIMIZE: ReleaseFast
 
 jobs:
+  authorize:
+    if: >-
+      github.repository == 'teomurgi/murvix' &&
+      contains(fromJSON('["teomurgi"]'), github.actor) &&
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor) &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    outputs:
+      source: ${{ steps.source.outputs.source }}
+      base: ${{ steps.source.outputs.base }}
+      pull_request: ${{ steps.source.outputs.pull_request }}
+    steps:
+      - name: Authorize an immutable source revision
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pull_request }}
+          EXPECTED_HEAD: ${{ inputs.head_sha }}
+          PUSH_BASE: ${{ github.event.before }}
+        shell: bash
+        run: |
+          SOURCE="$GITHUB_SHA"
+          BASE="${PUSH_BASE:-$GITHUB_SHA}"
+          if [[ -n "$PR_NUMBER" ]]; then
+            if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+              echo "Expected a positive pull request number" >&2
+              exit 1
+            fi
+            PR=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")
+            jq -e --arg repo "$GITHUB_REPOSITORY" \
+              '.state == "open" and .base.ref == "main" and .base.repo.full_name == $repo' \
+              <<< "$PR" > /dev/null
+            SOURCE=$(jq -r '.head.sha' <<< "$PR")
+            if [[ "$SOURCE" != "$EXPECTED_HEAD" ]]; then
+              echo "PR head changed or head_sha does not match the reviewed commit" >&2
+              exit 1
+            fi
+            BASE=$(jq -r '.base.sha' <<< "$PR")
+          fi
+          echo "source=$SOURCE" >> "$GITHUB_OUTPUT"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "pull_request=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          if [[ -n "$PR_NUMBER" ]]; then
+            for CHECK in macos omarchy; do
+              gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$SOURCE" \
+                -f state=pending -f context="$CHECK" \
+                -f description="Maintainer-authorized check in progress" \
+                -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            done
+          fi
   macos:
+    if: >-
+      github.repository == 'teomurgi/murvix' &&
+      contains(fromJSON('["teomurgi"]'), github.actor) &&
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
+    needs: authorize
     runs-on: macos-15
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ needs.authorize.outputs.source }}
+          persist-credentials: false
       - run: brew install neovim
       - run: python3 scripts/protocol_fixtures.py append-only --base "$PROTOCOL_BASE"
         env:
-          PROTOCOL_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          PROTOCOL_BASE: ${{ needs.authorize.outputs.base }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.92.0
@@ -36,14 +107,15 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-          save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: python3 scripts/check-desktop-macos.py
       - run: python3 scripts/protocol_fixtures.py last-release
       - run: python3 scripts/smoke-desktop-tui.py
   omarchy:
+    if: >-
+      github.repository == 'teomurgi/murvix' &&
+      contains(fromJSON('["teomurgi"]'), github.actor) &&
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
+    needs: authorize
     # Native Arch check: Omarchy's distro, running the same full desktop
     # verification as linux-desktop. GitHub has no Arch runner, so this uses
     # an archlinux container (x86_64). Ubuntu jobs were removed in favor of
@@ -54,6 +126,9 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.source }}
+          persist-credentials: false
       - run: >-
           pacman -Syu --noconfirm
           base-devel pkgconf clang cmake openssl fontconfig freetype2 git python
@@ -67,8 +142,42 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-          save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: xvfb-run -a python3 scripts/check-desktop-linux.py --target "x86_64-unknown-linux-gnu"
+
+  report:
+    if: >-
+      always() &&
+      github.repository == 'teomurgi/murvix' &&
+      contains(fromJSON('["teomurgi"]'), github.actor) &&
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor) &&
+      needs.authorize.result == 'success' &&
+      needs.authorize.outputs.pull_request != ''
+    needs: [authorize, macos, omarchy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+    steps:
+      - name: Report each result on the tested PR revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ needs.authorize.outputs.source }}
+          MACOS_RESULT: ${{ needs.macos.result }}
+          OMARCHY_RESULT: ${{ needs.omarchy.result }}
+        shell: bash
+        run: |
+          for CHECK in macos omarchy; do
+            if [[ "$CHECK" == macos ]]; then
+              RESULT="$MACOS_RESULT"
+            else
+              RESULT="$OMARCHY_RESULT"
+            fi
+            STATE=failure
+            if [[ "$RESULT" == success ]]; then
+              STATE=success
+            fi
+            gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$SOURCE" \
+              -f state="$STATE" -f context="$CHECK" \
+              -f description="Maintainer-authorized check: $RESULT" \
+              -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          done
