@@ -142,6 +142,9 @@ The [terminal UI guide](docs/features/terminal-ui.md) covers scrollback, mouse s
 
 Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, and the project's contribution rules, and follow the [Code of Conduct](CODE_OF_CONDUCT.md). Security reports should follow [SECURITY.md](SECURITY.md).
 
+Maintainer roles, merge restrictions, and CI authorization are defined in
+[GOVERNANCE.md](GOVERNANCE.md).
+
 ## License
 
 [MIT](LICENSE).
