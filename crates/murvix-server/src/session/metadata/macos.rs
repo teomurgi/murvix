@@ -16,7 +16,7 @@ pub(super) fn foreground_member(group: u32) -> Option<(i32, String)> {
     members.into_iter().find_map(named)
 }
 
-pub(super) fn process_directory(pid: i32) -> Option<ServerPath> {
+pub(crate) fn process_directory(pid: i32) -> Option<ServerPath> {
     let info = proc_pid::pidinfo::<VnodePathInfo>(pid, 0).ok()?;
     let path = &info.current.path;
     let length = path.iter().position(|byte| *byte == 0)?;
