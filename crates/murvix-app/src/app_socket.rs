@@ -2,6 +2,7 @@
 //! reply per connection, from processes of this user only.
 
 use std::io::{self, Write};
+use std::net::Shutdown;
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
@@ -102,7 +103,8 @@ fn answer(mut stream: UnixStream, requests: &async_channel::Sender<Incoming>) ->
         Err(error) => Err(format!("invalid request: {error}")),
     };
     stream.write_all(&encode_reply(&result))?;
-    stream.flush()
+    stream.flush()?;
+    stream.shutdown(Shutdown::Write)
 }
 
 #[cfg(test)]
@@ -110,6 +112,42 @@ mod tests {
     use super::*;
     use murvix_app_core::browser::api::{CallError, call};
     use serde_json::{Map, json};
+
+    #[test]
+    fn completed_reply_does_not_wait_for_other_socket_handles() -> io::Result<()> {
+        let directory = tempfile::Builder::new().tempdir_in("/tmp")?;
+        let path = directory.path().join("app.sock");
+        let listener = UnixListener::bind(&path)?;
+        let (requests, incoming) = async_channel::bounded(1);
+        let (release, released) = std::sync::mpsc::channel();
+        let server = std::thread::spawn(move || -> io::Result<()> {
+            let (stream, _) = listener.accept()?;
+            let retained = stream.try_clone()?;
+            answer(stream, &requests)?;
+            let _ = released.recv();
+            drop(retained);
+            Ok(())
+        });
+        let client = std::thread::spawn(move || {
+            call(
+                &path,
+                &Request::new("browser.list", Map::new()),
+                Duration::from_secs(1),
+            )
+        });
+        incoming
+            .recv_blocking()
+            .map_err(io::Error::other)?
+            .reply(Ok(json!([])));
+        let reply = client.join();
+        let _ = release.send(());
+        server
+            .join()
+            .map_err(|_| io::Error::other("server panicked"))??;
+        let reply = reply.map_err(|_| io::Error::other("client panicked"))?;
+        assert_eq!(reply.map_err(io::Error::other)?, json!([]));
+        Ok(())
+    }
 
     #[test]
     fn requests_reach_the_app_and_replies_reach_the_client() -> io::Result<()> {

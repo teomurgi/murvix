@@ -161,7 +161,9 @@ flowchart LR
   app content and shares the keyboard with Murvix's shortcuts.
 - The server knows nothing about browsers. `murvix browser` reaches the desktop
   app over its own socket in the profile folder, `app.sock`, which only this
-  user can open. One JSON request gets one JSON reply.
+  user can open. One JSON request gets one JSON reply. The app explicitly closes
+  the reply's write half after flushing it, so a completed call does not wait for
+  other socket handles to be dropped.
 
 ## AI activity
 
