@@ -3,9 +3,13 @@ mod linux;
 #[cfg(target_os = "macos")]
 mod macos;
 #[cfg(target_os = "linux")]
-use linux::{agent_provider, foreground_member, process_directory};
+pub(crate) use linux::process_directory;
+#[cfg(target_os = "linux")]
+use linux::{agent_provider, foreground_member};
 #[cfg(target_os = "macos")]
-use macos::{agent_provider, foreground_member, process_directory};
+pub(crate) use macos::process_directory;
+#[cfg(target_os = "macos")]
+use macos::{agent_provider, foreground_member};
 
 use murvix_protocol::{ForegroundProcess, MetadataEvent, ServerPath};
 use murvix_terminal::TerminalEvent;
