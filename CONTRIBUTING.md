@@ -94,6 +94,16 @@ after startup. To exercise session exit during a blocked resize:
 cargo test --locked -p murvix-cli --test tui exit_during_resize_keeps_tab_selection_bound_to_the_displayed_pane
 ```
 
+In socket-backed concurrency tests, half-close the client's write side and keep
+its reader running until the server connection has finished. Only then shut down
+the registry: closing both socket directions while session output is in flight
+can produce a teardown-only `BrokenPipe`. To exercise archive-read isolation
+from Ping and live-session input:
+
+```bash
+cargo test --locked -p murvix-server --lib archive::tests::slow_archive_read_does_not_block_ping_or_another_sessions_input -- --exact
+```
+
 ## Pull Request Guidelines
 
 - Keep PRs focused on a single change
