@@ -1,4 +1,4 @@
-mod metadata;
+pub(crate) mod metadata;
 mod owner;
 
 use std::fmt;

@@ -1,6 +1,5 @@
-use super::{Result, command::capture, error};
+use super::{Result, error};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::time::{Duration, Instant};
 
 pub(super) fn stop(directory: &Path) -> Result<()> {
@@ -31,16 +30,14 @@ pub(super) fn stop(directory: &Path) -> Result<()> {
             let Some(before) = identity(pid) else {
                 continue;
             };
-            for signal in ["-TERM", "-KILL"] {
+            for force in [false, true] {
                 let still_here = directories()?
                     .iter()
                     .any(|(current, cwd)| *current == pid && cwd.starts_with(&directory));
                 if !still_here || identity(pid).as_ref() != Some(&before) {
                     break;
                 }
-                let mut command = Command::new("/bin/kill");
-                command.args([signal, "--", &pid.to_string()]);
-                if let Err(e) = capture(command)
+                if let Err(e) = signal(pid, force)
                     && identity(pid).as_ref() == Some(&before)
                 {
                     return Err(e);
@@ -51,27 +48,45 @@ pub(super) fn stop(directory: &Path) -> Result<()> {
     }
 }
 
+fn signal(pid: u32, force: bool) -> Result<()> {
+    let signal = if force {
+        rustix::process::Signal::KILL
+    } else {
+        rustix::process::Signal::TERM
+    };
+    let Some(pid) = rustix::process::Pid::from_raw(
+        i32::try_from(pid).map_err(|_| error("Invalid process id"))?,
+    ) else {
+        return Ok(());
+    };
+    match rustix::process::kill_process(pid, signal) {
+        // Exited between the directory scan and the signal.
+        Ok(()) | Err(rustix::io::Errno::SRCH) => Ok(()),
+        Err(other) => Err(error(other)),
+    }
+}
+
 #[cfg(target_os = "macos")]
 fn directories() -> Result<Vec<(u32, PathBuf)>> {
-    use std::os::unix::ffi::OsStrExt;
-    let mut command = Command::new("/usr/sbin/lsof");
-    command.args(["-n", "-P", "-a", "-d", "cwd", "-Fpn0"]);
-    let bytes = capture(command)?;
-    let mut pid = None;
+    use libproc::processes::{self, ProcFilter};
+
+    let pids = processes::pids_by_type(ProcFilter::All).map_err(error)?;
     let mut result = Vec::new();
-    for record in bytes.split(|b| *b == 0) {
-        let record = record.strip_prefix(b"\n").unwrap_or(record);
-        if let Some(value) = record.strip_prefix(b"p") {
-            pid = std::str::from_utf8(value).ok().and_then(|s| s.parse().ok());
+    for raw in pids {
+        let Ok(pid) = i32::try_from(raw) else {
+            continue;
+        };
+        if pid <= 0 {
+            continue;
         }
-        if let Some(value) = record.strip_prefix(b"n")
-            && let Some(pid) = pid
-        {
-            result.push((pid, PathBuf::from(std::ffi::OsStr::from_bytes(value))));
-        }
+        let Some(cwd) = crate::session::metadata::process_directory(pid) else {
+            continue;
+        };
+        result.push((raw, PathBuf::from(cwd.0)));
     }
     Ok(result)
 }
+
 #[cfg(target_os = "macos")]
 fn identity(pid: u32) -> Option<String> {
     use libproc::libproc::{bsd_info::BSDInfo, proc_pid::pidinfo};
@@ -81,6 +96,7 @@ fn identity(pid: u32) -> Option<String> {
         info.pbi_start_tvsec, info.pbi_start_tvusec
     ))
 }
+
 #[cfg(target_os = "linux")]
 fn directories() -> Result<Vec<(u32, PathBuf)>> {
     Ok(std::fs::read_dir("/proc")
@@ -92,6 +108,7 @@ fn directories() -> Result<Vec<(u32, PathBuf)>> {
         })
         .collect())
 }
+
 #[cfg(target_os = "linux")]
 fn identity(pid: u32) -> Option<String> {
     let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
