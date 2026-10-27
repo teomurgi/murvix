@@ -64,9 +64,9 @@ The current maintainer is [@teomurgi](https://github.com/teomurgi). See
 repository permissions, and the CI authorization runbook.
 
 Only maintainers may merge PRs, authorize upstream workflow execution, or publish
-releases. PR activity does not automatically run the governed CI workflow. A
-maintainer reviews the exact commit, then dispatches `ci` from `main` with the PR
-number and reviewed full head SHA. Further commits need another review and run.
+releases. Maintainer-opened or updated same-repository PRs targeting `main` run CI
+automatically. Fork PRs need a maintainer to review the exact commit and dispatch
+`ci` from `main` with the PR number and reviewed full head SHA after each update.
 Both `macos` and `omarchy` must pass on the current revision, the PR branch must
 include the latest `main`, and review conversations must be resolved before merge.
 While the project has one maintainer, an independent approval is not mandatory;
