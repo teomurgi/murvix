@@ -69,6 +69,7 @@ fn signal(pid: u32, force: bool) -> Result<()> {
 #[cfg(target_os = "macos")]
 fn directories() -> Result<Vec<(u32, PathBuf)>> {
     use libproc::processes::{self, ProcFilter};
+    use std::os::unix::ffi::OsStringExt as _;
 
     let pids = processes::pids_by_type(ProcFilter::All).map_err(error)?;
     let mut result = Vec::new();
@@ -82,7 +83,7 @@ fn directories() -> Result<Vec<(u32, PathBuf)>> {
         let Some(cwd) = crate::session::metadata::process_directory(pid) else {
             continue;
         };
-        result.push((raw, PathBuf::from(cwd.0)));
+        result.push((raw, PathBuf::from(std::ffi::OsString::from_vec(cwd.0))));
     }
     Ok(result)
 }
