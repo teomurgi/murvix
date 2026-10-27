@@ -987,11 +987,11 @@ mod tests {
         let input_completed = marker.exists();
         drop(blocked_archive);
         let saved = next_reply(&messages, &mut encoder);
-        registry.shutdown();
-        socket.shutdown(std::net::Shutdown::Both)?;
+        socket.shutdown(std::net::Shutdown::Write)?;
         drop(encoder);
         worker.join().map_err(|_| "server thread panicked")??;
         reader.join().map_err(|_| "reader thread panicked")?;
+        registry.shutdown();
         assert_eq!(pong?, (RequestId(102), ReplyBody::Pong));
         assert_eq!(saved?.0, RequestId(101));
         assert!(

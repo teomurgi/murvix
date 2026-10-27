@@ -2,7 +2,9 @@ name: ci
 
 on:
   push:
-    branches: [main, linux, linux-platform, 'linux/**']
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       pull_request:
@@ -15,7 +17,7 @@ on:
         type: string
 
 concurrency:
-  group: ci-${{ inputs.pull_request || github.ref }}
+  group: ci-${{ github.event.pull_request.number || inputs.pull_request || github.ref }}
   cancel-in-progress: false
 
 permissions:
@@ -32,6 +34,8 @@ jobs:
       contains(fromJSON('["teomurgi"]'), github.actor) &&
       contains(fromJSON('["teomurgi"]'), github.triggering_actor) &&
       (github.event_name == 'push' ||
+       (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository) ||
        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -48,8 +52,8 @@ jobs:
         id: source
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ inputs.pull_request }}
-          EXPECTED_HEAD: ${{ inputs.head_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_request }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || inputs.head_sha }}
           PUSH_BASE: ${{ github.event.before }}
         shell: bash
         run: |

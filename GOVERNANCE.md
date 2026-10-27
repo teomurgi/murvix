@@ -18,9 +18,9 @@ Existing maintainers appoint or remove maintainers through a reviewed governance
 
 ## Authorizing CI
 
-PR creation, synchronization, labels, and comments do not trigger CI in the governed workflow. Maintainer pushes to the configured development branches still run CI automatically. Workflows also reject actors and rerun actors outside the maintainer allowlist, including on forks.
+Maintainer pushes to `main` run CI automatically. Opening, reopening, or updating a same-repository PR targeting `main` also runs CI automatically when both the event actor and rerun actor are maintainers. Other branch pushes, labels, and comments do not trigger CI. Fork PRs still require manual authorization from `main`. Workflows reject actors and rerun actors outside the maintainer allowlist, including on forks.
 
-Before authorizing a PR run, review the exact revision, including build scripts, dependencies, tests, vendored code, and workflow changes. Authorization executes contributor-controlled code on disposable GitHub-hosted runners. Never use self-hosted runners or provide release secrets to this path.
+Review the exact revision, including build scripts, dependencies, tests, vendored code, and workflow changes, before pushing a same-repository PR update or manually authorizing a fork PR run. Both paths execute contributor-controlled code on disposable GitHub-hosted runners. Never use self-hosted runners or provide release secrets to this path. To authorize a fork PR manually:
 
 1. Review the PR's current full head SHA. Obtain it with `gh pr view <number> --repo teomurgi/murvix --json headRefOid --jq .headRefOid` and inspect that revision.
 2. Open **Actions → ci → Run workflow**, select **main**, and supply the PR number as `pull_request` and that reviewed full SHA as `head_sha`. Alternatively, run:
@@ -31,11 +31,11 @@ Before authorizing a PR run, review the exact revision, including build scripts,
    ```
 
 3. The trusted workflow verifies that the PR is open and targets `main`, rejects a changed head, and checks out the captured SHA without persisted credentials. Only separate trusted jobs can write the `macos` and `omarchy` commit statuses; those jobs never check out contributor code. Build jobs have read-only repository tokens and no release secrets.
-4. Inspect both results before merging. Failure, cancellation, or missing results must not be treated as success. A new PR commit needs a new review and dispatch; statuses on an older SHA do not authorize it.
+4. Inspect both results before merging. Failure, cancellation, or missing results must not be treated as success. A new PR commit needs fresh checks: same-repository maintainer updates trigger them automatically; fork PR updates need a new review and dispatch. Statuses on an older SHA do not authorize it.
 
 Leaving both inputs empty checks `main` without authorizing a PR. Dispatches from other branches are rejected. To retry a failed check without changing the revision, maintainers can rerun the workflow; both the original actor and rerun actor must be authorized. Shared Rust build caches are deliberately not consumed by CI or release jobs: an approved PR runs in the default-branch workflow context and could otherwise poison caches subsequently restored by trusted releases.
 
-Before this workflow change is merged, the previous PR-triggered CI remains in effect. The live **all external contributors** approval policy requires maintainer approval for those fork runs. Review the PR's workflow changes before approving any such bootstrap run. The existing required check names are retained so this governance PR can pass CI and merge without disabling branch protection. Workflow changes become active only after they are merged by a maintainer.
+The live **all external contributors** approval policy remains enabled for fork workflows. Review workflow changes before approving any fork run. The existing required check names are retained; do not disable branch protection to merge a workflow update.
 
 ## Releases
 
