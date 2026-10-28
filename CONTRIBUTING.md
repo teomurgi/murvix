@@ -105,17 +105,26 @@ its release branch, and dispatch **Release** again; do not merge `main` into the
 version branch. Merge only after review: the merge event verifies the version-only
 change, tags the exact merged commit, and builds and publishes the release.
 If a build or publication fails, rerun the original merged-PR workflow for
-transient failures or corrected secrets. After merging workflow repairs, use
+transient failures or corrected secrets. After merging workflow-only repairs, use
 **Release → retry_version** to rebuild the unchanged existing tag with repaired
-tooling, without bumping or moving the tag. Local release tooling requires
-Python 3.11 or newer; Actions installs Python 3.12 explicitly.
+workflow steps, without bumping or moving the tag. Retries still check out the
+tag's release scripts and vendored build code; fixes to those files require a
+new release from the corrected source, not a retry of the broken tag.
+Local release tooling requires Python 3.11 or newer; Actions installs Python 3.12
+explicitly.
 See the [release runbook](GOVERNANCE.md#releases) for credentials and operational
 details. Main-branch protection is never bypassed.
 
 For local packaging checks, run `python3 scripts/release.py check-build <version>
 <executable>` for both the CLI and server. It compares their `--build-info` with
 the requested release version and the source's current protocol and compatibility
-declarations, so stale binaries cannot enter a package.
+declarations, so stale binaries cannot enter a package. The Python regression
+suite covers protocol resolution independently of the installed Rust binaries.
+
+The vendored Ghostty build applies `lazy-benchmarks.patch` so disabled benchmarks
+do not fetch their unused GUI dependencies (`vaxis`, `freetype`, and their
+transitive packages) during terminal-library builds. Keep this patch when
+updating the pinned Ghostty revision until the upstream build does the same.
 
 ## Code Standards
 
@@ -138,8 +147,34 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 
 On Linux, CI runs the whole workspace natively on Arch (Omarchy's distro) via
 `scripts/check-desktop-linux.py`, including the
-[experimental desktop app](docs/tech/constraints.md), under xvfb. macOS runs
-`scripts/check-desktop-macos.py`.
+[experimental desktop app](docs/tech/constraints.md), under xvfb. On macOS,
+`python3 scripts/check-desktop-macos.py` runs the full guard. CI splits it into
+`--phase cheap` (Python regressions and formatting, before native setup) and
+`--phase native` (real-compiler relocation regression, Clippy, workspace tests,
+rustdoc, and the default-feature executable build). Cargo phases remain serial.
+Each command and phase reports
+elapsed seconds and success/failure in the log and, on Actions, the job summary.
+
+The macOS guard shares completed Ghostty installs in `.cache/ghostty-native`,
+outside Cargo's target tree so Rust-cache cleanup preserves them. CI persists
+this directory with its Rust cache. `GHOSTTY_BUILD_CACHE_DIR` selects another
+location. Cache inputs include the Ghostty revision, build tooling and patches,
+Zig version and wrapper, target and native CPU, optimization/link mode, and
+SDK/compiler environment. Shared reuse is limited to native macOS builds;
+cross/non-macOS builds, source/system overrides, and unknown tool wrappers keep
+private native outputs. File locks and atomic publication prevent concurrent or
+interrupted builds from exposing partial installs; Python regressions compile
+and execute the cache's Rust safety tests without building Ghostty.
+CI derives its outer key from the same build-script fingerprint used for install
+reuse. Resolved helper tools are keyed by content, not installation timestamps;
+unrelated PATH entries and isolated smoke profiles do not invalidate the cache.
+Zig's pinned version, rather than setup-zig's per-run extraction path, identifies
+the compiler; supported wrapper contents and explicit toolchain overrides remain
+part of the fingerprint.
+
+The final executable build intentionally uses default features: all-features
+workspace tests enable `test-support` dependencies and cannot replace the real
+`murvix-app`, `murvix`, and `murvix-server` used by desktop/TUI smoke verification.
 
 TUI regression tests run the real CLI and server under a PTY. Synchronize tab
 interactions on displayed shortcut numbers or session state, not shell-generated

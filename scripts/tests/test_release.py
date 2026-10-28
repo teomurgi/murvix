@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import os
 import shutil
@@ -9,25 +10,9 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "scripts"))
-import release as RELEASE
-
-
-class BuildMetadataTests(unittest.TestCase):
-    def test_packaged_protocol_uses_current_version_not_a_historical_declaration(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            source = root / "crates/murvix-protocol/src"
-            source.mkdir(parents=True)
-            (source / "version.rs").write_text(
-                "pub const V1: Version = Version(1);\n"
-                "pub const V12: Version = Version(12);\n"
-                "pub const CURRENT: Version = V12;\n"
-            )
-            (source / "build.rs").write_text("pub const COMPATIBILITY: u64 = 37;\n")
-            self.assertEqual(
-                RELEASE.build_metadata(root), {"compatibility": 37, "protocol": [12]}
-            )
+spec = importlib.util.spec_from_file_location("release", ROOT / "scripts/release.py")
+RELEASE = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(RELEASE)
 
 
 class ReleaseScenarioTests(unittest.TestCase):
@@ -155,6 +140,15 @@ checksum = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
             "previous": previous,
             "bump": bump,
         })
+
+    def test_packaged_metadata_uses_current_protocol_not_legacy_or_future_versions(self):
+        self.write("crates/murvix-protocol/src/build.rs", "pub const COMPATIBILITY: u64 = 3;\n")
+        self.write("crates/murvix-protocol/src/version.rs", """pub const V1: Version = Version(1);
+pub const V2: Version = Version(7);
+pub const V3: Version = Version(9);
+pub const CURRENT: Version = V2;
+""")
+        self.assertEqual(RELEASE.build_metadata(self.root), {"compatibility": 3, "protocol": [7]})
 
     def test_conventional_commit_types_and_breaking_trailers(self):
         self.git("tag", "v0.2.2")

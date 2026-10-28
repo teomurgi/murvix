@@ -99,13 +99,14 @@ jobs:
     needs: authorize
     runs-on: macos-15
     timeout-minutes: 60
+    env:
+      GHOSTTY_BUILD_CACHE_DIR: ${{ github.workspace }}/.cache/ghostty-native
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ needs.authorize.outputs.source }}
           persist-credentials: false
-      - run: brew install neovim
       - run: python3 scripts/protocol_fixtures.py append-only --base "$PROTOCOL_BASE"
         env:
           PROTOCOL_BASE: ${{ needs.authorize.outputs.base }}
@@ -113,13 +114,26 @@ jobs:
         with:
           toolchain: 1.92.0
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: macos-desktop
+      - run: python3 scripts/check-desktop-macos.py --phase cheap
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
-      - run: python3 scripts/check-desktop-macos.py
+      - name: Fingerprint native build inputs
+        id: native-cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 vendor/libghostty-vt-sys/build.rs -o "$RUNNER_TEMP/ghostty-cache-key"
+          HOST=$(rustc --print host-tuple)
+          KEY=$(CARGO_MANIFEST_DIR="$GITHUB_WORKSPACE/vendor/libghostty-vt-sys" \
+            HOST="$HOST" TARGET="$HOST" "$RUNNER_TEMP/ghostty-cache-key" --cache-key | awk 'END {print}')
+          echo "key=$KEY" >> "$GITHUB_OUTPUT"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: macos-desktop-${{ steps.native-cache.outputs.key }}
+          cache-directories: .cache/ghostty-native
+      - run: brew install neovim
+      - run: python3 scripts/check-desktop-macos.py --phase native
       - run: python3 scripts/protocol_fixtures.py last-release
       - run: python3 scripts/smoke-desktop-tui.py
   omarchy:

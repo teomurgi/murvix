@@ -29,6 +29,7 @@ def main():
             **os.environ,
             "CARGO_HOME": os.environ.get("CARGO_HOME", str(Path.home() / ".cargo")),
             "RUSTUP_HOME": os.environ.get("RUSTUP_HOME", str(Path.home() / ".rustup")),
+            "GHOSTTY_BUILD_CACHE_DIR": os.environ.get("GHOSTTY_BUILD_CACHE_DIR") or str(root / ".cache/ghostty-native"),
             "MUXY_DIR": str(profile),
             "HOME": str(home),
             "ZDOTDIR": str(home),
