@@ -166,6 +166,10 @@ jobs:
 
   release:
     needs: [prepare, build]
+    # Manual approval gate: configure a `release-publish` environment with a
+    # required reviewer (Settings → Environments). The workflow pauses here
+    # after building and verifying, and publishes only once approved.
+    environment: release-publish
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -175,7 +179,6 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.source }}
           fetch-depth: 0
-          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

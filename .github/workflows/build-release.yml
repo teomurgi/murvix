@@ -96,6 +96,11 @@ jobs:
         with:
           toolchain: 1.92.0
           targets: ${{ matrix.target }}
+      # Release-only cache: only trusted release runs save or restore this
+      # key, so untrusted PR CI can never poison it. Keyed per target.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: murvix-release-${{ matrix.target }}
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
@@ -229,6 +234,10 @@ jobs:
         with:
           toolchain: 1.92.0
           targets: ${{ matrix.target }}
+      # Release-only cache, keyed per target; untrusted PR CI never touches it.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: murvix-release-desktop-${{ matrix.target }}
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2

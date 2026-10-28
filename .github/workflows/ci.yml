@@ -86,11 +86,16 @@ jobs:
                 -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             done
           fi
+  # A push from merging a release PR only adds the three stamped files
+  # (VERSION, Cargo.toml, Cargo.lock) to an already-green PR head;
+  # the release build rebuilds and verifies that exact tree, so skip.
   macos:
     if: >-
       github.repository == 'teomurgi/murvix' &&
       contains(fromJSON('["teomurgi"]'), github.actor) &&
-      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor) &&
+      !(github.event_name == 'push' &&
+        contains(github.event.head_commit.message, 'from teomurgi/release/v'))
     needs: authorize
     runs-on: macos-15
     timeout-minutes: 60
@@ -121,7 +126,9 @@ jobs:
     if: >-
       github.repository == 'teomurgi/murvix' &&
       contains(fromJSON('["teomurgi"]'), github.actor) &&
-      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor) &&
+      !(github.event_name == 'push' &&
+        contains(github.event.head_commit.message, 'from teomurgi/release/v'))
     needs: authorize
     # Native Arch check: Omarchy's distro, running the same full desktop
     # verification as linux-desktop. GitHub has no Arch runner, so this uses
