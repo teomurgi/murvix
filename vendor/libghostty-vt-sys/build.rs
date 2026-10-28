@@ -78,6 +78,7 @@ fn main() {
         let host = env::var("HOST").expect("HOST must be set");
         let inputs = cache_inputs(&target, &host, zig_optimize_mode(), link_mode)
             .unwrap_or_else(|error| panic!("native cache fingerprint: {error}"));
+        inputs.explain();
         println!("{}", inputs.key());
         return;
     }

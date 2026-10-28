@@ -25,6 +25,26 @@ impl Inputs {
         hash_bytes(&mut hash, &self.0);
         format!("{hash:016x}")
     }
+
+    pub fn explain(&self) {
+        let mut remaining = self.0.as_slice();
+        while !remaining.is_empty() {
+            let mut fields = [&[][..]; 2];
+            for field in &mut fields {
+                let (length, rest) = remaining.split_at(8);
+                let length = u64::from_le_bytes(length.try_into().unwrap()) as usize;
+                let (value, rest) = rest.split_at(length);
+                *field = value;
+                remaining = rest;
+            }
+            let mut hash = HASH_SEED;
+            hash_bytes(&mut hash, fields[1]);
+            eprintln!(
+                "native-cache-input {}: {hash:016x}",
+                String::from_utf8_lossy(fields[0])
+            );
+        }
+    }
 }
 
 const HASH_SEED: u64 = 0xcbf29ce484222325;

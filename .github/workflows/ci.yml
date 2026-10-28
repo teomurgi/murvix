@@ -86,6 +86,30 @@ jobs:
                 -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             done
           fi
+  cache-key-probe:
+    if: github.event_name == 'pull_request'
+    needs: authorize
+    runs-on: macos-15
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        probe: [a, b]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.source }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.92.0
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+      - run: |
+          rustc --edition=2024 vendor/libghostty-vt-sys/build.rs -o "$RUNNER_TEMP/ghostty-cache-key"
+          HOST=$(rustc --print host-tuple)
+          CARGO_MANIFEST_DIR="$GITHUB_WORKSPACE/vendor/libghostty-vt-sys" \
+            HOST="$HOST" TARGET="$HOST" "$RUNNER_TEMP/ghostty-cache-key" --cache-key
   # A push from merging a release PR only adds the three stamped files
   # (VERSION, Cargo.toml, Cargo.lock) to an already-green PR head;
   # the release build rebuilds and verifies that exact tree, so skip.
