@@ -9,6 +9,25 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
+import release as RELEASE
+
+
+class BuildMetadataTests(unittest.TestCase):
+    def test_packaged_protocol_uses_current_version_not_a_historical_declaration(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "crates/murvix-protocol/src"
+            source.mkdir(parents=True)
+            (source / "version.rs").write_text(
+                "pub const V1: Version = Version(1);\n"
+                "pub const V12: Version = Version(12);\n"
+                "pub const CURRENT: Version = V12;\n"
+            )
+            (source / "build.rs").write_text("pub const COMPATIBILITY: u64 = 37;\n")
+            self.assertEqual(
+                RELEASE.build_metadata(root), {"compatibility": 37, "protocol": [12]}
+            )
 
 
 class ReleaseScenarioTests(unittest.TestCase):

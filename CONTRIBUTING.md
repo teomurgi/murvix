@@ -112,6 +112,11 @@ Python 3.11 or newer; Actions installs Python 3.12 explicitly.
 See the [release runbook](GOVERNANCE.md#releases) for credentials and operational
 details. Main-branch protection is never bypassed.
 
+For local packaging checks, run `python3 scripts/release.py check-build <version>
+<executable>` for both the CLI and server. It compares their `--build-info` with
+the requested release version and the source's current protocol and compatibility
+declarations, so stale binaries cannot enter a package.
+
 ## Code Standards
 
 - **No comments in the codebase** — all code must be self-explanatory and cleanly structured
