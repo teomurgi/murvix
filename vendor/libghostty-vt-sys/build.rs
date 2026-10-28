@@ -73,6 +73,14 @@ fn main() {
     }
 
     let link_mode = LinkMode::current();
+    if env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new("--cache-key")) {
+        let target = env::var("TARGET").expect("TARGET must be set");
+        let host = env::var("HOST").expect("HOST must be set");
+        let inputs = cache_inputs(&target, &host, zig_optimize_mode(), link_mode)
+            .unwrap_or_else(|error| panic!("native cache fingerprint: {error}"));
+        println!("{}", inputs.key());
+        return;
+    }
 
     println!("cargo:rerun-if-env-changed=LIBGHOSTTY_VT_SYS_OPTIMIZE");
     println!("cargo:rerun-if-env-changed=GHOSTTY_SOURCE_DIR");
@@ -287,15 +295,15 @@ fn cache_inputs(
         if !is_native_executable(&path)? {
             return Err(io::Error::other("unrecognized native build tool wrapper"));
         }
-        let metadata = std::fs::metadata(&path)?;
-        let modified = metadata
-            .modified()?
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_err(io::Error::other)?;
+        let tool_path = path
+            .to_str()
+            .ok_or_else(|| io::Error::other("native build tool path is not UTF-8"))?;
         println!("cargo:rerun-if-changed={}", path.display());
         inputs.add(tool, path.as_os_str().as_encoded_bytes());
-        inputs.add("tool-size", &metadata.len().to_le_bytes());
-        inputs.add("tool-modified", &modified.as_nanos().to_le_bytes());
+        inputs.add(
+            "tool-content",
+            &command_output("/usr/bin/shasum", &["-a", "256", tool_path])?,
+        );
     }
     for argument in ["--show-sdk-path", "--show-sdk-version", "--find"] {
         let args: &[&str] = if argument == "--find" {

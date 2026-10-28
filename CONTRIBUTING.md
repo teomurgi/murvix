@@ -161,6 +161,9 @@ cross/non-macOS builds, source/system overrides, and unknown tool wrappers keep
 private native outputs. File locks and atomic publication prevent concurrent or
 interrupted builds from exposing partial installs; Python regressions compile
 and execute the cache's Rust safety tests without building Ghostty.
+CI derives its outer key from the same build-script fingerprint used for install
+reuse. Resolved helper tools are keyed by content, not installation timestamps;
+unrelated PATH entries and isolated smoke profiles do not invalidate the cache.
 
 The final executable build intentionally uses default features: all-features
 workspace tests enable `test-support` dependencies and cannot replace the real

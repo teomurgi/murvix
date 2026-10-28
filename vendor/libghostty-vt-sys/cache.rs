@@ -19,6 +19,12 @@ impl Inputs {
         self.add(&path.to_string_lossy(), &fs::read(path)?);
         Ok(())
     }
+
+    pub fn key(&self) -> String {
+        let mut hash = HASH_SEED;
+        hash_bytes(&mut hash, &self.0);
+        format!("{hash:016x}")
+    }
 }
 
 const HASH_SEED: u64 = 0xcbf29ce484222325;
@@ -38,9 +44,7 @@ pub fn install(
 ) -> io::Result<PathBuf> {
     fs::create_dir_all(root)?;
     let root = fs::canonicalize(root)?;
-    let mut hash = HASH_SEED;
-    hash_bytes(&mut hash, &inputs.0);
-    let key = format!("{hash:016x}");
+    let key = inputs.key();
     let completed = root.join(&key);
     let partial = root.join(format!("{key}.partial"));
     // The lock lives outside the renamed directory and is never unlinked.

@@ -118,23 +118,19 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
-      - name: Fingerprint the native cache platform
+      - name: Fingerprint native build inputs
         id: native-cache
         shell: bash
         run: |
           set -euo pipefail
-          KEY=$({
-            zig version
-            printf '%s\n' "$PATH" "${LIBGHOSTTY_VT_SYS_OPTIMIZE-}" "${MACOSX_DEPLOYMENT_TARGET-}"
-            zig targets
-            xcrun --show-sdk-path
-            xcrun --show-sdk-version
-            xcrun clang --version
-          } | shasum -a 256 | cut -d' ' -f1)
+          rustc --edition=2024 vendor/libghostty-vt-sys/build.rs -o "$RUNNER_TEMP/ghostty-cache-key"
+          HOST=$(rustc --print host-tuple)
+          KEY=$(CARGO_MANIFEST_DIR="$GITHUB_WORKSPACE/vendor/libghostty-vt-sys" \
+            HOST="$HOST" TARGET="$HOST" "$RUNNER_TEMP/ghostty-cache-key" --cache-key | awk 'END {print}')
           echo "key=$KEY" >> "$GITHUB_OUTPUT"
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: macos-desktop-${{ steps.native-cache.outputs.key }}-${{ hashFiles('vendor/libghostty-vt-sys/**', 'scripts/zig/zig') }}
+          shared-key: macos-desktop-${{ steps.native-cache.outputs.key }}
           cache-directories: .cache/ghostty-native
       - run: brew install neovim
       - run: python3 scripts/check-desktop-macos.py --phase native
