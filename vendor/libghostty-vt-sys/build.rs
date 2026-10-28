@@ -78,7 +78,6 @@ fn main() {
         let host = env::var("HOST").expect("HOST must be set");
         let inputs = cache_inputs(&target, &host, zig_optimize_mode(), link_mode)
             .unwrap_or_else(|error| panic!("native cache fingerprint: {error}"));
-        inputs.explain();
         println!("{}", inputs.key());
         return;
     }
@@ -267,7 +266,6 @@ fn cache_inputs(
     }
     let zig = find_executable("zig")?;
     println!("cargo:rerun-if-changed={}", zig.display());
-    inputs.add("zig-executable", zig.as_os_str().as_encoded_bytes());
     let wrapper = manifest.join("../../scripts/zig/zig");
     if !is_native_executable(&zig)? {
         if std::fs::canonicalize(&wrapper).ok().as_ref() != Some(&zig) {
@@ -281,10 +279,6 @@ fn cache_inputs(
             return Err(io::Error::other("unrecognized MUXY_ZIG wrapper"));
         }
         println!("cargo:rerun-if-changed={}", real_zig.display());
-        inputs.add(
-            "wrapped-zig-executable",
-            real_zig.as_os_str().as_encoded_bytes(),
-        );
     }
     for argument in ["version", "targets"] {
         // `targets` includes the native CPU model and feature set. A target
@@ -342,7 +336,6 @@ fn cache_inputs(
                     | "C_INCLUDE_PATH"
                     | "CPLUS_INCLUDE_PATH"
                     | "LIBRARY_PATH"
-                    | "MUXY_ZIG"
             ) || name.starts_with("ZIG_")
                 || name.ends_with("_DEPLOYMENT_TARGET")
                 || ["CC_", "CXX_", "AR_", "CFLAGS_", "CXXFLAGS_", "LDFLAGS_"]

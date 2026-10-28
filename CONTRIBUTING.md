@@ -147,8 +147,9 @@ On Linux, CI runs the whole workspace natively on Arch (Omarchy's distro) via
 [experimental desktop app](docs/tech/constraints.md), under xvfb. On macOS,
 `python3 scripts/check-desktop-macos.py` runs the full guard. CI splits it into
 `--phase cheap` (Python regressions and formatting, before native setup) and
-`--phase native` (Clippy, workspace tests, rustdoc, and the default-feature
-executable build). Cargo phases remain serial. Each command and phase reports
+`--phase native` (real-compiler relocation regression, Clippy, workspace tests,
+rustdoc, and the default-feature executable build). Cargo phases remain serial.
+Each command and phase reports
 elapsed seconds and success/failure in the log and, on Actions, the job summary.
 
 The macOS guard shares completed Ghostty installs in `.cache/ghostty-native`,
@@ -164,6 +165,9 @@ and execute the cache's Rust safety tests without building Ghostty.
 CI derives its outer key from the same build-script fingerprint used for install
 reuse. Resolved helper tools are keyed by content, not installation timestamps;
 unrelated PATH entries and isolated smoke profiles do not invalidate the cache.
+Zig's pinned version, rather than setup-zig's per-run extraction path, identifies
+the compiler; supported wrapper contents and explicit toolchain overrides remain
+part of the fingerprint.
 
 The final executable build intentionally uses default features: all-features
 workspace tests enable `test-support` dependencies and cannot replace the real

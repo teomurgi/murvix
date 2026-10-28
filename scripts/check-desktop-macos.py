@@ -87,6 +87,7 @@ def main():
             ])
         if args.phase != "cheap":
             commands.extend([
+                [sys.executable, "scripts/tests/test_ghostty_cache.py", "--compiler-identity"],
                 ["cargo", "clippy", "--locked", "--workspace", "--all-targets", "--all-features", "--", "-D", "warnings"],
                 ["cargo", "test", "--locked", "--workspace", "--all-features"],
                 ["cargo", "doc", "--locked", "--workspace", "--no-deps"],

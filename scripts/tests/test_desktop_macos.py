@@ -53,7 +53,7 @@ class DesktopMacosTests(unittest.TestCase):
                     self.doCleanups()
 
     def test_any_failed_check_stops_the_guard(self):
-        for phase, steps in (("all", 6), ("cheap", 2), ("native", 4)):
+        for phase, steps in (("all", 7), ("cheap", 2), ("native", 5)):
             for failed_step in range(steps):
                 with self.subTest(phase=phase, failed_step=failed_step):
                     run, _ = self.environment(phase=phase)
