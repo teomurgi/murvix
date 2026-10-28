@@ -18,7 +18,7 @@ on:
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || inputs.pull_request || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -108,6 +108,9 @@ jobs:
         with:
           toolchain: 1.92.0
           components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: macos-desktop
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
@@ -143,6 +146,9 @@ jobs:
         with:
           toolchain: 1.92.0
           components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: omarchy-desktop
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.15.2
