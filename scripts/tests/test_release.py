@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import os
 import shutil
@@ -9,6 +10,9 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+spec = importlib.util.spec_from_file_location("release", ROOT / "scripts/release.py")
+RELEASE = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(RELEASE)
 
 
 class ReleaseScenarioTests(unittest.TestCase):
@@ -136,6 +140,15 @@ checksum = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
             "previous": previous,
             "bump": bump,
         })
+
+    def test_packaged_metadata_uses_current_protocol_not_legacy_or_future_versions(self):
+        self.write("crates/murvix-protocol/src/build.rs", "pub const COMPATIBILITY: u64 = 3;\n")
+        self.write("crates/murvix-protocol/src/version.rs", """pub const V1: Version = Version(1);
+pub const V2: Version = Version(7);
+pub const V3: Version = Version(9);
+pub const CURRENT: Version = V2;
+""")
+        self.assertEqual(RELEASE.build_metadata(self.root), {"compatibility": 3, "protocol": [7]})
 
     def test_conventional_commit_types_and_breaking_trailers(self):
         self.git("tag", "v0.2.2")

@@ -1,4 +1,5 @@
 /target
+/.cache/ghostty-native/
 **/*.rs.bk
 *.pdb
 .DS_Store
