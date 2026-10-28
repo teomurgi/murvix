@@ -57,6 +57,7 @@ impl AppModel {
             return;
         }
         self.refresh_browser_profiles();
+        self.installation_action(crate::installation::Action::Refresh, cx);
         self.browsers.import_sources = Self::browser_import_sources();
         if let Some(settings) = &self.settings_window
             && settings
@@ -175,6 +176,9 @@ impl AppModel {
             terminal: self.terminal.clone(),
             server: self.server_preferences.document.clone(),
             server_update: self.server_update_description(),
+            installation: self.installation.clone(),
+            installation_update: self.installation_update_status(),
+            installation_problem: self.installation_problem().map(str::to_owned),
             connected: self.ready(ServerId::local()),
             server_busy: self.server_preferences.busy
                 || self.server_preferences.control_busy
@@ -246,7 +250,7 @@ impl AppModel {
         true
     }
 
-    pub(super) fn sync_preferences(&self, cx: &mut Context<Self>) {
+    pub(crate) fn sync_preferences(&self, cx: &mut Context<Self>) {
         if let Some(settings) = &self.settings_window {
             settings.view.update(cx, |view, cx| {
                 view.sync(self.preferences_snapshot(), self.theme.clone(), cx);

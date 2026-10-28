@@ -42,17 +42,62 @@ the error, often a typo in `server.toml`:
 
 ## `murvix` is not found, or is the wrong version
 
-The desktop app's **Install Command Line Tool…** action links `murvix` into
-`~/.local/bin`; the install scripts also use that directory by default. Debian
-packages install it in `/usr/bin`. For a user-local installation, add it to
-your `PATH`:
+On macOS, open **Settings → Installation & Updates** to inspect the CLI link,
+login-shell resolution, and installed/running versions. Install or repair the
+bundled link if necessary. First move the app into `/Applications` or
+`~/Applications` and reopen it: DMG, Downloads, and App Translocation launches
+cannot create persistent CLI, shell, or login integration.
 
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-```
+The bundled CLI link and standalone installers use `~/.local/bin`; Debian
+packages use `/usr/bin`. Optional macOS shell setup appends `~/.local/bin` in a
+consented managed block for zsh, bash, or fish. It preserves unrelated startup
+configuration and existing command precedence. Open a **new shell** afterward.
+For custom or symlinked configurations, use
+[manual PATH setup](../features/murvix-cli.md#install) instead.
 
-If the version is unexpected, run `command -v murvix` to see which installation
-comes first on your `PATH`.
+Run `command -v murvix` and `murvix --version` to identify the command being used.
+Homebrew, a standalone installation, an alias, or a function can shadow the
+bundled CLI; Murvix reports this without overriding it. Use
+`~/.local/bin/murvix` directly or adjust your own configuration deliberately.
+Automatic relocation repair handles only receipt-owned Murvix links and leaves
+unrelated files untouched. CLI and shell opt-outs are remembered.
+
+## Updates and running sessions
+
+On macOS, **Settings → Installation & Updates** distinguishes the installed
+bundle, running app, running local server, and pending update versions. A newer
+bundle on disk does not mean the processes have restarted. Automatic downloads
+are **off by default**; enable them explicitly or use **Check for Updates…**.
+
+Closing a window or quitting Murvix leaves its on-demand apphost server and
+terminal sessions running. **Start Murvix at login** opens the app and is
+independent of server persistence. If login activation says `requiresApproval`,
+use **Open Login Items Settings** to approve it. If you revoke approval there,
+Murvix does not silently re-enable it; review the native status and change it
+yourself. **Do not start at login** unregisters the app.
+
+A safe server restart requires **zero live sessions**, not merely no visible
+tabs or no busy commands. Idle shells, detached sessions, and sessions held by
+another desktop/CLI client still count. Inspect `murvix session list` and finish
+or explicitly end those sessions before restarting. A compatible app update can
+replace the app and CLI while preserving the existing server. An incompatible
+update stays staged with the old installation active until all sessions end,
+unless you explicitly confirm ending them. Server restarts do not hand off live
+terminal processes.
+
+**Destructive action:** stopping or restarting with force ends every live
+terminal on that server, including detached sessions and those used by other
+clients. Save your work first; use `murvix server stop --force` only when you
+intend that result.
+
+If the installed bundle or its parent directory is not writable, use manual
+Finder recovery instead of repeatedly retrying in-app installation: finish
+sessions, stop the server, quit Murvix, download the matching DMG, and replace
+the app in `/Applications` (with Finder authorization if needed) or install it
+in `~/Applications`. Reopen that installed copy, not the mounted DMG, and review
+CLI health. Retained previous/staged bundles are not proof that the update is
+running. Murvix keeps retired bundles while running processes require them and
+cleans them after they become unused; do not delete those bundles while in use.
 
 ## A remote server won't connect
 

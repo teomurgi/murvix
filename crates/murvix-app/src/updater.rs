@@ -25,6 +25,19 @@ pub(crate) use macos::{CAPABILITY, Installation, PreparedUpdate};
 
 pub(crate) type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
+/// Read installation metadata off the UI thread; never substitute the running
+/// process version when the bundle has been replaced.
+pub(crate) fn installed_app_version() -> Result<String> {
+    #[cfg(target_os = "macos")]
+    {
+        macos::installed_app_version()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Installed app bundle metadata is unavailable on this platform".into())
+    }
+}
+
 pub(crate) const RELEASES: &str = "https://github.com/teomurgi/Murvix/releases/download";
 #[cfg(any(target_os = "macos", target_os = "linux", test))]
 const MAX_DOWNLOAD: u64 = 2 * 1024 * 1024 * 1024;

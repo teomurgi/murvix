@@ -12,6 +12,83 @@ pub(super) struct Setting {
 
 pub(super) const SETTINGS: &[Setting] = &[
     Setting {
+        id: "installation-health",
+        label: tr_key!("Installation & Updates"),
+        description: tr_key!(
+            "Bundled CLI link PATH shadowing repair shell setup login approval automatic downloads installed app running server versions pending activation."
+        ),
+        category: Category::Installation,
+        section: tr_key!("Installation & Updates"),
+    },
+    Setting {
+        id: "installation-cli",
+        label: tr_key!("Install or repair bundled CLI link"),
+        description: tr_key!(
+            "Link ~/.local/bin/murvix to this installed app. Never replaces unrelated commands."
+        ),
+        category: Category::Installation,
+        section: tr_key!("Installation & Updates"),
+    },
+    Setting {
+        id: "installation-shell",
+        label: tr_key!("Configure shell PATH…"),
+        description: tr_key!(
+            "Review and approve a managed shell block, or keep your custom manual setup."
+        ),
+        category: Category::Installation,
+        section: tr_key!("Installation & Updates"),
+    },
+    Setting {
+        id: "installation-login-enable",
+        label: tr_key!("Start Murvix at login"),
+        description: tr_key!(
+            "Register the main app using SMAppService. Approval may be required in Login Items Settings."
+        ),
+        category: Category::Installation,
+        section: tr_key!("Installation & Updates"),
+    },
+    Setting {
+        id: "installation-login-disable",
+        label: tr_key!("Do not start at login"),
+        description: tr_key!(
+            "Unregister login activation without stopping running terminal sessions."
+        ),
+        category: Category::Installation,
+        section: tr_key!("Installation & Updates"),
+    },
+    Setting {
+        id: "installation-login-settings",
+        label: tr_key!("Open Login Items Settings"),
+        description: tr_key!("Review native macOS approval and revocation."),
+        category: Category::Installation,
+        section: tr_key!("Installation & Updates"),
+    },
+    Setting {
+        id: "installation-check",
+        label: tr_key!("Check for Updates…"),
+        description: tr_key!("Manually check and download a bundled app, CLI, and server update."),
+        category: Category::Installation,
+        section: tr_key!("Installation & Updates"),
+    },
+    Setting {
+        id: "installation-refresh",
+        label: tr_key!("Refresh integration status"),
+        description: tr_key!(
+            "Check the CLI link, actual shell resolution, login approval, and installed version."
+        ),
+        category: Category::Installation,
+        section: tr_key!("Installation & Updates"),
+    },
+    Setting {
+        id: "installation-downloads",
+        label: tr_key!("Automatically download updates"),
+        description: tr_key!(
+            "Explicitly allow background release downloads. Manual update checks remain available."
+        ),
+        category: Category::Installation,
+        section: tr_key!("Installation & Updates"),
+    },
+    Setting {
         id: "browser-enabled",
         label: tr_key!("Enable built-in browser"),
         description: tr_key!(

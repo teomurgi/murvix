@@ -24,6 +24,51 @@ pub(crate) struct PreparedUpdate {
     pub(crate) build: Option<murvix_protocol::BuildInfo>,
 }
 
+pub(super) fn installed_app_version() -> Result<String> {
+    let executable = murvix_core::executable::current_path()?;
+    let mut bundle = executable
+        .parent()
+        .and_then(Path::parent)
+        .and_then(Path::parent)
+        .filter(|path| path.extension().is_some_and(|extension| extension == "app"))
+        .ok_or("The running executable is not inside an app bundle")?
+        .to_owned();
+    // A live process can now reside in the retired bundle after replacement.
+    // Its recorded installation, not previous.app, is the installed release.
+    if bundle
+        .file_name()
+        .is_some_and(|name| name == "previous.app")
+        && let Some(staging) = bundle.parent()
+        && staging
+            .file_name()
+            .is_some_and(|name| name.to_string_lossy().starts_with(".murvix-update-"))
+    {
+        let record: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(staging.join("retained.json"))?)?;
+        let installed = PathBuf::from(
+            record["bundle"]
+                .as_str()
+                .ok_or("Missing retained installation path")?,
+        );
+        if installed.parent() != staging.parent()
+            || installed
+                .extension()
+                .is_none_or(|extension| extension != "app")
+        {
+            return Err("Invalid retained installation path".into());
+        }
+        bundle = installed;
+    }
+    let version = run(Command::new("/usr/bin/plutil")
+        .args(["-extract", "MurvixVersion", "raw", "-o", "-"])
+        .arg(bundle.join("Contents/Info.plist")))?;
+    let version = version.trim();
+    if version.is_empty() {
+        return Err("The installed app has no version metadata".into());
+    }
+    Ok(version.to_owned())
+}
+
 impl Installation {
     pub(crate) fn detect() -> Result<Self> {
         if cfg!(debug_assertions) || release::current().is_none() {
@@ -104,7 +149,8 @@ impl Installation {
                 self.bundle
                     .parent()
                     .ok_or_else(|| tr!("Missing application directory").to_string())?,
-            )?;
+            )
+            .map_err(|error| installation_write_error(error, &self.bundle))?;
         let download_dir = tempfile::tempdir()?;
         let dmg = download_dir.path().join("update.dmg");
         download(&client, &release, &dmg)?;
@@ -413,6 +459,19 @@ impl PreparedUpdate {
 
 fn bundle_name() -> String {
     format!("{}.app", release::APP_NAME)
+}
+
+fn installation_write_error(
+    error: std::io::Error,
+    bundle: &Path,
+) -> Box<dyn std::error::Error + Send + Sync> {
+    if error.kind() == std::io::ErrorKind::PermissionDenied {
+        return tr!(
+            "The installation directory for %@ is not writable. Download the release DMG and replace the app in Finder, authorizing the replacement if requested, or install it in your personal Applications folder. No update was installed: %@",
+            bundle.display().to_string(), error.to_string()
+        ).to_string().into();
+    }
+    error.into()
 }
 
 fn restart(bundle: &Path) -> Result<()> {

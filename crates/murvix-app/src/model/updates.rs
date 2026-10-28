@@ -2,6 +2,7 @@ mod status;
 #[cfg(all(test, any(target_os = "macos", target_os = "linux")))]
 mod tests;
 
+use std::fmt::Write as _;
 use std::time::Duration;
 
 use gpui::{Context, Task};
@@ -217,6 +218,56 @@ impl AppModel {
         })
     }
 
+    pub(crate) fn installation_update_status(&self) -> String {
+        let installed = self.installation.installed_version.as_deref();
+        let mut status = format!(
+            "Installed app: {} · Running UI: {} · Running server: {}",
+            installed.unwrap_or("unavailable"),
+            env!("CARGO_PKG_VERSION"),
+            self.updates
+                .server
+                .as_ref()
+                .map_or("not connected", |server| server.build.version.as_str()),
+        );
+        if let Some(update) = &self.updates.ready {
+            if self.updates.scheduled {
+                let _ = write!(
+                    status,
+                    " · App update {} staged; activation waits for all terminal sessions, including idle and detached sessions, to end.",
+                    update.version
+                );
+            } else {
+                let _ = write!(
+                    status,
+                    " · App update {} staged; awaiting installation approval.",
+                    update.version
+                );
+            }
+        }
+        if let (Some(installed), Some(server)) = (installed, &self.updates.server)
+            && release::is_newer(installed, &server.build.version)
+        {
+            status.push_str(" · Installed app and running server differ. Running terminals are preserved; server activation waits for all terminal sessions to end.");
+        } else if self.server_update_pending() {
+            status.push_str(
+                " · Server activation pending; waiting for all terminal sessions to end.",
+            );
+        }
+        if installed.is_some_and(|version| version != env!("CARGO_PKG_VERSION")) {
+            status.push_str(" · Installed app and running UI differ; reopen the app to use the installed release.");
+        }
+        if let Some(error) = self
+            .updates
+            .app_error
+            .as_ref()
+            .or(self.updates.server_error.as_ref())
+        {
+            status.push_str(" · ");
+            status.push_str(error);
+        }
+        status
+    }
+
     fn start_server_update_poll(&mut self, cx: &mut Context<Self>) {
         self.updates.reconcile = Some(cx.spawn(async move |model, cx| {
             loop {
@@ -326,6 +377,9 @@ impl AppModel {
     }
 
     pub(crate) fn check_for_updates(&mut self, manual: bool, cx: &mut Context<Self>) {
+        if !manual && !self.installation.preferences.automatic_downloads {
+            return;
+        }
         if self.quitting != Quitting::Idle || self.close_prompt.is_some() {
             return;
         }
@@ -373,6 +427,12 @@ impl AppModel {
         result: crate::updater::Result<Option<Release>>,
         cx: &mut Context<Self>,
     ) -> Option<Release> {
+        // Consent can be revoked while the release request is in flight.
+        // A manual request that joined that request still authorizes a download.
+        if !self.updates.manual && !self.installation.preferences.automatic_downloads {
+            self.finish_update_check(Ok(None), cx);
+            return None;
+        }
         match result {
             Ok(Some(release))
                 if self

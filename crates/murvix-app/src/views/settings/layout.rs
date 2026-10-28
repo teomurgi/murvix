@@ -23,6 +23,7 @@ impl Category {
             Self::Composer => &[tr_key!("Behavior"), tr_key!("Text"), tr_key!("Voice")],
             Self::Browser => &[tr_key!("General"), tr_key!("Browsing"), tr_key!("Profiles")],
             Self::Ai => &[tr_key!("Commit"), tr_key!("Create Pull Request")],
+            Self::Installation => &[tr_key!("Installation & Updates")],
             Self::General => &[
                 tr_key!("Closing terminals"),
                 tr_key!("Files"),
@@ -82,6 +83,11 @@ impl SettingsView {
         }
         if category == Category::Mobile {
             cx.emit(SettingsEvent::ReadMobile);
+        }
+        if category == Category::Installation {
+            cx.emit(SettingsEvent::Installation(
+                crate::installation::Action::Refresh,
+            ));
         }
         cx.notify();
     }

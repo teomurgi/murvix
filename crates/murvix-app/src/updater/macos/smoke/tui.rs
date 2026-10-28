@@ -104,8 +104,7 @@ impl Tui {
     }
 
     pub(super) fn resume(&mut self) -> Result<()> {
-        self.signal("CONT")?;
-        self.output("Ended")
+        self.signal("CONT")
     }
 
     pub(super) fn exit(&mut self) -> Result<()> {

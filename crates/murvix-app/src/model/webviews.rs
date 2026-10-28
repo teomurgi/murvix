@@ -132,7 +132,10 @@ impl AppModel {
         let composer_dialog = (self.composer.view.is_some() || self.composer.closing.is_some())
             && self.settings.composer.presentation
                 == murvix_app_core::settings::ComposerPresentation::Floating;
-        let blocked = composer_dialog || self.overlay.is_some() || self.close_prompt.is_some();
+        let blocked = composer_dialog
+            || self.installation.onboarding.visible
+            || self.overlay.is_some()
+            || self.close_prompt.is_some();
         let resizing = self.resizing_surfaces(window, cx);
         self.spinners
             .set_blocked(resizing || composer_dialog || self.overlay_unmarked());
@@ -630,6 +633,7 @@ impl AppModel {
     ) {
         if (self.overlay.is_some() && !in_overlay)
             || self.close_prompt.is_some()
+            || self.installation.onboarding.visible
             || pane.is_some_and(|pane| !self.visible_panes().contains(&pane))
             || (view.read(cx).kind == SurfaceKind::Panel
                 && !self.webviews.panels.iter().any(|(id, panel)| {

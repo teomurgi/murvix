@@ -68,13 +68,42 @@ development details.
 1. From the [latest release](https://github.com/teomurgi/Murvix/releases/latest),
    download `Murvix-<version>-arm64.dmg` for Apple Silicon or
    `Murvix-<version>-x86_64.dmg` for Intel.
-2. Drag **Murvix** to `/Applications` and open it.
+2. Drag **Murvix** to `/Applications` or `~/Applications`, then open that copy.
+   Do not run setup from the mounted DMG, Downloads, or an App Translocation path:
+   move the app and reopen it first. Persistent CLI, shell, and login integration
+   is blocked outside the supported Applications folders.
 
-To use [`murvix`](../features/murvix-cli.md) in your shell, choose **Install Command
-Line Tool…** from the app menu. It links `~/.local/bin/murvix`.
+On first launch, review the setup choices before applying them:
 
-Packaged macOS builds include an in-app updater; it requires a published update
-feed. Running terminals normally remain on the existing server until it restarts.
+- **CLI:** link `~/.local/bin/murvix` to the CLI inside this app. Murvix records
+  ownership and repairs its own link after the app moves between the supported
+  folders. It does not replace unrelated files or another installation's command.
+- **Shell PATH:** optionally consent to the displayed managed block and startup
+  files for zsh, bash, or fish. It appends `~/.local/bin` only when absent; it
+  never takes precedence over an existing Homebrew/standalone command, alias, or
+  function. Open a **new shell** afterward; existing terminals are unchanged.
+  Custom setups can skip this and configure PATH manually or invoke
+  `~/.local/bin/murvix` directly.
+- **Start at login:** optional and off by default. This uses macOS's app login
+  service, not a separate server daemon; macOS may require Login Items approval.
+- **Automatic update downloads:** off by default and enabled only by explicit
+  choice. Packaged builds require a published update feed.
+
+You can skip CLI and shell setup; those opt-outs persist. Later, use
+**Settings → Installation & Updates** to install or repair the CLI, review shell
+setup, change login activation, or check updates. To undo shell setup, remove
+only the `Murvix managed PATH` block from the disclosed files. See
+[CLI installation](../features/murvix-cli.md#install) and
+[installation settings](settings.md#installation--updates-macos).
+
+Setup does not require terminal commands or administrator access. If CLI or
+shell integration fails, the desktop still opens; use **Installation & Updates**
+to inspect the error and repair the integration.
+
+Closing the window or quitting the app does not stop the on-demand apphost server
+or its terminal sessions. Login activation is independent of that persistence.
+Updates can leave the installed app newer than the running app or server; see
+[safe update recovery](troubleshooting.md#updates-and-running-sessions).
 
 ## Linux desktop app
 
@@ -194,7 +223,7 @@ leading `v`:
 VERSION='<version>'
 curl -fsSL "https://github.com/teomurgi/Murvix/releases/download/v$VERSION/install-murvix.sh" \
   | sh -s -- --version "$VERSION"
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="${PATH:+$PATH:}$HOME/.local/bin"
 ```
 
 The script picks the build for your OS and architecture, verifies its checksum,

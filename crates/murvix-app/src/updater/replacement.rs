@@ -38,7 +38,15 @@ fn replace_with(
     backup: &Path,
     mut rename: impl FnMut(&Path, &Path) -> std::io::Result<()>,
 ) -> Result<()> {
-    rename(current, backup)?;
+    rename(current, backup).map_err(|error| -> Box<dyn std::error::Error + Send + Sync> {
+        if error.kind() == std::io::ErrorKind::PermissionDenied {
+            return tr!(
+                "The installation directory is not writable. No update was installed. Download the release DMG and replace %@ in Finder, authorizing the replacement if requested, or install it in your personal Applications folder: %@",
+                current.display().to_string(), error.to_string()
+            ).to_string().into();
+        }
+        error.into()
+    })?;
     if let Err(error) = rename(next, current) {
         if let Err(rollback) = rename(backup, current) {
             return Err(tr!(
@@ -110,6 +118,26 @@ mod tests {
         assert_eq!(std::fs::read(current.join("app"))?, b"new");
         assert_eq!(std::fs::read(current.join("server"))?, b"new");
         assert_eq!(std::fs::read(backup.join("server"))?, b"old");
+        Ok(())
+    }
+
+    #[test]
+    fn permission_failure_preserves_both_bundles() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let current = dir.path().join("current.app");
+        let next = dir.path().join("next.app");
+        let backup = dir.path().join("previous.app");
+        std::fs::create_dir(&current)?;
+        std::fs::create_dir(&next)?;
+        std::fs::write(current.join("server"), b"old")?;
+        std::fs::write(next.join("server"), b"new")?;
+        replace_with(&current, &next, &backup, |_, _| {
+            Err(std::io::Error::from(std::io::ErrorKind::PermissionDenied))
+        })
+        .expect_err("replacement must not report success");
+        assert_eq!(std::fs::read(current.join("server"))?, b"old");
+        assert_eq!(std::fs::read(next.join("server"))?, b"new");
+        assert!(!backup.exists());
         Ok(())
     }
 }

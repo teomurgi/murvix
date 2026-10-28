@@ -19,10 +19,13 @@ fn signed_bundle(path: &Path, server: &Path, identity: &str) -> Result<()> {
     std::fs::create_dir_all(&binaries)?;
     std::fs::write(
         path.join("Contents/Info.plist"),
-        r#"<?xml version="1.0" encoding="UTF-8"?>
-<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>com.murvix-beta.app</string>
+        format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>{}</string>
 <key>CFBundleExecutable</key><string>murvix-app</string><key>CFBundlePackageType</key><string>APPL</string>
 </dict></plist>"#,
+            release::BUNDLE_ID
+        ),
     )?;
     std::fs::copy("/usr/bin/true", binaries.join("murvix-app"))?;
     std::fs::copy(server, binaries.join("murvix-server"))?;
@@ -37,7 +40,14 @@ fn signed_bundle(path: &Path, server: &Path, identity: &str) -> Result<()> {
             .arg(executable))?;
     }
     run(Command::new("/usr/bin/codesign")
-        .args(["--force", "--timestamp=none", "--sign", identity])
+        .args([
+            "--force",
+            "--timestamp=none",
+            "--sign",
+            identity,
+            "--identifier",
+            release::BUNDLE_ID,
+        ])
         .arg(path))?;
     Ok(())
 }
@@ -74,7 +84,7 @@ fn another_profiles_server_retains_its_bundle_without_a_tui() -> Result<()> {
     let identity = std::env::var("MUXY_TEST_SIGN_IDENTITY")?;
     let binary = PathBuf::from(std::env::var("MUXY_TEST_SERVER")?);
     let directory = tempfile::tempdir()?;
-    let bundle = directory.path().join("Murvix Beta.app");
+    let bundle = directory.path().join(bundle_name());
     signed_bundle(&bundle, &binary, &identity)?;
     let installation = Installation {
         bundle: bundle.clone(),
@@ -125,7 +135,7 @@ fn signed_bundle_updates_preserve_shell_and_retire_only_unused_bundles() -> Resu
     let team = std::env::var("MUXY_TEST_SIGN_TEAM")?;
     let binary = PathBuf::from(std::env::var("MUXY_TEST_SERVER")?);
     let directory = tempfile::tempdir()?;
-    let bundle = directory.path().join("Murvix Beta.app");
+    let bundle = directory.path().join(bundle_name());
     signed_bundle(&bundle, &binary, &identity)?;
     let installation = Installation {
         bundle: bundle.clone(),
@@ -185,7 +195,6 @@ fn signed_bundle_updates_preserve_shell_and_retire_only_unused_bundles() -> Resu
     client.send_input(attached.channel, b"echo $$ > second.pid\n")?;
     assert_eq!(output(&data.join("second.pid"))?, pid);
     client.end_session(tui_session)?;
-    tui.output("Ended")?;
     tui.suspend()?;
     client.end_session(session.id)?;
     assert!(client.stop_server_if_idle()?);
@@ -224,10 +233,10 @@ fn replace_bundle(
     identity: &str,
 ) -> Result<PathBuf> {
     let staging = tempfile::Builder::new()
-        .prefix(".murvix-beta-update-")
+        .prefix(".murvix-update-")
         .tempdir_in(installation.bundle.parent().ok_or("parent")?)?
         .keep();
-    let candidate = staging.join("Murvix Beta.app");
+    let candidate = staging.join(bundle_name());
     signed_bundle(&candidate, binary, identity)?;
     installation.verify_signature(&candidate, true)?;
     let update = PreparedUpdate {

@@ -7,8 +7,10 @@ mod cli_install;
 mod diagnostics;
 mod extensions;
 mod favicon;
+mod installation;
 #[cfg(any(target_os = "linux", test))]
 mod instance;
+mod login;
 mod model;
 mod navigation;
 #[cfg(target_os = "linux")]
