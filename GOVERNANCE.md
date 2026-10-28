@@ -93,11 +93,11 @@ Policy files alone do not enforce repository settings. The following rulesets ar
 
 | Ruleset | Policy file | Authority |
 | --- | --- | --- |
-| main integrity | `main-integrity.json` | PR required, resolved review threads, current-base `macos` and `omarchy` checks from Actions app 15368, no force push/deletion; no bypass |
-| main maintainer merges | `main-maintainers.json` | Restrict updates; administrator role (ID 5) can bypass **through a PR only** |
+| main integrity | `main-integrity.json` | PR required, resolved review threads, current-base `macos` and `omarchy` checks from Actions app 15368, no force push/deletion; administrator role (ID 5) always-bypass for direct pushes |
+| main maintainer merges | `main-maintainers.json` | Restrict updates; administrator role (ID 5) always-bypass |
 | release tags maintained by admins | `release-maintainers.json` | Restrict creation, update, and deletion of `v*` tags; administrator-only bypass |
 
-The two `main` rulesets must remain separate: combining them would let the merge-authority bypass skip the integrity requirements.
+The two `main` rulesets must remain separate: combining them would let the merge-authority bypass skip the integrity requirements. The administrator always-bypass exists so the maintainer can push directly to `main`; use it for trusted local work only, never to land unreviewed contributor code.
 
 Audit installed rules with:
 
