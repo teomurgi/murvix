@@ -105,12 +105,23 @@ its release branch, and dispatch **Release** again; do not merge `main` into the
 version branch. Merge only after review: the merge event verifies the version-only
 change, tags the exact merged commit, and builds and publishes the release.
 If a build or publication fails, rerun the original merged-PR workflow for
-transient failures or corrected secrets. After merging workflow repairs, use
+transient failures or corrected secrets. After merging workflow-only repairs, use
 **Release → retry_version** to rebuild the unchanged existing tag with repaired
-tooling, without bumping or moving the tag. Local release tooling requires
-Python 3.11 or newer; Actions installs Python 3.12 explicitly.
+workflow steps, without bumping or moving the tag. Retries still check out the
+tag's release scripts and vendored build code; fixes to those files require a
+new release from the corrected source, not a retry of the broken tag.
+Local release tooling requires Python 3.11 or newer; Actions installs Python 3.12
+explicitly.
 See the [release runbook](GOVERNANCE.md#releases) for credentials and operational
 details. Main-branch protection is never bypassed.
+
+Release metadata checks resolve the protocol's `CURRENT` constant to its wire
+version before comparing each executable's `--build-info`. The Python regression
+suite covers this resolution independently of the installed Rust binaries.
+The vendored Ghostty build applies `lazy-benchmarks.patch` so disabled benchmarks
+do not fetch their unused GUI dependencies (`vaxis`, `freetype`, and their
+transitive packages) during terminal-library builds. Keep this patch when
+updating the pinned Ghostty revision until the upstream build does the same.
 
 ## Code Standards
 

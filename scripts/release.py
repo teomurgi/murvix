@@ -25,7 +25,7 @@ def build_metadata(root=ROOT):
     """The --build-info every executable of this checkout reports."""
     build = (root / "crates/murvix-protocol/src/build.rs").read_text()
     version = (root / "crates/murvix-protocol/src/version.rs").read_text()
-    current = re.search(r"pub const CURRENT: Version = V\d+;", version)[1]
+    current = re.search(r"pub const CURRENT: Version = (V\d+);", version)[1]
     number = int(re.search(rf"pub const {current}: Version = Version\((\d+)\);", version)[1])
     return {
         "compatibility": int(re.search(r"pub const COMPATIBILITY: u64 = (\d+);", build)[1]),
