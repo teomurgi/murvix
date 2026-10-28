@@ -12,12 +12,51 @@ own, with its own layout.
 
 ## Install
 
-- **With the installed desktop app:** choose **Install Command Line Tool…**
-  from the app menu. It links `~/.local/bin/murvix` to the tool installed with
-  the app (inside the macOS bundle, alongside the Linux app).
+- **With the macOS desktop app:** accept CLI setup on first launch, or use
+  **Settings → Installation & Updates → Install or repair bundled CLI link**
+  (**Install Command Line Tool…** in the app menu is also available). Run the
+  app from `/Applications` or `~/Applications`, not the DMG. The link at
+  `~/.local/bin/murvix` points inside the app; an ownership receipt lets Murvix
+  repair its own link after relocation without replacing unrelated files.
+- **With the Linux desktop app:** choose **Install Command Line Tool…** from
+  the app menu to link the bundled CLI into `~/.local/bin`.
 - **On its own:** see [Getting started](../user-guide/getting-started.md#cli-and-server-only).
 
-Make sure `~/.local/bin` is on your `PATH`.
+On macOS, optional **Configure shell PATH…** shows the files and managed block
+before requesting consent. It updates only the marked block, preserving the
+rest of your configuration:
+
+| Shell | Startup files |
+| --- | --- |
+| zsh | `.zshrc` under `$ZDOTDIR`, or your home folder if unset |
+| bash | `~/.bashrc` plus the first existing `~/.bash_profile`, `~/.bash_login`, or `~/.profile` (creates `.bash_profile` if none exists) |
+| fish | `fish/config.fish` under `$XDG_CONFIG_HOME`, or `~/.config` if unset |
+
+The block appends `~/.local/bin` **only if absent**. It does not move it earlier
+on PATH or override a Homebrew/standalone command, alias, or function. If another
+command shadows Murvix, setup reports that rather than taking over precedence.
+Run `command -v murvix` and `murvix --version` in a **new shell** to check;
+already-open terminals do not receive the changed environment.
+
+For custom startup files, unsupported shells, or symlinked configuration files,
+choose manual setup instead. Append the directory in your own configuration:
+
+```sh
+# zsh or bash
+export PATH="${PATH:+$PATH:}$HOME/.local/bin"
+```
+
+```fish
+if not contains -- "$HOME/.local/bin" $PATH
+    set -gx PATH $PATH "$HOME/.local/bin"
+end
+```
+
+Or invoke `~/.local/bin/murvix` directly without changing PATH. Skipping CLI or
+shell setup is remembered; it is not silently enabled on the next launch.
+Remove only the `# >>> Murvix managed PATH >>>` through
+`# <<< Murvix managed PATH <<<` block to undo managed shell setup. Adjust other
+installations and aliases yourself only if you want to change which command wins.
 
 ## Basics
 

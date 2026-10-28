@@ -882,6 +882,7 @@ impl AppModel {
                     cx.notify();
                 }
                 let native_visible = self.overlay.is_none()
+                    && !self.installation.onboarding.visible
                     && self.voice.view.is_none()
                     && self.voice.closing.is_none()
                     && self.close_prompt.is_none()
@@ -954,6 +955,15 @@ impl Render for AppModel {
             self.sync_webviews(window, cx);
         }
         self.prepare_workspace(window, cx);
+        if let Some(setup) = crate::installation::setup(self, cx) {
+            return crate::profiler::workspace(
+                div()
+                    .relative()
+                    .size_full()
+                    .font_family(".SystemUIFont")
+                    .child(setup),
+            );
+        }
         self.sync_project_logos(window, cx);
         #[cfg(all(target_os = "macos", not(test)))]
         self.sync_background_effects(window, cx);

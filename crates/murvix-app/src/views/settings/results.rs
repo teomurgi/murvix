@@ -166,6 +166,7 @@ impl SettingsView {
                 Category::Commands,
                 Category::Browser,
                 Category::Server,
+                Category::Installation,
                 Category::Mobile,
                 Category::Extensions,
                 Category::Ai,
@@ -298,6 +299,7 @@ impl SettingsView {
             Category::Backup => super::backup::rows(self, cx),
             Category::Terminal => terminal::rows(self, window, cx),
             Category::Server => server::rows(self, cx),
+            Category::Installation => super::installation::rows(self, cx),
             Category::Mobile => super::mobile::rows(self, cx),
             Category::Keyboard | Category::Commands => Vec::new(),
             Category::Extensions => {

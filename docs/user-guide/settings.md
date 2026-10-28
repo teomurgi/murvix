@@ -17,10 +17,42 @@ settings require a connection to the local server.
 | Terminal | Fonts, spacing, transparency, vibrancy, colors, cursor, padding, selection, scrolling, Option keys, key bindings |
 | Browser | The [built-in browser](../features/browser.md): terminal links, search engine, home page, profiles, import |
 | Server | This computer's [server](../features/server.md#settings): shell, history, shell integration, stop and restart |
+| Installation & Updates | macOS CLI and shell integration, app-at-login status, installed/running versions, and update controls |
 | Mobile | [Mobile access](../features/mobile.md), TLS pairing, and paired devices |
 | Extensions | Installed extensions and the marketplace |
 | AI | Tools and prompts for [Git](../features/git.md) actions |
 | Backup & Restore | Export, restore, and import from 1.x |
+
+## Installation & Updates (macOS)
+
+This section brings together CLI health, shell resolution, native login-item
+status, and update status. It distinguishes the **installed bundle version**,
+**running app version**, **running local server version**, and a **pending update**
+when present: replacing the bundle does not replace processes already running.
+Use **Refresh integration status** after moving the app or changing your shell.
+
+- **Install or repair bundled CLI link** manages `~/.local/bin/murvix`. Only
+  Murvix-owned links are repaired automatically after relocation; unrelated
+  commands are preserved. First-run CLI and shell opt-outs survive relaunch.
+- **Configure shell PATH…** discloses the exact files and managed block before
+  asking permission. zsh, bash, and fish are supported; custom or symlinked
+  configurations can use manual setup instead. The block appends the directory
+  only when missing, without changing existing command precedence. Open a new
+  shell after applying it; remove the marked block to undo it.
+- **Start Murvix at login** registers the main app through macOS `SMAppService`.
+  **Do not start at login** unregisters it. **Open Login Items Settings** lets
+  you approve a pending request or review a revoked permission. Murvix reports
+  macOS's actual status and does not silently restore revoked approval.
+- **Automatically download updates** is **off by default**. Turn it on explicitly
+  to allow background downloads; **Check for Updates…** remains available for a
+  manual check. Downloads and installation are separate from restarting the app
+  and server.
+
+Run persistent setup only from `/Applications` or `~/Applications`, not a DMG
+or translocated copy. Start at login opens the app; it is not required to keep
+the on-demand apphost server alive after closing a window or quitting Murvix.
+For session-safe restarts and manual bundle replacement, see
+[Troubleshooting](troubleshooting.md#updates-and-running-sessions).
 
 ## Files
 
@@ -34,6 +66,7 @@ section opens its file.
 | `terminal.toml` | Terminal preferences and key bindings |
 | `themes/` | Your own themes |
 | `server.toml` | Server settings |
+| `installation.json` | This profile's setup completion, CLI/shell choices, and automatic-download consent; login approval remains in macOS |
 
 - Restart the app after editing `settings.toml` by hand. If the file has an
   error or an unknown key, the app won't open; see

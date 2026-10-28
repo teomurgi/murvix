@@ -232,7 +232,7 @@ pub(crate) async fn prompt_update(
         (false, 0) => UpdateChoice::Schedule,
         _ => UpdateChoice::Later,
     };
-    if choice == UpdateChoice::EndSessions && !server_prompt(window, &tr!("Update and End All Sessions?"), &tr!("Update and End Sessions"), &tr!("All terminal processes on this device will end, including sessions used by other clients. Terminal panes will close. App-only panes and settings will remain."), cx).await? {
+    if choice == UpdateChoice::EndSessions && !server_prompt(window, &tr!("Update and End All Sessions?"), &tr!("Update and End Sessions"), &tr!("All terminal processes on this device will end, including idle shells, detached sessions, and sessions used by other clients. Terminal panes will close. App-only panes and settings will remain."), cx).await? {
         return Ok(UpdateChoice::Later);
     }
     Ok(choice)
@@ -246,7 +246,7 @@ async fn prompt_install(
     cx: &mut AsyncApp,
 ) -> Result<UpdateChoice, String> {
     let message = tr!(
-        "Install Murvix %@ and restart the app? Running terminals will continue, and the server will update when all terminal sessions end. Restarting the server now ends all terminal sessions on this device, including sessions used by other clients.",
+        "Install Murvix %@ and restart the app? Running terminals will continue, and the server will update when all terminal sessions end. Restarting the server now ends all terminal sessions on this device, including idle shells, detached sessions, and sessions used by other clients.",
         version
     );
     Ok(match install_prompt(window, &message, cx).await? {

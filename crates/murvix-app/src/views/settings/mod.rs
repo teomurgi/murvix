@@ -6,6 +6,7 @@ mod catalog;
 mod commands;
 mod composer;
 pub(crate) mod extensions;
+mod installation;
 mod keyboard;
 mod languages;
 mod layout;
@@ -64,13 +65,14 @@ pub(crate) enum Category {
     Commands,
     Browser,
     Server,
+    Installation,
     Mobile,
     Extensions,
     Backup,
 }
 
 impl Category {
-    pub(crate) const ALL: [Self; 13] = [
+    pub(crate) const ALL: [Self; 14] = [
         Self::General,
         Self::QuickTerminal,
         Self::Composer,
@@ -80,6 +82,7 @@ impl Category {
         Self::Terminal,
         Self::Browser,
         Self::Server,
+        Self::Installation,
         Self::Mobile,
         Self::Extensions,
         Self::Ai,
@@ -99,6 +102,7 @@ impl Category {
             Self::Commands => tr_key!("Commands"),
             Self::Browser => tr_key!("Browser"),
             Self::Server => tr_key!("Server"),
+            Self::Installation => tr_key!("Installation & Updates"),
             Self::Mobile => tr_key!("Mobile"),
             Self::Extensions => tr_key!("Extensions"),
             Self::Backup => tr_key!("Backup & Restore"),
@@ -143,6 +147,7 @@ pub(crate) enum Change {
 }
 
 pub(crate) enum SettingsEvent {
+    Installation(crate::installation::Action),
     QuickRecording(bool),
     Backup(backup::Action),
     Change(Change),
@@ -170,6 +175,9 @@ pub(crate) struct Snapshot {
     pub(crate) connected: bool,
     pub(crate) server_busy: bool,
     pub(crate) server_update: Option<String>,
+    pub(crate) installation: crate::installation::State,
+    pub(crate) installation_update: String,
+    pub(crate) installation_problem: Option<String>,
     pub(crate) pending_server_fields: HashSet<String>,
     pub(crate) mobile: Option<murvix_protocol::RemoteAccessState>,
     pub(crate) mobile_pairing: Option<mobile::Pairing>,
@@ -635,6 +643,7 @@ impl SettingsView {
             Category::Server => Some("server.toml"),
             Category::Terminal => Some("terminal.toml"),
             Category::Mobile => None,
+            Category::Installation => Some("installation.json"),
             _ => Some("settings.toml"),
         }
     }

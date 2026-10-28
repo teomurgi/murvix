@@ -25,7 +25,7 @@ fn walkthrough(cx: &mut TestAppContext) -> Result {
     view.update(cx, AppModel::new_tab);
     wait_live(cx, &view)?;
     shell(cx, "printf '\\nHOST_READY\\n'");
-    wait_text(cx, &view, "HOST_READY")?;
+    wait_output(cx, &view, "HOST_READY")?;
     let hosting = active_session(&view, cx)?;
     let probe = Client::connect(&directory.join("server.sock"))?;
     let channel = probe
@@ -66,9 +66,9 @@ fn walkthrough(cx: &mut TestAppContext) -> Result {
     wait_live(cx, &view)?;
     assert_eq!(active_session(&view, cx)?, session.info.id);
     probe.send_input(channel, b"printf '\\nTUI_TO_DESKTOP\\n'\r")?;
-    wait_text(cx, &view, "TUI_TO_DESKTOP")?;
+    wait_output(cx, &view, "TUI_TO_DESKTOP")?;
     shell(cx, "printf '\\nDESKTOP_TO_TUI\\n'");
-    wait_text(cx, &view, "DESKTOP_TO_TUI")?;
+    wait_output(cx, &view, "DESKTOP_TO_TUI")?;
     view.update(cx, |model, cx| {
         model.select_tab(model.state.home().tabs[0].id, cx);
     });
@@ -256,10 +256,18 @@ fn shared_closes(
             .any(|info| info.id == session.info.id)
     );
     probe.send_input(channel, b"\x02d")?;
-    wait_text(cx, view, "SECOND_DETACHED")?;
+    wait_output(cx, view, "SECOND_DETACHED")?;
     report(
         "Duplicate desktop tabs and hidden desktop/TUI tabs preserve a shared session; final tab close ends it: PASS",
     )
+}
+
+fn wait_output(cx: &mut VisualTestContext, view: &Entity<AppModel>, expected: &str) -> Result {
+    wait(cx, view, |model, cx| {
+        active_grid(model, cx).is_some_and(|grid| {
+            (0..grid.rows.len()).any(|row| grid.row_text(row).trim() == expected)
+        })
+    })
 }
 
 fn add_duplicate_tab(

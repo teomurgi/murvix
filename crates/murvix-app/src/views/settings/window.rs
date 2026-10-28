@@ -543,6 +543,11 @@ impl SettingsWindow {
 
     fn handle_event(&mut self, event: &SettingsEvent, window: &mut Window, cx: &mut Context<Self>) {
         match event {
+            SettingsEvent::Installation(action) => {
+                let _ = self
+                    .model
+                    .update(cx, |model, cx| model.installation_action(*action, cx));
+            }
             SettingsEvent::QuickRecording(recording) => {
                 let _ = self
                     .model

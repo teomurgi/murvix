@@ -130,6 +130,7 @@ pub(crate) struct AppModel {
     pub(crate) focus: FocusHandle,
     pub(crate) appearance: murvix_app_core::settings::Appearance,
     pub(crate) settings: murvix_app_core::settings::Settings,
+    pub(crate) installation: crate::installation::State,
     terminal: murvix_app_core::settings::TerminalSettings,
     server_preferences: preferences::ServerPreferences,
     mobile: mobile::MobileAccess,
@@ -539,6 +540,9 @@ impl AppModel {
             notice_body: None,
             notice_serial: 0,
             focus: cx.focus_handle(),
+            installation: crate::installation::State::load(
+                &boot.state_path.with_file_name("installation.json"),
+            ),
             appearance: boot.settings.appearance.clone(),
             project_logo_task: None,
             project_logos: HashMap::new(),
@@ -644,6 +648,7 @@ impl AppModel {
                 .record((model.state.current_project().id, tab));
         }
         Self::start_diagnostics(cx);
+        model.start_installation(cx);
         model.start_update_checks(cx);
         model.start_servers(cx);
         model

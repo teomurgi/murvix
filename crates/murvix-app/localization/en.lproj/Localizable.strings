@@ -116,7 +116,6 @@
 "Add Server…" = "Add Server…";
 "Add a GitHub remote named origin to open a pull request" = "Add a GitHub remote named origin to open a pull request";
 "Add space between terminal lines using pixels or a percentage, such as 10%%." = "Add space between terminal lines using pixels or a percentage, such as 10%%.";
-"Add ~/.local/bin to your PATH. For this shell, run:\nexport PATH=\"$HOME/.local/bin:$PATH\"" = "Add ~/.local/bin to your PATH. For this shell, run:\nexport PATH=\"$HOME/.local/bin:$PATH\"";
 "Added %lld projects from Murvix 1.x. Projects and tabs you already had are unchanged." = "Added %lld projects from Murvix 1.x. Projects and tabs you already had are unchanged.";
 "Additional Prompt" = "Additional Prompt";
 "Additional instructions" = "Additional instructions";
@@ -137,7 +136,7 @@
 "All running terminal sessions on %@ will end. Saved terminal output and settings will remain." = "All running terminal sessions on %@ will end. Saved terminal output and settings will remain.";
 "All running terminal sessions on this device will end. Saved terminal output and settings will remain." = "All running terminal sessions on this device will end. Saved terminal output and settings will remain.";
 "All split panes" = "All split panes";
-"All terminal processes on this device will end, including sessions used by other clients. Terminal panes will close. App-only panes and settings will remain." = "All terminal processes on this device will end, including sessions used by other clients. Terminal panes will close. App-only panes and settings will remain.";
+"All terminal processes on this device will end, including idle shells, detached sessions, and sessions used by other clients. Terminal panes will close. App-only panes and settings will remain." = "All terminal processes on this device will end, including idle shells, detached sessions, and sessions used by other clients. Terminal panes will close. App-only panes and settings will remain.";
 "Allow" = "Allow";
 "Allow %@?" = "Allow %@?";
 "Allow & Remember" = "Allow & Remember";
@@ -183,6 +182,7 @@
 "Automatic updates require a user-installed Linux desktop release" = "Automatic updates require a user-installed Linux desktop release";
 "Automatic updates require an installed %@.app" = "Automatic updates require an installed %@.app";
 "Automatic updates require an installed release of %@" = "Automatic updates require an installed release of %@";
+"Automatically download updates" = "Automatically download updates";
 "Back" = "Back";
 "Background" = "Background";
 "Background color" = "Background color";
@@ -236,6 +236,7 @@
 "Browsing" = "Browsing";
 "Built-in" = "Built-in";
 "Built-in browser is disabled" = "Built-in browser is disabled";
+"Bundled CLI link PATH shadowing repair shell setup login approval automatic downloads installed app running server versions pending activation." = "Bundled CLI link PATH shadowing repair shell setup login approval automatic downloads installed app running server versions pending activation.";
 "Bundled murvix executable is missing" = "Bundled murvix executable is missing";
 "By default, ⌘D splits right, ⌘⇧D splits down, ⌘⌥ plus an arrow moves between panes, and ⌘⇧↩ maximizes or restores the focused pane." = "By default, ⌘D splits right, ⌘⇧D splits down, ⌘⌥ plus an arrow moves between panes, and ⌘⇧↩ maximizes or restores the focused pane.";
 "By default, ⌘I opens Composer to draft prompts with files, images, or dictation, and ⌘↩ sends it. Send to All Split Panes in its menu targets every split." = "By default, ⌘I opens Composer to draft prompts with files, images, or dictation, and ⌘↩ sends it. Send to All Split Panes in its menu targets every split.";
@@ -256,6 +257,7 @@
 "Check after import:" = "Check after import:";
 "Check for Updates…" = "Check for Updates…";
 "Check for updates" = "Check for updates";
+"Check the CLI link, actual shell resolution, login approval, and installed version." = "Check the CLI link, actual shell resolution, login approval, and installed version.";
 "Check the marketplace for a newer version." = "Check the marketplace for a newer version.";
 "Checked out" = "Checked out";
 "Checking folder…" = "Checking folder…";
@@ -340,6 +342,7 @@
 "Closed pane cleanup is pending: %@" = "Closed pane cleanup is pending: %@";
 "Closing PR #%lld" = "Closing PR #%lld";
 "Closing terminals" = "Closing terminals";
+"Closing the window or quitting Murvix preserves the on-demand server. Start at login opens the app; it is independent of terminal session persistence." = "Closing the window or quitting Murvix preserves the on-demand server. Start at login opens the app; it is independent of terminal session persistence.";
 "Codepoint fonts" = "Codepoint fonts";
 "Collapse Composer" = "Collapse Composer";
 "Collapse Project" = "Collapse Project";
@@ -352,6 +355,7 @@
 "Colors for the interface and terminals when macOS uses light appearance." = "Colors for the interface and terminals when macOS uses light appearance.";
 "Combine programming symbols when the selected font supports ligatures." = "Combine programming symbols when the selected font supports ligatures.";
 "Command" = "Command";
+"Command Line Integration" = "Command Line Integration";
 "Command Line Tool Installed" = "Command Line Tool Installed";
 "Command Palette…" = "Command Palette…";
 "Command-click a web link in a terminal to open it in a browser tab instead of your system browser." = "Command-click a web link in a terminal to open it in a browser tab instead of your system browser.";
@@ -379,6 +383,11 @@
 "Configuration file exceeds 16 MiB" = "Configuration file exceeds 16 MiB";
 "Configuration filenames must be UTF-8" = "Configuration filenames must be UTF-8";
 "Configuration files" = "Configuration files";
+"Configure" = "Configure";
+"Configure Shell" = "Configure Shell";
+"Configure my shell PATH (or turn off for manual setup)" = "Configure my shell PATH (or turn off for manual setup)";
+"Configure shell PATH?" = "Configure shell PATH?";
+"Configure shell PATH…" = "Configure shell PATH…";
 "Confirm" = "Confirm";
 "Confirm Git Operation" = "Confirm Git Operation";
 "Confirm before closing a running process" = "Confirm before closing a running process";
@@ -398,6 +407,7 @@
 "Connecting…" = "Connecting…";
 "Connection" = "Connection";
 "Connection succeeded · Murvix %@" = "Connection succeeded · Murvix %@";
+"Continue" = "Continue";
 "Cookies" = "Cookies";
 "Copied image is larger than 25 MiB" = "Copied image is larger than 25 MiB";
 "Copied the path" = "Copied the path";
@@ -555,6 +565,7 @@
 "Dismiss" = "Dismiss";
 "Dismiss Dictation Error" = "Dismiss Dictation Error";
 "Distribute unused cell space equally around the terminal grid." = "Distribute unused cell space equally around the terminal grid.";
+"Do not start at login" = "Do not start at login";
 "Dock Panel" = "Dock Panel";
 "Don't ask again" = "Don't ask again";
 "Downloading and verifying the latest release. You can keep working." = "Downloading and verifying the latest release. You can keep working.";
@@ -574,6 +585,7 @@
 "Enable Quick Terminal" = "Enable Quick Terminal";
 "Enable built-in browser" = "Enable built-in browser";
 "Enable it in Settings → Browser." = "Enable it in Settings → Browser.";
+"Enable the murvix command — recommended" = "Enable the murvix command — recommended";
 "Enable working-directory tracking and prompt navigation in new sessions." = "Enable working-directory tracking and prompt navigation in new sessions.";
 "Enabled" = "Enabled";
 "Enabling…" = "Enabling…";
@@ -601,6 +613,7 @@
 "Expand Worktrees" = "Expand Worktrees";
 "Expand sidebar" = "Expand sidebar";
 "Expand worktrees when switching projects" = "Expand worktrees when switching projects";
+"Explicitly allow background release downloads. Manual update checks remain available." = "Explicitly allow background release downloads. Manual update checks remain available.";
 "Export backup" = "Export backup";
 "Export…" = "Export…";
 "Extend" = "Extend";
@@ -680,7 +693,6 @@
 "History budget is too large" = "History budget is too large";
 "History budget per session (MiB)" = "History budget per session (MiB)";
 "Home directory is unavailable" = "Home directory is unavailable";
-"Home directory unavailable" = "Home directory unavailable";
 "Home page" = "Home page";
 "Horizontal padding (points)" = "Horizontal padding (points)";
 "How much heavier text is drawn when Thicken font is on." = "How much heavier text is drawn when Thicken font is on.";
@@ -721,7 +733,7 @@
 "Install %@ and open it from there before installing its command line tool." = "Install %@ and open it from there before installing its command line tool.";
 "Install %@ to use offline dictation." = "Install %@ to use offline dictation.";
 "Install Command Line Tool…" = "Install Command Line Tool…";
-"Install Murvix %@ and restart the app? Running terminals will continue, and the server will update when all terminal sessions end. Restarting the server now ends all terminal sessions on this device, including sessions used by other clients." = "Install Murvix %@ and restart the app? Running terminals will continue, and the server will update when all terminal sessions end. Restarting the server now ends all terminal sessions on this device, including sessions used by other clients.";
+"Install Murvix %@ and restart the app? Running terminals will continue, and the server will update when all terminal sessions end. Restarting the server now ends all terminal sessions on this device, including idle shells, detached sessions, and sessions used by other clients." = "Install Murvix %@ and restart the app? Running terminals will continue, and the server will update when all terminal sessions end. Restarting the server now ends all terminal sessions on this device, including idle shells, detached sessions, and sessions used by other clients.";
 "Install Murvix…" = "Install Murvix…";
 "Install a Linux build there by hand, from scripts/build-linux-dev.sh." = "Install a Linux build there by hand, from scripts/build-linux-dev.sh.";
 "Install a matching build there by hand, from scripts/build-linux-dev.sh." = "Install a matching build there by hand, from scripts/build-linux-dev.sh.";
@@ -730,9 +742,11 @@
 "Install failed: %@" = "Install failed: %@";
 "Install murvix-server & Test Connection" = "Install murvix-server & Test Connection";
 "Install murvix-server on %@?" = "Install murvix-server on %@?";
+"Install or repair bundled CLI link" = "Install or repair bundled CLI link";
 "Install the Silero speech detection model at %@ to use offline dictation." = "Install the Silero speech detection model at %@ to use offline dictation.";
 "Install whisper-cli 1.9.5 or later to use offline dictation." = "Install whisper-cli 1.9.5 or later to use offline dictation.";
 "Install whisper-cli and parec, then choose a multilingual GGML model file. Leave blank to use ggml-base.bin in your user data folder under murvix/voice. That folder must also contain ggml-silero-v6.2.0.bin for speech detection. Audio stays on this computer and is transcribed after you finish." = "Install whisper-cli and parec, then choose a multilingual GGML model file. Leave blank to use ggml-base.bin in your user data folder under murvix/voice. That folder must also contain ggml-silero-v6.2.0.bin for speech detection. Audio stays on this computer and is transcribed after you finish.";
+"Installation & Updates" = "Installation & Updates";
 "Installed" = "Installed";
 "Installed %@.\n\n%@" = "Installed %@.\n\n%@";
 "Installing murvix-server, then testing connection…" = "Installing murvix-server, then testing connection…";
@@ -762,6 +776,7 @@
 "Its projects and layouts leave this app; nothing on the server changes." = "Its projects and layouts leave this app; nothing on the server changes.";
 "Just now" = "Just now";
 "Keep Waiting" = "Keep Waiting";
+"Keep manual setup" = "Keep manual setup";
 "Key" = "Key";
 "Key bindings" = "Key bindings";
 "Keyboard" = "Keyboard";
@@ -780,6 +795,7 @@
 "Lime" = "Lime";
 "Line spacing" = "Line spacing";
 "Line spacing from 1.1 to 2.0." = "Line spacing from 1.1 to 2.0.";
+"Link ~/.local/bin/murvix to this installed app. Never replaces unrelated commands." = "Link ~/.local/bin/murvix to this installed app. Never replaces unrelated commands.";
 "List each agent and open its pane, or each project and worktree running agents and open it." = "List each agent and open its pane, or each project and worktree running agents and open it.";
 "List the current worktree first, then the most recently used. Off, the project comes first, then its worktrees." = "List the current worktree first, then the most recently used. Off, the project comes first, then its worktrees.";
 "Listening on port %lld" = "Listening on port %lld";
@@ -819,6 +835,7 @@
 "Manage scheduled update…" = "Manage scheduled update…";
 "Manage the local server that keeps your terminal sessions running." = "Manage the local server that keeps your terminal sessions running.";
 "Manual Order" = "Manual Order";
+"Manually check and download a bundled app, CLI, and server update." = "Manually check and download a bundled app, CLI, and server update.";
 "Maximize" = "Maximize";
 "Maximize Pane" = "Maximize Pane";
 "Merge" = "Merge";
@@ -967,8 +984,10 @@
 "Older sessions" = "Older sessions";
 "On" = "On";
 "On-device speech recognition is unavailable for this language. Choose another dictation language." = "On-device speech recognition is unavailable for this language. Choose another dictation language.";
+"One app bundle contains the desktop, command line tool, and server. No administrator access is needed." = "One app bundle contains the desktop, command line tool, and server. No administrator access is needed.";
 "Open" = "Open";
 "Open Browser Tab" = "Open Browser Tab";
+"Open Login Items Settings" = "Open Login Items Settings";
 "Open Project" = "Open Project";
 "Open Project…" = "Open Project…";
 "Open Quick Terminal" = "Open Quick Terminal";
@@ -1094,9 +1113,11 @@
 "Record shortcut" = "Record shortcut";
 "Red" = "Red";
 "Refresh" = "Refresh";
+"Refresh integration status" = "Refresh integration status";
 "Refresh sessions" = "Refresh sessions";
 "Refresh the pull request status before trying again." = "Refresh the pull request status before trying again.";
 "Regex" = "Regex";
+"Register the main app using SMAppService. Approval may be required in Login Items Settings." = "Register the main app using SMAppService. Approval may be required in Login Items Settings.";
 "Reload" = "Reload";
 "Reload settings" = "Reload settings";
 "Reload terminal settings" = "Reload terminal settings";
@@ -1174,7 +1195,9 @@
 "Reveal log" = "Reveal log";
 "Reveal the native macOS material by reducing the solid background tint." = "Reveal the native macOS material by reducing the solid background tint.";
 "Reveal worktrees when selecting a project in Project Focused." = "Reveal worktrees when selecting a project in Project Focused.";
+"Review and approve a managed shell block, or keep your custom manual setup." = "Review and approve a managed shell block, or keep your custom manual setup.";
 "Review app update…" = "Review app update…";
+"Review native macOS approval and revocation." = "Review native macOS approval and revocation.";
 "Review permissions and enable when ready: %@." = "Review permissions and enable when ready: %@.";
 "Review the permissions below, then enable this extension to use it." = "Review the permissions below, then enable this extension to use it.";
 "Revoke" = "Revoke";
@@ -1183,7 +1206,6 @@
 "Right" = "Right";
 "Right-click a terminal and choose Detach Terminal to put it away without ending it. By default, ⌘⌥T opens Existing Terminals to bring it back." = "Right-click a terminal and choose Detach Terminal to put it away without ending it. By default, ⌘⌥T opens Existing Terminals to bring it back.";
 "Run a saved shell command in a new tab in the selected project. Assign a direct shortcut or find it in the command palette." = "Run a saved shell command in a new tab in the selected project. Assign a direct shortcut or find it in the command palette.";
-"Run murvix --help in your terminal." = "Run murvix --help in your terminal.";
 "Run the teardown commands shown above" = "Run the teardown commands shown above";
 "Run these commands after creating the worktree" = "Run these commands after creating the worktree";
 "Running" = "Running";
@@ -1263,6 +1285,7 @@
 "Session exited · Signal %lld" = "Session exited · Signal %lld";
 "Sessions" = "Sessions";
 "Set Logo…" = "Set Logo…";
+"Set up Murvix" = "Set up Murvix";
 "Settings" = "Settings";
 "Settings…" = "Settings…";
 "Setup commands" = "Setup commands";
@@ -1312,6 +1335,7 @@
 "Staged" = "Staged";
 "Staged and unstaged" = "Staged and unstaged";
 "Start Dictation" = "Start Dictation";
+"Start Murvix at login" = "Start Murvix at login";
 "Start new splits in the project folder or the current pane's working directory." = "Start new splits in the project folder or the current pane's working directory.";
 "Starting" = "Starting";
 "Starting the server and reconnecting to Murvix." = "Starting the server and reconnecting to Murvix.";
@@ -1375,6 +1399,8 @@
 "The extension's page could not be loaded." = "The extension's page could not be loaded.";
 "The folder operation was cancelled." = "The folder operation was cancelled.";
 "The image is empty." = "The image is empty.";
+"The installation directory for %@ is not writable. Download the release DMG and replace the app in Finder, authorizing the replacement if requested, or install it in your personal Applications folder. No update was installed: %@" = "The installation directory for %@ is not writable. Download the release DMG and replace the app in Finder, authorizing the replacement if requested, or install it in your personal Applications folder. No update was installed: %@";
+"The installation directory is not writable. No update was installed. Download the release DMG and replace %@ in Finder, authorizing the replacement if requested, or install it in your personal Applications folder: %@" = "The installation directory is not writable. No update was installed. Download the release DMG and replace %@ in Finder, authorizing the replacement if requested, or install it in your personal Applications folder: %@";
 "The installed app changed. Reopen Murvix to update the server." = "The installed app changed. Reopen Murvix to update the server.";
 "The installed app changed. Reopen it before installing the command line tool." = "The installed app changed. Reopen it before installing the command line tool.";
 "The installed app changed. Reopen it before updating." = "The installed app changed. Reopen it before updating.";
@@ -1484,6 +1510,7 @@
 "Unloading…" = "Unloading…";
 "Unpacked" = "Unpacked";
 "Unpin Tab" = "Unpin Tab";
+"Unregister login activation without stopping running terminal sessions." = "Unregister login activation without stopping running terminal sessions.";
 "Unstage" = "Unstage";
 "Unstage All" = "Unstage All";
 "Unstage Selected" = "Unstage Selected";
@@ -1522,6 +1549,7 @@
 "Use Default" = "Use Default";
 "Use Floating Composer" = "Use Floating Composer";
 "Use Global Prompt" = "Use Global Prompt";
+"Use Manual Setup" = "Use Manual Setup";
 "Use SSH config or agent" = "Use SSH config or agent";
 "Use Save to keep command edits. Shortcut changes apply immediately." = "Use Save to keep command edits. Shortcut changes apply immediately.";
 "Use Theme" = "Use Theme";

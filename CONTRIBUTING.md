@@ -115,9 +115,12 @@ explicitly.
 See the [release runbook](GOVERNANCE.md#releases) for credentials and operational
 details. Main-branch protection is never bypassed.
 
-Release metadata checks resolve the protocol's `CURRENT` constant to its wire
-version before comparing each executable's `--build-info`. The Python regression
-suite covers this resolution independently of the installed Rust binaries.
+For local packaging checks, run `python3 scripts/release.py check-build <version>
+<executable>` for both the CLI and server. It compares their `--build-info` with
+the requested release version and the source's current protocol and compatibility
+declarations, so stale binaries cannot enter a package. The Python regression
+suite covers protocol resolution independently of the installed Rust binaries.
+
 The vendored Ghostty build applies `lazy-benchmarks.patch` so disabled benchmarks
 do not fetch their unused GUI dependencies (`vaxis`, `freetype`, and their
 transitive packages) during terminal-library builds. Keep this patch when
@@ -176,7 +179,9 @@ workspace tests enable `test-support` dependencies and cannot replace the real
 TUI regression tests run the real CLI and server under a PTY. Synchronize tab
 interactions on displayed shortcut numbers or session state, not shell-generated
 tab titles: a shell may replace a directory title with a host-qualified title
-after startup. To exercise session exit during a blocked resize:
+after startup. Wait for complete command-output rows before sending input from
+another client: an echoed command is not evidence that the shell executed it.
+To exercise session exit during a blocked resize:
 
 ```bash
 cargo test --locked -p murvix-cli --test tui exit_during_resize_keeps_tab_selection_bound_to_the_displayed_pane

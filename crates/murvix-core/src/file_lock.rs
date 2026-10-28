@@ -20,6 +20,15 @@ pub fn try_lock(path: &Path) -> io::Result<FileLock> {
         .truncate(false)
         .mode(0o600)
         .open(path)?;
+    lock(file)
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn try_lock_existing(path: &Path) -> io::Result<FileLock> {
+    lock(File::open(path)?)
+}
+
+fn lock(file: File) -> io::Result<FileLock> {
     file.try_lock().map_err(|error| match error {
         std::fs::TryLockError::WouldBlock => io::Error::new(
             io::ErrorKind::WouldBlock,
