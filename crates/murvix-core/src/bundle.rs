@@ -11,7 +11,47 @@ pub struct BundleLease {
 }
 
 pub fn lock_replacement(directory: &Path) -> io::Result<FileLock> {
-    crate::file_lock::try_lock(&directory.join(".murvix-update.lock"))
+    #[cfg(target_os = "macos")]
+    {
+        lock_replacement_with_runtime(directory, lease_directory)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        crate::file_lock::try_lock(&directory.join(".murvix-update.lock"))
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn lock_replacement_with_runtime(
+    directory: &Path,
+    runtime: impl FnOnce() -> io::Result<PathBuf>,
+) -> io::Result<FileLock> {
+    let path = directory.join(".murvix-update.lock");
+    match crate::file_lock::try_lock(&path) {
+        Err(error)
+            if matches!(
+                error.kind(),
+                io::ErrorKind::PermissionDenied | io::ErrorKind::ReadOnlyFilesystem
+            ) =>
+        {
+            match crate::file_lock::try_lock_existing(&path) {
+                Err(missing) if missing.kind() == io::ErrorKind::NotFound => {}
+                result => return result,
+            }
+            // Keep the existing lock when accessible, including contention with
+            // an older client. Read-only installs coordinate this user's clients
+            // in the same private runtime directory as their bundle leases.
+            let runtime = runtime()?;
+            fs::DirBuilder::new()
+                .recursive(true)
+                .mode(0o700)
+                .create(&runtime)?;
+            crate::file_lock::try_lock(
+                &runtime.join(format!("replacement-{}.lock", identity(directory)?)),
+            )
+        }
+        result => result,
+    }
 }
 
 /// The app bundle whose `Contents/MacOS` holds `executable`.
@@ -140,6 +180,48 @@ fn lease_file(directory: &Path, identity: &str) -> io::Result<File> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn readonly_installations_keep_an_exclusive_startup_lock_without_bypassing_contention()
+    -> io::Result<()> {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = tempfile::tempdir()?;
+        let installation = root.path().join("Applications");
+        let runtime = root.path().join("runtime");
+        fs::create_dir(&installation)?;
+        fs::set_permissions(&installation, fs::Permissions::from_mode(0o555))?;
+        let owner = lock_replacement_with_runtime(&installation, || Ok(runtime.clone()))?;
+        assert!(
+            lock_replacement_with_runtime(&installation.join("."), || Ok(runtime.clone()))
+                .is_err_and(|error| error.kind() == io::ErrorKind::WouldBlock)
+        );
+        drop(owner);
+        drop(lock_replacement_with_runtime(&installation, || {
+            Ok(runtime.clone())
+        })?);
+        fs::set_permissions(&installation, fs::Permissions::from_mode(0o755))?;
+        let legacy_path = installation.join(".murvix-update.lock");
+        let legacy = crate::file_lock::try_lock(&legacy_path)?;
+        assert!(
+            lock_replacement_with_runtime(&installation, || Ok(runtime.clone()))
+                .is_err_and(|error| error.kind() == io::ErrorKind::WouldBlock)
+        );
+        fs::set_permissions(&legacy_path, fs::Permissions::from_mode(0o444))?;
+        assert!(
+            lock_replacement_with_runtime(&installation, || Ok(runtime.clone()))
+                .is_err_and(|error| error.kind() == io::ErrorKind::WouldBlock)
+        );
+        drop(legacy);
+        let owner = lock_replacement_with_runtime(&installation, || Ok(runtime.clone()))?;
+        assert!(
+            lock_replacement_with_runtime(&installation, || Ok(runtime))
+                .is_err_and(|error| error.kind() == io::ErrorKind::WouldBlock)
+        );
+        drop(owner);
+        Ok(())
+    }
 
     #[test]
     fn only_executables_inside_an_app_bundle_have_one() {

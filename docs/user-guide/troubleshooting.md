@@ -98,6 +98,9 @@ in `~/Applications`. Reopen that installed copy, not the mounted DMG, and review
 CLI health. Retained previous/staged bundles are not proof that the update is
 running. Murvix keeps retired bundles while running processes require them and
 cleans them after they become unused; do not delete those bundles while in use.
+An unwritable installation directory does not require root for normal CLI/server
+startup: Murvix uses a private per-user coordination lock when it cannot create
+the installation lock. This does not grant permission to replace the app.
 
 ## A remote server won't connect
 
