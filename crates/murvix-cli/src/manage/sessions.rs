@@ -5,8 +5,7 @@ use std::time::{Duration, Instant};
 
 use murvix_client::{Attachment, Client, ClientError, ClientEvent, RunGrid};
 use murvix_protocol::{
-    ErrorCode, ExitReason, ProjectDescriptor, ProjectId, ProjectSession, SearchSource, SessionId,
-    SessionStatus, Size,
+    ErrorCode, ExitReason, ProjectId, ProjectSession, SearchSource, SessionId, SessionStatus, Size,
 };
 use serde_json::{Value, json};
 
@@ -142,24 +141,6 @@ fn screen(
     }
 }
 
-/// The project of the terminal this command runs in.
-fn own_project(client: &Client) -> Result<ProjectDescriptor> {
-    let session = crate::worker::hosting_session(client.catalog_page(None, None)?.server)
-        .ok_or("give a project; this isn't a Murvix terminal on that server")?;
-    let project = client
-        .list_sessions()?
-        .into_iter()
-        .find(|info| info.id == session)
-        .ok_or("this terminal's session is no longer running")?
-        .project;
-    Ok(client
-        .catalog()?
-        .projects
-        .into_iter()
-        .find(|candidate| candidate.id == project)
-        .ok_or("this terminal's project no longer exists")?)
-}
-
 fn create(
     client: &Client,
     project: Option<&str>,
@@ -171,7 +152,7 @@ fn create(
 ) -> Result {
     let project = match project {
         Some(project) => projects::resolve(client, project, paths)?,
-        None => own_project(client)?,
+        None => projects::current(client)?,
     };
     let directory = directory.map_or_else(
         || Ok(local_path(&project.directory)),

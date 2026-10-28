@@ -16,6 +16,7 @@ pub(crate) enum Command {
     BuildInfo,
     Interactive,
     Manage(Box<crate::manage::args::Invocation>),
+    Agent(murvix_app_core::agent_launch::Agent, Vec<OsString>),
     Mobile(Mobile),
     /// Joins stdin and stdout to the server, for clients on other computers.
     Stdio(Start),
@@ -58,6 +59,7 @@ pub(crate) fn parse(arguments: &[OsString]) -> io::Result<(Option<SshTarget>, Co
                     | Command::Stdio(_)
                     | Command::Open(_)
                     | Command::Browser(_)
+                    | Command::Agent(..)
                     | Command::InstallSkills(_),
                     [word, ..],
                 ) => Err(invalid(&format!(
@@ -81,6 +83,10 @@ fn command(arguments: &[OsString]) -> io::Result<Command> {
     }
     match arguments {
         [] => Ok(Command::Interactive),
+        [command, flag] if command == "agent" && (flag == "--help" || flag == "-h") => {
+            Ok(Command::Usage(help::AGENT))
+        }
+        [command, rest @ ..] if command == "agent" => agent(rest),
         [command, .., flag] if command == "mobile" && (flag == "--help" || flag == "-h") => {
             Ok(Command::Usage(help::MOBILE))
         }
@@ -106,6 +112,21 @@ fn command(arguments: &[OsString]) -> io::Result<Command> {
             crate::manage::args::parse(arguments).map(|command| Command::Manage(Box::new(command)))
         }
     }
+}
+
+fn agent(arguments: &[OsString]) -> io::Result<Command> {
+    let [tool, rest @ ..] = arguments else {
+        return Err(invalid(help::AGENT));
+    };
+    let agent = tool
+        .to_str()
+        .and_then(murvix_app_core::agent_launch::Agent::from_command)
+        .ok_or_else(|| invalid("unsupported workspace-aware agent; use omp, claude, codex or copilot; other agents can discover live roots with murvix project here"))?;
+    let arguments = match rest {
+        [separator, arguments @ ..] if separator == "--" => arguments,
+        _ => rest,
+    };
+    Ok(Command::Agent(agent, arguments.to_vec()))
 }
 
 fn names_folder(word: &OsStr) -> bool {

@@ -1,4 +1,5 @@
 use gpui::{AnyWindowHandle, AsyncApp, Context};
+use murvix_app_core::agent_launch::AGENTS;
 use murvix_app_core::{Project, ProjectId, ProjectStatus};
 use murvix_ui::dialog::ConfirmationResponse;
 use murvix_ui::l10n::tr_key;
@@ -20,6 +21,9 @@ pub(crate) fn items(project: &Project, worktrees: Option<bool>) -> Vec<Item> {
         Item::action(tr!("Existing Terminals…"), Command::ExistingSessions(id)),
         Item::action(tr!("Apply Layout…"), Command::ProjectLayouts(id)),
     ];
+    if let Some(start) = start_agent_item(project) {
+        items.insert(1, start);
+    }
     let icon = Item::submenu(tr!("Icon"), icon_items(project));
     // Another computer's Home goes by its server's name.
     if project.is_remote_home() {
@@ -47,6 +51,23 @@ pub(crate) fn items(project: &Project, worktrees: Option<bool>) -> Vec<Item> {
     items.extend(path_items(project));
     items.extend(removal(project).into_iter().map(Item::separated));
     items
+}
+
+fn start_agent_item(project: &Project) -> Option<Item> {
+    project.server_id.is_local().then(|| {
+        Item::submenu(
+            tr!("Start Agent"),
+            AGENTS
+                .into_iter()
+                .map(|agent| {
+                    Item::action(
+                        agent.provider().name(),
+                        Command::StartAgent(project.id, agent),
+                    )
+                })
+                .collect(),
+        )
+    })
 }
 
 /// A folder on another computer can't be revealed here, but its path can be copied.
@@ -147,6 +168,9 @@ pub(crate) fn worktree_items(project: &Project, primary: bool) -> Vec<Item> {
         Item::action(tr!("Existing Terminals…"), Command::ExistingSessions(id)),
         Item::action(tr!("Apply Layout…"), Command::ProjectLayouts(id)),
     ];
+    if let Some(start) = start_agent_item(project) {
+        items.insert(1, start);
+    }
     if !primary {
         items.push(
             Item::action(

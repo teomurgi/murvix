@@ -1,5 +1,6 @@
 //! Command-line and terminal client for the server on this computer or, with
 //! `--host`, on another one; the server runs as a separate executable.
+mod agent;
 mod args;
 mod browser;
 mod clipboard;
@@ -45,6 +46,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         Command::Interactive => tui::run(host, None).map_err(io::Error::other)?,
         Command::Manage(command) => manage::run(*command, host)?,
+        Command::Agent(agent, arguments) => agent::run(agent, &arguments)?,
         Command::Open(folder) => open::run(&folder)?,
         Command::Browser(invocation) => browser::run(*invocation)?,
         Command::InstallSkills(directories) => {

@@ -68,8 +68,9 @@ murvix --help          # all commands; murvix <command> --help for details
 ```
 
 - Server-backed commands start the server they use if it isn't running, including
-  a remote one with `--host`. `murvix server status` and `murvix server stop`
-  never start it. Help, version information, and skill installation need no server.
+  a remote one with `--host`. `server status`, `server stop`, `project here`,
+  and `agent` never start it. Help, version information, and skill installation
+  need no server.
 - Management commands accept `--json`; `mobile` does not. Settings, server
   start/status, Git, files, and session history/search already return JSON.
 - Ending or discarding a session and deleting a project or worktree need
@@ -78,7 +79,7 @@ murvix --help          # all commands; murvix <command> --help for details
 - `--host <destination>` selects the server on another computer. It must come
   first: `murvix --host devbox project list`. It supports the terminal UI,
   management commands, and mobile-access management, not folder-opening,
-  browser, or skill-installation commands. See [Remote servers](remote-servers.md).
+  browser, skill-installation, or local agent-launch commands. See [Remote servers](remote-servers.md).
 
 ## Commands
 
@@ -92,6 +93,7 @@ murvix --help          # all commands; murvix <command> --help for details
 | `murvix worktree list\|create\|checkout-pr\|register\|remove` | Manages Git worktree projects. Setup/teardown hooks run only with `--hooks`; removal needs `--yes` and refuses uncommitted changes without `--force`. |
 | `murvix settings get\|set` | Reads or changes [server settings](server.md#settings). |
 | `murvix activity list\|ack` | Reads or clears [AI agent](ai-agents.md) activity. |
+| `murvix agent <omp\|claude\|codex\|copilot> [-- <native arguments...>]` | Launches an installed agent with the calling terminal's live workspace roots through native options, without changing its permission policies. See [AI agents](ai-agents.md#start-an-agent-with-the-workspace). |
 | `murvix browser open\|list\|read\|click\|…` | Drives browser tabs in the desktop app on this computer. See [Browser control](#browser-control). |
 | `murvix exec <project> -- <program> [args]` | Runs a program in the project folder, without a shell. |
 | `murvix git`, `murvix files` | Run raw server Git and file actions as JSON. Advanced; the JSON shape follows the protocol and may change. |

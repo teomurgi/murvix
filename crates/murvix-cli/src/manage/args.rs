@@ -76,8 +76,8 @@ pub(crate) enum Project {
     ClearWorkspace {
         project: String,
     },
-    /// Prints the calling terminal's workspace: index 0 is the project
-    /// directory, the rest are its extra roots. No server round-trip.
+    /// Prints the calling terminal's live workspace from its server and session:
+    /// index 0 is the project directory, the rest are its extra roots.
     WorkspaceHere,
     Delete(String),
 }

@@ -14,6 +14,7 @@ Usage: murvix [--host DESTINATION] [COMMAND]
   git           Run a server Git action using JSON
   files         Run a server file action using JSON
   exec          Execute a program in a server project
+  agent         Launch a native agent with this terminal's live workspace
   mobile        Enable access, pair phones and revoke devices
   browser       Drive browser tabs in the desktop app on this computer
   install-skills
@@ -24,9 +25,10 @@ Usage: murvix [--host DESTINATION] [COMMAND]
 Run murvix <command> --help or murvix help <command> for usage. Management
 commands accept --json.
 Commands connect directly to the server, starting it if needed, except server
-status/stop, which never start it. --host uses the server on another computer
-over SSH (user@host, an ssh_config alias or ssh://user@host:port); Murvix must be
-installed there, and directories are absolute paths on that computer.
+status/stop, project here and agent, which never start it. --host uses the server
+on another computer over SSH (user@host, an ssh_config alias or
+ssh://user@host:port); Murvix must be installed there, and directories are absolute
+paths on that computer.
 MUXY_DIR selects the local profile, which also keeps the terminal UI layouts
 for other computers. No desktop app is required, except by browser commands.
 Tabs and panes belong to UI clients.
@@ -110,12 +112,12 @@ pub(crate) const PROJECT: &str = "Usage: murvix project <action> [--json]
 
 Add creates a distinct project even when its directory is already registered;
 --reuse prints the existing one instead. --create makes the directory first.
-Workspace roots plus the project directory form the workspace every agent in
-its terminals sees; at most 16 extra roots. Inside a Murvix terminal,
-`project here` prints the calling terminal's workspace without a server
-round-trip, so any agent reads its directory scope with one command.
-JSON lists carry them as workspace
-and extra_directories text plus workspace_bytes and extra_directory_bytes
+Workspace roots plus the project directory form the workspace; at most 16 extra
+roots. Inside a Murvix terminal, `project here` resolves the calling terminal's
+live workspace from its server and session identity, even after changing cwd.
+It fails if that server or session is no longer available; it never falls back
+to inherited workspace snapshots. JSON lists carry roots as workspace and
+extra_directories text plus workspace_bytes and extra_directory_bytes
 byte arrays. Text list columns: id, name, directory (tab-separated).";
 pub(crate) const SESSION: &str = "Usage: murvix session <action> [--json]
   list [--project PROJECT] [--all]  Live sessions; --all includes saved/ended ones
@@ -186,6 +188,16 @@ For shell syntax, explicitly use /bin/sh -c '...'. Timeout defaults to 30000ms
 (maximum 300000ms). Text mode forwards stdout/stderr. JSON mode returns the
 complete result. A failed, timed-out, cancelled or truncated run exits nonzero.";
 
+pub(crate) const AGENT: &str =
+    "Usage: murvix agent <omp|claude|codex|copilot> [-- <native arguments...>]
+
+Launches the native tool with this terminal's current project directory and
+extra workspace roots using its --add-dir options. Arguments are passed directly,
+without shell evaluation. Native permissions and approval policies still apply.
+Requires a live Murvix terminal on this computer; --host is not supported.
+Plain native commands are unchanged. Other agents can discover live roots with
+murvix project here, but have no supported native workspace launcher.";
+
 pub(crate) fn topic(group: &str) -> Option<&'static str> {
     Some(match group {
         "server" => SERVER,
@@ -197,6 +209,7 @@ pub(crate) fn topic(group: &str) -> Option<&'static str> {
         "git" => GIT,
         "files" => FILES,
         "exec" => EXEC,
+        "agent" => AGENT,
         "mobile" => MOBILE,
         "install-skills" => INSTALL_SKILLS,
         "browser" => BROWSER,

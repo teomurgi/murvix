@@ -90,8 +90,11 @@ fi
 Every terminal gets `TERM=xterm-256color`, `COLORTERM=truecolor`,
 `TERM_PROGRAM=murvix`, `MUXY_SERVER_ID`, and `MUXY_SESSION_ID`.
 The project workspace is also advertised through `MUXY_WORKSPACE_COUNT` and
-`MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on. `murvix project here` prints
-those roots inside a Murvix terminal.
+`MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on. These are terminal-start
+snapshots. `murvix project here` instead queries the calling terminal's live
+project through its server and session identity, so existing terminals see
+added and removed roots. `murvix agent` uses that same lookup before launching
+supported agents with native additional-directory options.
 
 ## Networking
 

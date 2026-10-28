@@ -53,36 +53,38 @@ fn select(
     Ok(found)
 }
 
-/// Prints the calling terminal's workspace, one root per line: index 0 is
-/// the project directory, the rest are its extra roots. Reads the
-/// `MUXY_WORKSPACE_*` environment the server sets on every terminal, so any
-/// agent gets its directory scope with one command and no per-agent code.
-/// With `--json`, prints the same text/bytes pair the project list carries.
-fn workspace_here(output: &Output) -> Result {
-    let count: usize = std::env::var("MUXY_WORKSPACE_COUNT")
-        .map_err(|_| "not in a Murvix terminal: MUXY_WORKSPACE_COUNT is missing")?
-        .parse()
-        .map_err(|_| "MUXY_WORKSPACE_COUNT is not a number")?;
-    let mut roots: Vec<std::ffi::OsString> = Vec::with_capacity(count);
-    for index in 0..count {
-        let name = format!("MUXY_WORKSPACE_{index}");
-        roots.push(std::env::var_os(&name).ok_or_else(|| format!("{name} is missing"))?);
-    }
+/// Resolves the calling terminal by server identity and live session, never cwd
+/// or inherited workspace snapshots.
+pub(crate) fn current(client: &Client) -> Result<ProjectDescriptor> {
+    let session = crate::worker::hosting_session(client.catalog_page(None, None)?.server)
+        .ok_or("give a project; this isn't a Murvix terminal on that server")?;
+    let project = client
+        .list_sessions()?
+        .into_iter()
+        .find(|info| info.id == session)
+        .ok_or("this terminal's session is no longer running")?
+        .project;
+    Ok(client
+        .catalog()?
+        .projects
+        .into_iter()
+        .find(|candidate| candidate.id == project)
+        .ok_or("this terminal's project no longer exists")?)
+}
+
+/// Prints live workspace roots with the same text/bytes contract as project list.
+fn workspace_here(client: &Client, output: &Output) -> Result {
+    let project = current(client)?;
+    let roots = murvix_protocol::workspace_roots(&project);
     if output.json {
-        let texts: Vec<String> = roots
-            .iter()
-            .map(|root| String::from_utf8_lossy(root.as_os_str().as_encoded_bytes()).into_owned())
-            .collect();
-        let bytes: Vec<&[u8]> = roots
-            .iter()
-            .map(|root| root.as_os_str().as_encoded_bytes())
-            .collect();
+        let texts: Vec<String> = roots.iter().map(path_text).collect();
+        let bytes: Vec<&[u8]> = roots.iter().map(|root| root.0.as_slice()).collect();
         return Output::json(&serde_json::json!({"workspace": texts, "workspace_bytes": bytes}));
     }
     let mut stdout = io::stdout().lock();
     for root in &roots {
         stdout
-            .write_all(root.as_os_str().as_encoded_bytes())
+            .write_all(&root.0)
             .map_err(Box::<dyn std::error::Error>::from)?;
         stdout
             .write_all(b"\n")
@@ -176,7 +178,7 @@ pub(super) fn run(command: Project, client: &Client, output: &Output, paths: Pat
             output,
             paths,
         ),
-        Project::WorkspaceHere => workspace_here(output),
+        Project::WorkspaceHere => workspace_here(client, output),
         Project::Delete(selector) => {
             mutate(
                 client,
