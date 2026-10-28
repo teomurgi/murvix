@@ -179,7 +179,9 @@ workspace tests enable `test-support` dependencies and cannot replace the real
 TUI regression tests run the real CLI and server under a PTY. Synchronize tab
 interactions on displayed shortcut numbers or session state, not shell-generated
 tab titles: a shell may replace a directory title with a host-qualified title
-after startup. To exercise session exit during a blocked resize:
+after startup. Wait for complete command-output rows before sending input from
+another client: an echoed command is not evidence that the shell executed it.
+To exercise session exit during a blocked resize:
 
 ```bash
 cargo test --locked -p murvix-cli --test tui exit_during_resize_keeps_tab_selection_bound_to_the_displayed_pane
