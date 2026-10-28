@@ -1,3 +1,4 @@
+mod cache;
 mod patch;
 
 use std::env;
@@ -76,15 +77,17 @@ fn main() {
     println!("cargo:rerun-if-env-changed=LIBGHOSTTY_VT_SYS_OPTIMIZE");
     println!("cargo:rerun-if-env-changed=GHOSTTY_SOURCE_DIR");
     println!("cargo:rerun-if-env-changed=GHOSTTY_ZIG_SYSTEM_DIR");
+    println!("cargo:rerun-if-env-changed=GHOSTTY_BUILD_CACHE_DIR");
     println!("cargo:rerun-if-env-changed=TARGET");
     println!("cargo:rerun-if-env-changed=HOST");
     println!("cargo:rerun-if-env-changed=DEBUG");
     println!("cargo:rerun-if-env-changed=OPT_LEVEL");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=patch.rs");
-    println!("cargo:rerun-if-changed=patches/clear-screen.patch");
-    println!("cargo:rerun-if-changed=patches/grapheme-cluster.patch");
-    println!("cargo:rerun-if-changed=patches/lazy-benchmarks.patch");
+    println!("cargo:rerun-if-changed=cache.rs");
+    for name in patch::PATCHES {
+        println!("cargo:rerun-if-changed=patches/{name}");
+    }
 
     // An explicit source override should stay authoritative even when the
     // pkg-config feature is enabled, so local Ghostty checkouts remain easy to
@@ -105,14 +108,75 @@ fn main() {
     build_vendored(link_mode);
 }
 
-/// Build libghostty-vt from source via zig. The zig build itself generates
-/// shared and static artifacts plus pkg-config files in `share/pkgconfig/`.
+/// Reuse only completed native installs; Cargo-specific output directories and
+/// unrelated Rust features do not affect Ghostty's native build.
 fn build_vendored(link_mode: LinkMode) {
-    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR must be set"));
+    let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR must be set"));
     let target = env::var("TARGET").expect("TARGET must be set");
     let host = env::var("HOST").expect("HOST must be set");
+    let optimize = zig_optimize_mode();
+    let cache_root = env::var_os("GHOSTTY_BUILD_CACHE_DIR").filter(|value| !value.is_empty());
+    let install_prefix = if let Some(root) = cache_root {
+        if env::var_os("GHOSTTY_SOURCE_DIR").is_some()
+            || env::var_os("GHOSTTY_ZIG_SYSTEM_DIR").is_some()
+        {
+            println!("cargo:warning=libghostty-vt native cache bypass: source/system override");
+            build_install(&out_dir, &target, &host, optimize)
+        } else {
+            match cache_inputs(&target, &host, optimize, link_mode) {
+                Ok(inputs) => cache::install(
+                    Path::new(&root),
+                    &inputs,
+                    |prefix| valid_install(prefix, &target, link_mode),
+                    |work| build_install(work, &target, &host, optimize),
+                )
+                .unwrap_or_else(|error| panic!("libghostty-vt native cache: {error}")),
+                Err(error) => {
+                    println!("cargo:warning=libghostty-vt native cache bypass: {error}");
+                    build_install(&out_dir, &target, &host, optimize)
+                }
+            }
+        }
+    } else {
+        build_install(&out_dir, &target, &host, optimize)
+    };
 
-    // Locate ghostty source: env override > fetch into OUT_DIR.
+    assert!(
+        valid_install(&install_prefix, &target, link_mode),
+        "expected libghostty-vt {} and nonempty ghostty/vt.h in {}",
+        link_mode.artifact_kind(),
+        install_prefix.display()
+    );
+    warn_unused_xcframework(&install_prefix.join("lib"));
+    for dir in library_search_dirs(&target, &install_prefix) {
+        println!("cargo:rustc-link-search=native={}", dir.display());
+    }
+    match link_mode {
+        LinkMode::Dynamic => println!("cargo:rustc-link-lib=dylib=ghostty-vt"),
+        LinkMode::Static => println!("cargo:rustc-link-lib=static=ghostty-vt"),
+    }
+    emit_include_metadata(&[install_prefix.join("include")]);
+}
+
+fn valid_install(prefix: &Path, target: &str, link_mode: LinkMode) -> bool {
+    let nonempty_file = |path: &Path| {
+        std::fs::metadata(path).is_ok_and(|metadata| metadata.is_file() && metadata.len() > 0)
+    };
+    nonempty_file(&prefix.join("include/ghostty/vt.h"))
+        && library_search_dirs(target, prefix).iter().any(|dir| {
+            std::fs::read_dir(dir).is_ok_and(|entries| {
+                entries.filter_map(Result::ok).any(|entry| {
+                    entry.file_name().to_str().is_some_and(|name| {
+                        link_mode.matches_library(target, name) && nonempty_file(&entry.path())
+                    })
+                })
+            })
+        })
+}
+
+/// Build in a private work directory. On a shared-cache miss this directory is
+/// inside the unpublished staging tree, so publication is a same-filesystem rename.
+fn build_install(out_dir: &Path, target: &str, host: &str, optimize: &str) -> PathBuf {
     let ghostty_dir = match env::var("GHOSTTY_SOURCE_DIR") {
         Ok(dir) => {
             let p = PathBuf::from(dir);
@@ -124,19 +188,10 @@ fn build_vendored(link_mode: LinkMode) {
             println!("cargo:rerun-if-changed={}", p.display());
             p
         }
-        Err(_) => fetch_ghostty(&out_dir),
+        Err(_) => fetch_ghostty(out_dir),
     };
-
-    // Keep both the pinned checkout and any caller-provided source untouched.
-    let ghostty_dir = patch::prepare(&ghostty_dir, &out_dir);
-
-    // Build libghostty-vt via zig.
+    let ghostty_dir = patch::prepare(&ghostty_dir, out_dir);
     let install_prefix = out_dir.join("ghostty-install");
-    let zig_cache_dir = out_dir.join("zig-cache");
-    let zig_global_cache_dir = out_dir.join("zig-global-cache");
-
-    let optimize = zig_optimize_mode();
-
     let mut build = Command::new("zig");
     build
         .arg("build")
@@ -147,14 +202,9 @@ fn build_vendored(link_mode: LinkMode) {
         .arg("--prefix")
         .arg(&install_prefix)
         .arg("--cache-dir")
-        .arg(&zig_cache_dir)
+        .arg(out_dir.join("zig-cache"))
         .current_dir(&ghostty_dir)
-        // The private source has no .git; don't discover the application's tags.
-        .env("GIT_CEILING_DIRECTORIES", &out_dir);
-
-    // Package managers can provide Ghostty's Zig package cache ahead of time
-    // and ask Zig to resolve packages from that immutable store path instead
-    // of fetching during this Cargo build script.
+        .env("GIT_CEILING_DIRECTORIES", out_dir);
     if let Ok(dir) = env::var("GHOSTTY_ZIG_SYSTEM_DIR") {
         assert!(
             !dir.is_empty(),
@@ -170,58 +220,220 @@ fn build_vendored(link_mode: LinkMode) {
             .arg("--system")
             .arg(&zig_system_dir)
             .arg("--global-cache-dir")
-            .arg(&zig_global_cache_dir);
+            .arg(out_dir.join("zig-global-cache"));
     }
-
-    // Only pass -Dtarget when cross-compiling. For native builds, let zig
-    // auto-detect the host (matches how ghostty's own CMakeLists.txt works).
     if target != host {
-        let zig_target = zig_target(&target);
-        build.arg(format!("-Dtarget={zig_target}"));
+        build.arg(format!("-Dtarget={}", zig_target(target)));
     }
-
     run(build, "zig build");
+    install_prefix
+}
 
-    let lib_dir = install_prefix.join("lib");
-    let include_dir = install_prefix.join("include");
-    let search_dirs = library_search_dirs(&target, &install_prefix);
-    warn_unused_xcframework(&lib_dir);
-
-    let has_requested_library = search_dirs.iter().any(|dir| {
-        std::fs::read_dir(dir)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", dir.display()))
-            .any(|entry| {
-                let entry = entry.unwrap_or_else(|error| {
-                    panic!("failed to read entry from {}: {error}", dir.display())
-                });
-                let file_name = entry.file_name();
-                let Some(file_name) = file_name.to_str() else {
-                    return false;
-                };
-
-                link_mode.matches_library(&target, file_name)
-            })
-    });
-    assert!(
-        has_requested_library,
-        "expected libghostty-vt {} in one of {:?}",
-        link_mode.artifact_kind(),
-        search_dirs
-    );
-    assert!(
-        include_dir.join("ghostty").join("vt.h").exists(),
-        "expected header at {}",
-        include_dir.join("ghostty").join("vt.h").display()
-    );
-
-    for dir in &search_dirs {
-        println!("cargo:rustc-link-search=native={}", dir.display());
+fn cache_inputs(
+    target: &str,
+    host: &str,
+    optimize: &str,
+    link_mode: LinkMode,
+) -> std::io::Result<cache::Inputs> {
+    use std::io;
+    if target != host || !host.ends_with("-apple-darwin") {
+        return Err(io::Error::other(
+            "shared native installs are limited to native macOS builds",
+        ));
     }
-    match link_mode {
-        LinkMode::Dynamic => println!("cargo:rustc-link-lib=dylib=ghostty-vt"),
-        LinkMode::Static => println!("cargo:rustc-link-lib=static=ghostty-vt"),
+    let manifest = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
+    let mut inputs = cache::Inputs::default();
+    inputs.add("cache-format", b"1");
+    inputs.add("repository", GHOSTTY_REPO.as_bytes());
+    inputs.add("commit", GHOSTTY_COMMIT.as_bytes());
+    inputs.add("target", target.as_bytes());
+    inputs.add("host", host.as_bytes());
+    inputs.add("optimize", optimize.as_bytes());
+    inputs.add("link-mode", link_mode.artifact_kind().as_bytes());
+    for name in ["build.rs", "cache.rs", "patch.rs"] {
+        inputs.file(&manifest.join(name))?;
     }
-    emit_include_metadata(&[include_dir]);
+    for name in patch::PATCHES {
+        inputs.file(&manifest.join("patches").join(name))?;
+    }
+    let zig = find_executable("zig")?;
+    println!("cargo:rerun-if-changed={}", zig.display());
+    inputs.add("zig-executable", zig.as_os_str().as_encoded_bytes());
+    let wrapper = manifest.join("../../scripts/zig/zig");
+    if !is_native_executable(&zig)? {
+        if std::fs::canonicalize(&wrapper).ok().as_ref() != Some(&zig) {
+            return Err(io::Error::other("unrecognized Zig wrapper"));
+        }
+        inputs.file(&zig)?;
+        let real_zig =
+            env::var_os("MUXY_ZIG").ok_or_else(|| io::Error::other("MUXY_ZIG is unset"))?;
+        let real_zig = find_executable(&real_zig)?;
+        if !is_native_executable(&real_zig)? {
+            return Err(io::Error::other("unrecognized MUXY_ZIG wrapper"));
+        }
+        println!("cargo:rerun-if-changed={}", real_zig.display());
+        inputs.add(
+            "wrapped-zig-executable",
+            real_zig.as_os_str().as_encoded_bytes(),
+        );
+    }
+    for argument in ["version", "targets"] {
+        // `targets` includes the native CPU model and feature set. A target
+        // triple alone is insufficient when Zig auto-detects the host CPU.
+        inputs.add(argument, &command_output("zig", &[argument])?);
+    }
+    for tool in ["git", "xcrun", "libtool"] {
+        let path = find_executable(tool)?;
+        if !is_native_executable(&path)? {
+            return Err(io::Error::other("unrecognized native build tool wrapper"));
+        }
+        let metadata = std::fs::metadata(&path)?;
+        let modified = metadata
+            .modified()?
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(io::Error::other)?;
+        println!("cargo:rerun-if-changed={}", path.display());
+        inputs.add(tool, path.as_os_str().as_encoded_bytes());
+        inputs.add("tool-size", &metadata.len().to_le_bytes());
+        inputs.add("tool-modified", &modified.as_nanos().to_le_bytes());
+    }
+    for argument in ["--show-sdk-path", "--show-sdk-version", "--find"] {
+        let args: &[&str] = if argument == "--find" {
+            &["--find", "clang"]
+        } else {
+            &[argument]
+        };
+        inputs.add(argument, &command_output("xcrun", args)?);
+    }
+    inputs.add(
+        "apple-clang-version",
+        &command_output("xcrun", &["clang", "--version"])?,
+    );
+    // Resolve build tools rather than keying unrelated PATH entries or the
+    // isolated smoke HOME. Explicit compiler overrides retain the entire PATH.
+    let mut environment: Vec<_> = env::vars_os()
+        .filter(|(name, _)| {
+            let name = name.to_string_lossy();
+            matches!(
+                name.as_ref(),
+                "SDKROOT"
+                    | "DEVELOPER_DIR"
+                    | "TOOLCHAINS"
+                    | "CC"
+                    | "CXX"
+                    | "CPP"
+                    | "AR"
+                    | "LD"
+                    | "RANLIB"
+                    | "CFLAGS"
+                    | "CXXFLAGS"
+                    | "CPPFLAGS"
+                    | "LDFLAGS"
+                    | "CPATH"
+                    | "C_INCLUDE_PATH"
+                    | "CPLUS_INCLUDE_PATH"
+                    | "LIBRARY_PATH"
+                    | "MUXY_ZIG"
+            ) || name.starts_with("ZIG_")
+                || name.ends_with("_DEPLOYMENT_TARGET")
+                || ["CC_", "CXX_", "AR_", "CFLAGS_", "CXXFLAGS_", "LDFLAGS_"]
+                    .iter()
+                    .any(|prefix| name.starts_with(prefix))
+        })
+        .collect();
+    environment.sort();
+    if environment.iter().any(|(name, _)| {
+        let name = name.to_string_lossy();
+        matches!(name.as_ref(), "CC" | "CXX" | "CPP" | "AR" | "LD" | "RANLIB")
+            || ["CC_", "CXX_", "AR_"]
+                .iter()
+                .any(|prefix| name.starts_with(prefix))
+    }) {
+        inputs.add(
+            "compiler-override-PATH",
+            env::var_os("PATH").unwrap_or_default().as_encoded_bytes(),
+        );
+    }
+    for name in [
+        "PATH",
+        "SDKROOT",
+        "DEVELOPER_DIR",
+        "TOOLCHAINS",
+        "CC",
+        "CXX",
+        "CPP",
+        "AR",
+        "LD",
+        "RANLIB",
+        "CFLAGS",
+        "CXXFLAGS",
+        "CPPFLAGS",
+        "LDFLAGS",
+        "CPATH",
+        "C_INCLUDE_PATH",
+        "CPLUS_INCLUDE_PATH",
+        "LIBRARY_PATH",
+        "MUXY_ZIG",
+        "MACOSX_DEPLOYMENT_TARGET",
+        "ZIG_LIB_DIR",
+        "ZIG_LIBC",
+        "ZIG_GLOBAL_CACHE_DIR",
+        "ZIG_LOCAL_CACHE_DIR",
+        "ZIG_BUILD_RUNNER",
+        "IPHONEOS_DEPLOYMENT_TARGET",
+        "TVOS_DEPLOYMENT_TARGET",
+        "WATCHOS_DEPLOYMENT_TARGET",
+        "XROS_DEPLOYMENT_TARGET",
+    ] {
+        println!("cargo:rerun-if-env-changed={name}");
+    }
+    for (name, value) in environment {
+        println!("cargo:rerun-if-env-changed={}", name.to_string_lossy());
+        inputs.add(&name.to_string_lossy(), value.as_encoded_bytes());
+    }
+    Ok(inputs)
+}
+
+fn is_native_executable(path: &Path) -> std::io::Result<bool> {
+    use std::io::Read;
+    let mut magic = [0; 4];
+    std::fs::File::open(path)?.read_exact(&mut magic)?;
+    Ok(magic == [0x7f, b'E', b'L', b'F']
+        || magic[..2] == *b"MZ"
+        || matches!(
+            magic,
+            [0xcf, 0xfa, 0xed, 0xfe]
+                | [0xce, 0xfa, 0xed, 0xfe]
+                | [0xfe, 0xed, 0xfa, 0xcf]
+                | [0xfe, 0xed, 0xfa, 0xce]
+                | [0xca, 0xfe, 0xba, 0xbe]
+                | [0xbe, 0xba, 0xfe, 0xca]
+        ))
+}
+
+fn find_executable(name: impl AsRef<std::ffi::OsStr>) -> std::io::Result<PathBuf> {
+    let name = Path::new(name.as_ref());
+    if name.components().count() > 1 || name.is_absolute() {
+        return std::fs::canonicalize(name);
+    }
+    for directory in env::split_paths(&env::var_os("PATH").unwrap_or_default()) {
+        let path = directory.join(name);
+        if path.is_file() {
+            return std::fs::canonicalize(path);
+        }
+    }
+    Err(std::io::Error::other(format!(
+        "cannot locate {}",
+        name.display()
+    )))
+}
+
+fn command_output(program: &str, args: &[&str]) -> std::io::Result<Vec<u8>> {
+    let output = Command::new(program).args(args).output()?;
+    if !output.status.success() {
+        return Err(std::io::Error::other(format!("{program} {args:?} failed")));
+    }
+    Ok(output.stdout)
 }
 
 fn warn_unused_xcframework(lib_dir: &Path) {

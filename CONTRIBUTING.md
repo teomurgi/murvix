@@ -144,8 +144,27 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 
 On Linux, CI runs the whole workspace natively on Arch (Omarchy's distro) via
 `scripts/check-desktop-linux.py`, including the
-[experimental desktop app](docs/tech/constraints.md), under xvfb. macOS runs
-`scripts/check-desktop-macos.py`.
+[experimental desktop app](docs/tech/constraints.md), under xvfb. On macOS,
+`python3 scripts/check-desktop-macos.py` runs the full guard. CI splits it into
+`--phase cheap` (Python regressions and formatting, before native setup) and
+`--phase native` (Clippy, workspace tests, rustdoc, and the default-feature
+executable build). Cargo phases remain serial. Each command and phase reports
+elapsed seconds and success/failure in the log and, on Actions, the job summary.
+
+The macOS guard shares completed Ghostty installs in `.cache/ghostty-native`,
+outside Cargo's target tree so Rust-cache cleanup preserves them. CI persists
+this directory with its Rust cache. `GHOSTTY_BUILD_CACHE_DIR` selects another
+location. Cache inputs include the Ghostty revision, build tooling and patches,
+Zig version and wrapper, target and native CPU, optimization/link mode, and
+SDK/compiler environment. Shared reuse is limited to native macOS builds;
+cross/non-macOS builds, source/system overrides, and unknown tool wrappers keep
+private native outputs. File locks and atomic publication prevent concurrent or
+interrupted builds from exposing partial installs; Python regressions compile
+and execute the cache's Rust safety tests without building Ghostty.
+
+The final executable build intentionally uses default features: all-features
+workspace tests enable `test-support` dependencies and cannot replace the real
+`murvix-app`, `murvix`, and `murvix-server` used by desktop/TUI smoke verification.
 
 TUI regression tests run the real CLI and server under a PTY. Synchronize tab
 interactions on displayed shortcut numbers or session state, not shell-generated

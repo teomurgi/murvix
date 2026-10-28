@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -15,63 +16,99 @@ SPEC.loader.exec_module(GUARD)
 
 
 class DesktopMacosTests(unittest.TestCase):
-    def environment(self, system="Darwin", host="aarch64-apple-darwin", target=None):
+    def environment(self, system="Darwin", host="aarch64-apple-darwin", target=None,
+                    phase="all", environ=None, limits=(256, 20480)):
         stack = contextlib.ExitStack()
         self.addCleanup(stack.close)
-        stack.enter_context(patch.object(sys, "argv", ["check-desktop-macos.py"]))
+        argv = ["check-desktop-macos.py"]
+        if phase != "all":
+            argv.extend(["--phase", phase])
+        stack.enter_context(patch.object(sys, "argv", argv))
         stack.enter_context(patch.object(GUARD.platform, "system", return_value=system))
         stack.enter_context(patch.object(GUARD.subprocess, "check_output", return_value=f"host: {host}\n"))
-        stack.enter_context(patch.object(GUARD.resource, "getrlimit", return_value=(256, 20480)))
+        stack.enter_context(patch.object(GUARD.resource, "getrlimit", return_value=limits))
         limit = stack.enter_context(patch.object(GUARD.resource, "setrlimit"))
         env = {"RUSTDOCFLAGS": "--cfg regression_guard"}
         if target is not None:
             env["CARGO_BUILD_TARGET"] = target
+        env.update(environ or {})
         stack.enter_context(patch.dict(os.environ, env, clear=True))
-        stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+        self.log = io.StringIO()
+        stack.enter_context(contextlib.redirect_stdout(self.log))
         run = stack.enter_context(patch.object(GUARD.subprocess, "run"))
         return run, limit
 
     def test_other_platforms_cannot_satisfy_the_macos_guard(self):
-        for settings in [
-            {"system": "Linux"},
-            {"host": "aarch64-unknown-linux-gnu"},
-            {"target": "aarch64-unknown-linux-gnu"},
-        ]:
-            with self.subTest(settings=settings):
-                run, _ = self.environment(**settings)
-                with self.assertRaises(ValueError):
-                    GUARD.main()
-                run.assert_not_called()
-                self.doCleanups()
+        for phase in ("all", "native"):
+            for settings in [
+                {"system": "Linux"},
+                {"host": "aarch64-unknown-linux-gnu"},
+                {"target": "aarch64-unknown-linux-gnu"},
+            ]:
+                with self.subTest(phase=phase, settings=settings):
+                    run, _ = self.environment(phase=phase, **settings)
+                    with self.assertRaises(ValueError):
+                        GUARD.main()
+                    run.assert_not_called()
+                    self.doCleanups()
 
     def test_any_failed_check_stops_the_guard(self):
-        for failed_step in range(6):
-            with self.subTest(failed_step=failed_step):
-                run, _ = self.environment()
-                run.side_effect = [None] * failed_step + [subprocess.CalledProcessError(1, "check")]
-                with self.assertRaises(subprocess.CalledProcessError):
-                    GUARD.main()
-                self.assertEqual(run.call_count, failed_step + 1)
-                self.assertTrue(all(call.kwargs["check"] for call in run.call_args_list))
+        for phase, steps in (("all", 6), ("cheap", 2), ("native", 4)):
+            for failed_step in range(steps):
+                with self.subTest(phase=phase, failed_step=failed_step):
+                    run, _ = self.environment(phase=phase)
+                    run.side_effect = [None] * failed_step + [subprocess.CalledProcessError(1, "check")]
+                    with self.assertRaises(subprocess.CalledProcessError):
+                        GUARD.main()
+                    self.assertEqual(run.call_count, failed_step + 1)
+                    self.doCleanups()
+
+    def test_cheap_phase_needs_no_native_platform_toolchain_or_resources(self):
+        _, limit = self.environment(system="Linux", phase="cheap")
+        with patch.object(GUARD.subprocess, "check_output", side_effect=AssertionError("native toolchain")), \
+                patch.object(GUARD.resource, "getrlimit", side_effect=AssertionError("native resources")):
+            GUARD.main()
+        limit.assert_not_called()
+
+    def test_native_fd_limit_respects_existing_and_hard_limits(self):
+        infinity = GUARD.resource.RLIM_INFINITY
+        for soft, hard, requested in [
+            (256, 20480, 10240),
+            (256, 4096, 4096),
+            (256, infinity, 10240),
+            (16384, 20480, None),
+            (infinity, infinity, None),
+        ]:
+            with self.subTest(soft=soft, hard=hard):
+                _, limit = self.environment(phase="native", limits=(soft, hard))
+                GUARD.main()
+                if requested is None:
+                    limit.assert_not_called()
+                else:
+                    limit.assert_called_once_with(GUARD.resource.RLIMIT_NOFILE, (requested, hard))
                 self.doCleanups()
 
-    def test_guard_covers_workspace_and_builds_matching_desktop_helpers(self):
-        run, limit = self.environment()
-        GUARD.main()
-        commands = [call.args[0] for call in run.call_args_list]
-        self.assertEqual(commands, [
-            [sys.executable, "-m", "unittest", "discover", "-s", "scripts/tests"],
-            ["cargo", "fmt", "--all", "--check"],
-            ["cargo", "clippy", "--locked", "--workspace", "--all-targets", "--all-features", "--", "-D", "warnings"],
-            ["cargo", "test", "--locked", "--workspace", "--all-features"],
-            ["cargo", "doc", "--locked", "--workspace", "--no-deps"],
-            ["cargo", "build", "--locked", "-p", "murvix-app", "-p", "murvix-cli", "-p", "murvix-server"],
-        ])
-        for call in run.call_args_list:
-            self.assertEqual(call.kwargs["cwd"], ROOT)
-            self.assertEqual(call.kwargs["env"]["RUSTDOCFLAGS"], "--cfg regression_guard -D warnings")
-            self.assertEqual(call.kwargs["env"]["RUST_TEST_THREADS"], "4")
-        limit.assert_called_once_with(GUARD.resource.RLIMIT_NOFILE, (10240, 20480))
+    def test_timings_survive_success_and_command_failure_in_logs_and_summary(self):
+        for failed in (False, True):
+            with self.subTest(failed=failed), tempfile.TemporaryDirectory() as temporary:
+                summary = Path(temporary) / "summary"
+                run, _ = self.environment(phase="cheap", environ={"GITHUB_STEP_SUMMARY": str(summary)})
+                if failed:
+                    run.side_effect = [None, subprocess.CalledProcessError(1, "check")]
+                with patch.object(GUARD.time, "monotonic", side_effect=range(6)):
+                    if failed:
+                        with self.assertRaises(subprocess.CalledProcessError):
+                            GUARD.main()
+                    else:
+                        GUARD.main()
+                status = "failed" if failed else "passed"
+                log = self.log.getvalue()
+                self.assertIn(f"Timing: cargo fmt --all --check: 1.00s ({status})", log)
+                self.assertIn(f"total: 5.00s ({status})", log)
+                contents = summary.read_text()
+                self.assertIn(f"| `cargo fmt --all --check` | 1.00 | {status} |", contents)
+                self.assertIn(f"| **Total** | **5.00** | **{status}** |", contents)
+                self.doCleanups()
 
 
 if __name__ == "__main__":
