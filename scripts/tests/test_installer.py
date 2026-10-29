@@ -112,7 +112,7 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assert_pair()
         urls = (self.root / 'curl.log').read_text().splitlines()[-2:]
-        self.assertEqual(urls, [f'https://github.com/teomurgi/Murvix/releases/download/v2.0.0/{name}'
+        self.assertEqual(urls, [f'https://github.com/teomurgi/murvix/releases/download/v2.0.0/{name}'
                                for name in (self.asset.name, 'SHA256SUMS')])
 
     def test_only_exact_release_versions_are_downloaded(self):
@@ -133,7 +133,7 @@ class InstallerTests(unittest.TestCase):
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assert_pair()
                     urls = (self.root / 'curl.log').read_text().splitlines()[-2:]
-                    self.assertEqual(urls, [f'https://github.com/teomurgi/Murvix/releases/download/v{VERSION}/{name}'
+                    self.assertEqual(urls, [f'https://github.com/teomurgi/murvix/releases/download/v{VERSION}/{name}'
                                            for name in (self.asset.name, 'SHA256SUMS')])
 
     def test_replacement_requires_opt_in_and_switches_one_generation(self):

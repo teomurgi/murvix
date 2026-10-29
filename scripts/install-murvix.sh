@@ -64,7 +64,7 @@ else
 fi
 
 ARCHIVE=murvix-$VERSION-$PLATFORM-$ARCH.$EXT
-BASE=https://github.com/teomurgi/Murvix/releases/download/v$VERSION
+BASE=https://github.com/teomurgi/murvix/releases/download/v$VERSION
 TEMP=$(mktemp -d "${TMPDIR:-/tmp}/murvix-install.XXXXXX")
 LOCK=
 STAGE=

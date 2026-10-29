@@ -20,7 +20,7 @@ import time
 import urllib.request
 import urllib.parse
 
-RELEASES = "https://github.com/teomurgi/Murvix/releases/download"
+RELEASES = "https://github.com/teomurgi/murvix/releases/download"
 APP_NAME = "Murvix"
 APP_IDENTIFIER = "com.murvix.app"
 # Historic per-channel map kept for readers; there is only the stable app now.
@@ -392,7 +392,7 @@ def fetch(url, output, limit):
     return total
 
 
-FEED_URL = "https://github.com/teomurgi/Murvix/releases/latest/download/update.json"
+FEED_URL = "https://github.com/teomurgi/murvix/releases/latest/download/update.json"
 
 
 def latest():

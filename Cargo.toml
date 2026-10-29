@@ -35,7 +35,7 @@ version = "0.5.0"
 edition = "2024"
 rust-version = "1.92"
 license = "MIT"
-repository = "https://github.com/teomurgi/Murvix"
+repository = "https://github.com/teomurgi/murvix"
 authors = ["teomurgi", "Saeed Vaziry"]
 publish = false
 

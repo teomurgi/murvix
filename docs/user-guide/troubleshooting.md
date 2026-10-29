@@ -1,7 +1,7 @@
 # Troubleshooting
 
 Common problems and fixes. If yours isn't here, please
-[open an issue](https://github.com/teomurgi/Murvix/issues).
+[open an issue](https://github.com/teomurgi/murvix/issues).
 
 ## Logs
 

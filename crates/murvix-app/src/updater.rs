@@ -38,14 +38,14 @@ pub(crate) fn installed_app_version() -> Result<String> {
     }
 }
 
-pub(crate) const RELEASES: &str = "https://github.com/teomurgi/Murvix/releases/download";
+pub(crate) const RELEASES: &str = "https://github.com/teomurgi/murvix/releases/download";
 #[cfg(any(target_os = "macos", target_os = "linux", test))]
 const MAX_DOWNLOAD: u64 = 2 * 1024 * 1024 * 1024;
 
 /// Every release publishes to the same rolling feed; the latest one wins.
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 fn feed() -> &'static str {
-    "https://github.com/teomurgi/Murvix/releases/latest/download/update.json"
+    "https://github.com/teomurgi/murvix/releases/latest/download/update.json"
 }
 
 #[derive(Debug, PartialEq)]

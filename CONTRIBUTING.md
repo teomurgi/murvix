@@ -23,7 +23,7 @@ Read [docs/product](docs/product/README.md) and [docs/tech](docs/tech/README.md)
 ### Setup
 
 ```bash
-git clone https://github.com/teomurgi/Murvix.git
+git clone https://github.com/teomurgi/murvix.git
 cd Murvix
 ```
 
@@ -197,7 +197,7 @@ cargo test --locked -p murvix-cli --test tui exit_during_resize_keeps_tab_select
 
 ## Reporting Issues
 
-- Report bugs and ideas on [GitHub Issues](https://github.com/teomurgi/Murvix/issues)
+- Report bugs and ideas on [GitHub Issues](https://github.com/teomurgi/murvix/issues)
 - Search existing issues before creating a new one
 
 ## License

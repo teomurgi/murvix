@@ -12,7 +12,7 @@ If you discover a security vulnerability in Murvix, please report it responsibly
 
 **Do not open a public issue for security vulnerabilities.**
 
-Instead, please use [GitHub's private vulnerability reporting](https://github.com/teomurgi/Murvix/security/advisories/new) to submit your report.
+Instead, please use [GitHub's private vulnerability reporting](https://github.com/teomurgi/murvix/security/advisories/new) to submit your report.
 
 ### What to include
 

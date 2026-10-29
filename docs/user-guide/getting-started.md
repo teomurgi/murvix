@@ -26,7 +26,7 @@ Command Line Tools (`xcode-select --install`).
 On Linux, install a C/C++ build toolchain and `pkg-config` as well.
 
 ```sh
-git clone https://github.com/teomurgi/Murvix.git
+git clone https://github.com/teomurgi/murvix.git
 cd Murvix
 ```
 
@@ -65,7 +65,7 @@ development details.
 
 ## macOS desktop app
 
-1. From the [latest release](https://github.com/teomurgi/Murvix/releases/latest),
+1. From the [latest release](https://github.com/teomurgi/murvix/releases/latest),
    download `Murvix-<version>-arm64.dmg` for Apple Silicon or
    `Murvix-<version>-x86_64.dmg` for Intel.
 2. Drag **Murvix** to `/Applications` or `~/Applications`, then open that copy.
@@ -132,7 +132,7 @@ The installer detects your architecture and verifies the download:
 
 ```sh
 curl -fsSL --proto '=https' --proto-redir '=https' \
-  https://github.com/teomurgi/Murvix/releases/latest/download/install-desktop-linux.py \
+  https://github.com/teomurgi/murvix/releases/latest/download/install-desktop-linux.py \
   | python3 - install
 ```
 
@@ -144,7 +144,7 @@ Open **Murvix** from Applications. The app, CLI and server install into
 
 Download `murvix-desktop_<version>_amd64.deb` or
 `murvix-desktop_<version>_arm64.deb` from the
-[latest stable release](https://github.com/teomurgi/Murvix/releases/latest).
+[latest stable release](https://github.com/teomurgi/murvix/releases/latest).
 Use `dpkg --print-architecture` to check which you need. In your download
 directory, replace the filename below with your download:
 
@@ -160,7 +160,7 @@ and `murvix-server` in `/usr/bin`.
 Install the [runtime libraries above](#quick-installer-with-in-app-updates), then
 download `Murvix-<version>-linux-x86_64.AppImage` or
 `Murvix-<version>-linux-arm64.AppImage` from the
-[latest stable release](https://github.com/teomurgi/Murvix/releases/latest).
+[latest stable release](https://github.com/teomurgi/murvix/releases/latest).
 Use `uname -m` to check: `aarch64` means ARM64. Replace the filename below with
 your download and run it without `sudo`:
 
@@ -216,12 +216,12 @@ For a Linux computer or Mac without the desktop app. This installs `murvix` and
 ### Install script
 
 Set `VERSION` to the version on the
-[releases page](https://github.com/teomurgi/Murvix/releases/latest), without the
+[releases page](https://github.com/teomurgi/murvix/releases/latest), without the
 leading `v`:
 
 ```bash
 VERSION='<version>'
-curl -fsSL "https://github.com/teomurgi/Murvix/releases/download/v$VERSION/install-murvix.sh" \
+curl -fsSL "https://github.com/teomurgi/murvix/releases/download/v$VERSION/install-murvix.sh" \
   | sh -s -- --version "$VERSION"
 export PATH="${PATH:+$PATH:}$HOME/.local/bin"
 ```

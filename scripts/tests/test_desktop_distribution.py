@@ -260,14 +260,14 @@ class DesktopDistributionTests(unittest.TestCase):
         self.assertFalse((self.root / "versions").exists())
 
     def test_downloads_refuse_a_plaintext_redirect_before_following_it(self):
-        request = INSTALL.urllib.request.Request("https://github.com/teomurgi/Murvix/releases/download/test")
+        request = INSTALL.urllib.request.Request("https://github.com/teomurgi/murvix/releases/download/test")
         with self.assertRaisesRegex(ValueError, "insecure"):
             INSTALL.HTTPSRedirectHandler().redirect_request(request, None, 302, "redirect", {}, "http://example.com/archive")
 
     def test_latest_install_uses_the_stable_feed(self):
         def feed(version, platforms):
             return json.dumps({"schema": 1, "version": version, "platforms": platforms}).encode()
-        url = "https://github.com/teomurgi/Murvix/releases/latest/download/update.json"
+        url = "https://github.com/teomurgi/murvix/releases/latest/download/update.json"
         def fetch(actual_url, output, limit):
             self.assertEqual(actual_url, url)
             output.write(feed("2.2.0", {"linux-aarch64": {}}))
@@ -283,12 +283,12 @@ class DesktopDistributionTests(unittest.TestCase):
         for name in (f"Murvix-{self.new}-arm64.dmg", f"Murvix-{self.new}-x86_64.dmg",
                      f"murvix-desktop-{self.new}-linux-arm64.tar.gz", f"murvix-desktop-{self.new}-linux-x86_64.tar.gz"):
             (self.home / name).write_bytes(b"release bytes")
-        metadata = RELEASE.update_metadata(self.new, "teomurgi/Murvix", self.home)
+        metadata = RELEASE.update_metadata(self.new, "teomurgi/murvix", self.home)
         self.assertEqual(set(metadata["platforms"]), {"macos-aarch64", "macos-x86_64", "linux-aarch64", "linux-x86_64"})
         self.assertEqual(metadata["platforms"]["linux-aarch64"]["sha256"], hashlib.sha256(b"release bytes").hexdigest())
         (self.home / f"murvix-desktop-{self.new}-linux-x86_64.tar.gz").unlink()
         with self.assertRaises(FileNotFoundError):
-            RELEASE.update_metadata(self.new, "teomurgi/Murvix", self.home)
+            RELEASE.update_metadata(self.new, "teomurgi/murvix", self.home)
 
     def test_desktop_audit_does_not_weaken_standalone_glibc_or_library_policy(self):
         inputs = ["Class: ELF64\nData: little endian\nMachine: AArch64\n",
