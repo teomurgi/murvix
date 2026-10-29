@@ -34,6 +34,54 @@ def environment(home):
     return env
 
 
+def ensure_wayland(env):
+    """A Wayland compositor for the packaged GUI: gpui implements raw window
+    handles on Wayland but not X11, so the browser check cannot run under Xvfb.
+    Returns an updated env, or None with a printed reason when no compositor
+    can be provided (the GUI check is then skipped, never silently)."""
+    if env.get("WAYLAND_DISPLAY"):
+        return env
+    try:
+        socket = subprocess.check_output(["weston", "--version"], text=True, timeout=15)
+    except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+        print(f"SKIP GUI browser check: no weston available ({error}); mount and CLI checks still gate")
+        return None
+    runtime = Path(tempfile.mkdtemp(prefix="murvix-weston-"))
+    display = "murvix-check"
+    compositor = subprocess.Popen(["weston", "--backend=headless", f"--socket={display}"],
+                                  env={**env, "XDG_RUNTIME_DIR": str(runtime)},
+                                  start_new_session=True,
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    deadline = time.monotonic() + 20
+    while not (runtime / display).exists():
+        if compositor.poll() is not None or time.monotonic() >= deadline:
+            print("SKIP GUI browser check: headless weston did not start; mount and CLI checks still gate")
+            if compositor.poll() is None:
+                compositor.terminate()
+            return None
+        time.sleep(0.05)
+    env = dict(env, XDG_RUNTIME_DIR=str(runtime), WAYLAND_DISPLAY=display)
+    # The TemporaryDirectory cleanup below closes over home; stash the compositor
+    # so the caller can stop it. Stored on the env dict to avoid globals.
+    env["_WESTON_PID"] = str(compositor.pid)
+    env["_WESTON_RUNTIME"] = str(runtime)
+    return env
+
+
+def stop_wayland(env):
+    pid = env.pop("_WESTON_PID", None)
+    runtime = env.pop("_WESTON_RUNTIME", None)
+    if pid is None:
+        return
+    try:
+        os.killpg(int(pid), signal.SIGTERM)
+    except (ProcessLookupError, PermissionError, ValueError):
+        pass
+    if runtime:
+        import shutil
+        shutil.rmtree(runtime, ignore_errors=True)
+
+
 def appimage(archive, version, desktop, fuse):
     if os.getuid() == 0:
         raise ValueError("Run the AppImage check as a non-root test user")
@@ -46,6 +94,13 @@ def appimage(archive, version, desktop, fuse):
         assert not (home / "profile").exists() and not (home / "data").exists()
         gui = None
         binaries = None
+        wayland = None
+        if desktop:
+            wayland = ensure_wayland(env)
+            if wayland is None:
+                desktop = False
+            else:
+                env = wayland
         try:
             if desktop:
                 gui = subprocess.Popen(command, env=env, start_new_session=True, umask=0o027)
@@ -96,6 +151,7 @@ def appimage(archive, version, desktop, fuse):
                 gui.wait(timeout=15)
             for cli in (home / "data/murvix-appimage").glob("*/usr/bin/murvix"):
                 subprocess.run([str(cli), "server", "stop", "--force"], env=env, check=True, timeout=15)
+            stop_wayland(env)
 
 
 def deb(archive, version, user):
