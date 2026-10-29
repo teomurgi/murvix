@@ -4,6 +4,7 @@
 import argparse
 import json
 import os
+import shutil
 from pathlib import Path
 import pwd
 import shlex
@@ -12,7 +13,6 @@ import subprocess
 import sys
 import tempfile
 import time
-
 from linux_packages import identity, digest
 from release import check_build
 
@@ -41,10 +41,8 @@ def ensure_wayland(env):
     can be provided (the GUI check is then skipped, never silently)."""
     if env.get("WAYLAND_DISPLAY"):
         return env
-    try:
-        socket = subprocess.check_output(["weston", "--version"], text=True, timeout=15)
-    except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
-        print(f"SKIP GUI browser check: no weston available ({error}); mount and CLI checks still gate")
+    if shutil.which("weston") is None:
+        print("SKIP GUI browser check: no weston available; mount and CLI checks still gate")
         return None
     runtime = Path(tempfile.mkdtemp(prefix="murvix-weston-"))
     display = "murvix-check"
@@ -78,7 +76,6 @@ def stop_wayland(env):
     except (ProcessLookupError, PermissionError, ValueError):
         pass
     if runtime:
-        import shutil
         shutil.rmtree(runtime, ignore_errors=True)
 
 

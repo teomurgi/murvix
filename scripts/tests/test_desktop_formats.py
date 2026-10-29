@@ -32,27 +32,26 @@ class FakeProcess:
 class WaylandGatingTests(unittest.TestCase):
     def test_existing_display_passes_through_untouched(self):
         env = {"WAYLAND_DISPLAY": "wayland-0", "PATH": "/usr/bin:/bin"}
-        with patch.object(_formats.subprocess, "check_output") as check:
+        with patch.object(_formats.shutil, "which") as which:
             self.assertEqual(ensure_wayland(env), env)
-            check.assert_not_called()
+            which.assert_not_called()
 
     def test_missing_weston_skips_loudly(self):
-        with patch.object(_formats.subprocess, "check_output",
-                           side_effect=FileNotFoundError("no weston")), \
+        with patch.object(_formats.shutil, "which", return_value=None), \
              patch("builtins.print") as printed:
             self.assertIsNone(ensure_wayland({}))
             printed.assert_called_once()
             self.assertIn("SKIP", printed.call_args[0][0])
 
     def test_compositor_that_exits_immediately_skips(self):
-        with patch.object(_formats.subprocess, "check_output", return_value="weston 14"), \
+        with patch.object(_formats.shutil, "which", return_value="/usr/bin/weston"), \
              patch.object(_formats.subprocess, "Popen", return_value=FakeProcess(returncode=1)), \
              patch.object(_formats.tempfile, "mkdtemp", return_value="/tmp/weston-test"), \
              patch("builtins.print"):
             self.assertIsNone(ensure_wayland({}))
 
     def test_successful_compositor_sets_display_and_stops_it(self):
-        with patch.object(_formats.subprocess, "check_output", return_value="weston 14"), \
+        with patch.object(_formats.shutil, "which", return_value="/usr/bin/weston"), \
              patch.object(_formats.subprocess, "Popen", return_value=FakeProcess(pid=4242)), \
              patch.object(_formats.tempfile, "mkdtemp", return_value="/tmp/weston-test"), \
              patch.object(_formats.Path, "exists", return_value=True):
