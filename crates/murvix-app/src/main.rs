@@ -15,13 +15,10 @@ mod model;
 mod navigation;
 #[cfg(target_os = "linux")]
 mod omarchy;
-/// Warms up `WebKitGTK` on the main thread before any test spawns the webview
-/// thread: `cargo test` never runs `main`, but the constructor runs on the
-/// process main thread at startup. Production primes the same way in `run`.
 #[cfg(all(test, target_os = "linux"))]
 #[ctor::ctor]
-fn prime_javascript_for_tests() {
-    let _ = murvix_ui::webview::prime_javascript();
+fn initialize_webview_for_tests() {
+    let _ = murvix_ui::webview::initialize_before_javascript();
 }
 mod opener;
 mod picker;
@@ -169,7 +166,7 @@ fn run() -> ExitCode {
     };
     murvix_ui::browser::polybrowser::init();
     #[cfg(target_os = "linux")]
-    murvix_ui::webview::prime_javascript();
+    let _ = murvix_ui::webview::initialize_before_javascript();
     let profile = profiler::init();
     let boot = {
         let _span = profiler::span(profiler::Metric::BootLoad);

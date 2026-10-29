@@ -315,6 +315,8 @@ libraries! {
         fn g_error_free(error: *mut GError);
     }
     "libgobject-2.0.so.0" {
+        fn g_type_class_ref(kind: GType) -> gpointer;
+        fn g_type_class_unref(class: gpointer);
         fn g_object_ref(object: gpointer) -> gpointer;
         fn g_object_unref(object: gpointer);
         fn g_object_new_with_properties(

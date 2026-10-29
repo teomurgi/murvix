@@ -48,15 +48,36 @@ if [[ "$STATUS" -ne 0 ]]; then
 fi
 python3 -c 'import json, sys; sys.exit(0 if json.load(sys.stdin).get("status") == "Accepted" else 1)' \
     < "$TEMP/submission.json"
+
+# Retry ticket retrieval, not notarization: an accepted submission remains accepted
+# when Apple's ticket service temporarily loses its network connection.
+staple_with_retry() {
+    local attempt status
+    for attempt in 1 2 3; do
+        status=0
+        xcrun stapler staple "$1" > "$TEMP/stapler.log" 2>&1 || status=$?
+        cat "$TEMP/stapler.log"
+        if [[ "$status" -eq 0 ]]; then
+            return 0
+        fi
+        # Error 68 alone is not sufficient: permanent ticket errors also use it.
+        if [[ "$attempt" -eq 3 ]] || ! grep -Eq \
+            'NSURLErrorDomain Code=-(1001|1003|1004|1005|1006|1009)([^0-9]|$)' "$TEMP/stapler.log"; then
+            return "$status"
+        fi
+        echo "Stapling network error; retrying in 5 seconds ($attempt/3)" >&2
+        sleep 5
+    done
+}
 case "$1" in
     *.app)
-        xcrun stapler staple "$1"
+        staple_with_retry "$1"
         xcrun stapler validate "$1"
         codesign --verify --deep --strict --verbose=2 "$1"
         spctl --assess --type execute --verbose=2 "$1"
         ;;
     *.dmg)
-        xcrun stapler staple "$1"
+        staple_with_retry "$1"
         xcrun stapler validate "$1"
         spctl --assess --type open --context context:primary-signature --verbose=2 "$1"
         ;;

@@ -135,6 +135,8 @@ impl Runtime {
             if g.gtk_init_check(ptr::null_mut(), ptr::null_mut()) == FALSE {
                 return Err(tr!("Extension pages need a desktop session to render in.").into());
             }
+            let class = g.g_type_class_ref(g.webkit_web_context_get_type());
+            g.g_type_class_unref(class);
             // On X11, GTK asks the server about windows that are on no
             // screen, and GDK ends the whole app over the server's refusal
             // unless errors are trapped. The trap stays for good.

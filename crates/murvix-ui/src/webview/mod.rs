@@ -26,7 +26,7 @@ mod macos;
 mod unsupported;
 pub use backend::CAPABILITY;
 #[cfg(target_os = "linux")]
-pub use backend::prime_javascript;
+pub use backend::initialize_before_javascript;
 #[cfg(target_os = "linux")]
 use linux as backend;
 #[cfg(target_os = "macos")]
