@@ -673,6 +673,7 @@
 "Forget %@?" = "Forget %@?";
 "Forward" = "Forward";
 "General" = "General";
+"Git user.name and user.email are not set" = "Git user.name and user.email are not set";
 "Global X11 shortcuts cannot cover a Wayland desktop." = "Global X11 shortcuts cannot cover a Wayland desktop.";
 "Global folder: %@" = "Global folder: %@";
 "Global template: %@" = "Global template: %@";
@@ -928,6 +929,7 @@
 "No Shortcut" = "No Shortcut";
 "No agent sessions in this project" = "No agent sessions in this project";
 "No agents running" = "No agents running";
+"No author" = "No author";
 "No commit was created" = "No commit was created";
 "No custom commands yet." = "No custom commands yet.";
 "No custom key bindings yet." = "No custom key bindings yet.";

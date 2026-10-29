@@ -67,6 +67,8 @@ pub(super) fn summary(path: &Path) -> Result<GitSummary> {
         .ok()
         .map(|b| text(&b))
         .transpose()?,
+        author_name: config_value(path, "user.name"),
+        author_email: config_value(path, "user.email"),
         ..GitSummary::default()
     };
     if summary.upstream.is_some() {
@@ -92,6 +94,14 @@ pub(super) fn summary(path: &Path) -> Result<GitSummary> {
         summary.conflicted += u32::from(file.conflicted());
     }
     Ok(summary)
+}
+
+fn config_value(path: &Path, key: &str) -> Option<String> {
+    run(path, &["config", "--get", key])
+        .ok()
+        .and_then(|bytes| text(&bytes).ok())
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty())
 }
 
 pub(super) fn branches(path: &Path) -> Result<Vec<GitBranch>> {

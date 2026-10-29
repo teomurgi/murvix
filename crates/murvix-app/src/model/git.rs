@@ -124,6 +124,7 @@ pub(crate) struct GitState {
     pub(crate) changes_anchor: murvix_ui::popover::PopoverAnchor,
     pub(crate) pull_request_anchor: murvix_ui::popover::PopoverAnchor,
     pub(crate) projects: HashMap<ProjectId, Repository>,
+    pub(crate) show_author_email: bool,
     current: Option<ProjectId>,
     /// A new worktree to select once its server's catalog lists it.
     pub(crate) select_after_catalog: Option<(murvix_app_core::ServerId, ProjectId, u64)>,

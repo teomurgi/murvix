@@ -251,6 +251,14 @@ pub struct GitSummary {
     pub untracked: u32,
     #[n(9)]
     pub conflicted: u32,
+    #[n(10)]
+    #[cbor(default)]
+    #[serde(default)]
+    pub author_name: Option<String>,
+    #[n(11)]
+    #[cbor(default)]
+    #[serde(default)]
+    pub author_email: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Encode, Decode)]

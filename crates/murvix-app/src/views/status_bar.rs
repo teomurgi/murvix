@@ -244,6 +244,8 @@ fn git_controls(model: &AppModel, cx: &mut Context<AppModel>) -> Vec<AnyElement>
         ),
         separator(model),
         repository_chip(Kind::Changes, changes, color, enabled, model, cx),
+        separator(model),
+        author_chip(summary, model, cx),
     ];
     if let Some(chip) = ai_action_chip(AiAction::Commit, model, cx) {
         controls.push(separator(model));
@@ -633,6 +635,57 @@ fn repository_chip(
             .size_full(),
         )
         .child(IconGlyph::new(icon, model.metrics.font_caption(), color))
+        .child(
+            div()
+                .text_size(model.metrics.font_footnote())
+                .font_weight(FontWeight::MEDIUM)
+                .child(label),
+        )
+        .into_any_element()
+}
+
+fn author_chip(
+    summary: &murvix_protocol::GitSummary,
+    model: &AppModel,
+    cx: &mut Context<AppModel>,
+) -> AnyElement {
+    let show_email = model.git.show_author_email;
+    let (label, detail) = match (&summary.author_name, &summary.author_email) {
+        (Some(name), Some(email)) => {
+            let shown = if show_email { email } else { name };
+            (shown.clone(), format!("{name} <{email}>"))
+        }
+        (Some(name), None) => (name.clone(), name.clone()),
+        (None, Some(email)) => (email.clone(), email.clone()),
+        (None, None) => (
+            tr!("No author").to_string(),
+            tr!("Git user.name and user.email are not set").to_string(),
+        ),
+    };
+    div()
+        .id("git-author-status")
+        .debug_selector(|| "git-author-status".into())
+        .flex()
+        .flex_none()
+        .items_center()
+        .gap(px(4.0))
+        .h_full()
+        .text_color(model.theme.fg_muted)
+        .tooltip(tooltip(detail, model))
+        .cursor_pointer()
+        .hover(|style| style.text_color(model.theme.fg))
+        .on_mouse_down(
+            MouseButton::Left,
+            cx.listener(|model, _, _, cx| {
+                model.git.show_author_email = !model.git.show_author_email;
+                cx.notify();
+            }),
+        )
+        .child(IconGlyph::new(
+            Icon::CircleUser,
+            model.metrics.font_caption(),
+            model.theme.fg_muted,
+        ))
         .child(
             div()
                 .text_size(model.metrics.font_footnote())
