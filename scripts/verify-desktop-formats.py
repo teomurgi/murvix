@@ -2,6 +2,7 @@
 """Exercise native packages in a disposable Linux guest or container, never on a user's desktop."""
 
 import argparse
+from contextlib import contextmanager, ExitStack
 import json
 import os
 import shutil
@@ -19,9 +20,11 @@ from release import check_build
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def wait_for(check, message, timeout=30):
+def wait_for(check, message, timeout=30, process=None):
     deadline = time.monotonic() + timeout
     while not check():
+        if process is not None and process.poll() is not None:
+            raise RuntimeError(f"{message}: desktop exited with status {process.returncode}")
         if time.monotonic() >= deadline:
             raise RuntimeError(message)
         time.sleep(0.05)
@@ -34,49 +37,42 @@ def environment(home):
     return env
 
 
-def ensure_wayland(env):
-    """A Wayland compositor for the packaged GUI: gpui implements raw window
-    handles on Wayland but not X11, so the browser check cannot run under Xvfb.
-    Returns an updated env, or None with a printed reason when no compositor
-    can be provided (the GUI check is then skipped, never silently)."""
+@contextmanager
+def wayland_display(env):
     if env.get("WAYLAND_DISPLAY"):
-        return env
-    if shutil.which("weston") is None:
-        print("SKIP GUI browser check: no weston available; mount and CLI checks still gate")
-        return None
-    runtime = Path(tempfile.mkdtemp(prefix="murvix-weston-"))
-    display = "murvix-check"
-    compositor = subprocess.Popen(["weston", "--backend=headless", f"--socket={display}"],
-                                  env={**env, "XDG_RUNTIME_DIR": str(runtime)},
-                                  start_new_session=True,
-                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    deadline = time.monotonic() + 20
-    while not (runtime / display).exists():
-        if compositor.poll() is not None or time.monotonic() >= deadline:
-            print("SKIP GUI browser check: headless weston did not start; mount and CLI checks still gate")
-            if compositor.poll() is None:
-                compositor.terminate()
-            return None
-        time.sleep(0.05)
-    env = dict(env, XDG_RUNTIME_DIR=str(runtime), WAYLAND_DISPLAY=display)
-    # The TemporaryDirectory cleanup below closes over home; stash the compositor
-    # so the caller can stop it. Stored on the env dict to avoid globals.
-    env["_WESTON_PID"] = str(compositor.pid)
-    env["_WESTON_RUNTIME"] = str(runtime)
-    return env
-
-
-def stop_wayland(env):
-    pid = env.pop("_WESTON_PID", None)
-    runtime = env.pop("_WESTON_RUNTIME", None)
-    if pid is None:
+        yield env
         return
-    try:
-        os.killpg(int(pid), signal.SIGTERM)
-    except (ProcessLookupError, PermissionError, ValueError):
-        pass
-    if runtime:
-        shutil.rmtree(runtime, ignore_errors=True)
+    weston = shutil.which("weston", path=env.get("PATH"))
+    if weston is None:
+        raise RuntimeError("Desktop verification requires Weston or an existing WAYLAND_DISPLAY")
+    with tempfile.TemporaryDirectory(prefix="murvix-weston-") as temporary:
+        runtime = Path(temporary)
+        display = "murvix-check"
+        display_env = dict(env, XDG_RUNTIME_DIR=str(runtime), WAYLAND_DISPLAY=display,
+                           GDK_BACKEND="x11")
+        log_path = runtime / "weston.log"
+        with log_path.open("w+") as log:
+            compositor = subprocess.Popen(
+                [weston, "--backend=x11", "--use-pixman", "--no-config",
+                 "--idle-time=0", "--width=1280", "--height=1024", f"--socket={display}"],
+                env=display_env, start_new_session=True, stdout=log, stderr=subprocess.STDOUT,
+            )
+            try:
+                deadline = time.monotonic() + 20
+                while not (runtime / display).exists():
+                    if compositor.poll() is not None or time.monotonic() >= deadline:
+                        log.seek(0)
+                        raise RuntimeError(f"Nested Weston failed to start:\n{log.read()}")
+                    time.sleep(0.05)
+                yield display_env
+            finally:
+                if compositor.poll() is None:
+                    os.killpg(compositor.pid, signal.SIGTERM)
+                try:
+                    compositor.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    os.killpg(compositor.pid, signal.SIGKILL)
+                    compositor.wait(timeout=5)
 
 
 def appimage(archive, version, desktop, fuse):
@@ -91,17 +87,13 @@ def appimage(archive, version, desktop, fuse):
         assert not (home / "profile").exists() and not (home / "data").exists()
         gui = None
         binaries = None
-        wayland = None
-        if desktop:
-            wayland = ensure_wayland(env)
-            if wayland is None:
-                desktop = False
-            else:
-                env = wayland
+        resources = ExitStack()
         try:
             if desktop:
+                env = resources.enter_context(wayland_display(env))
                 gui = subprocess.Popen(command, env=env, start_new_session=True, umask=0o027)
-                wait_for(lambda: (home / "profile/server.sock").exists(), "AppImage did not connect to its server")
+                wait_for(lambda: (home / "profile/server.sock").exists(),
+                         "AppImage did not connect to its server", process=gui)
                 assert gui.poll() is None, "AppImage exited before its desktop was ready"
             else:
                 subprocess.run([*command, "--cli", "project", "list"], env=env, check=True, timeout=60, umask=0o027)
@@ -121,7 +113,8 @@ def appimage(archive, version, desktop, fuse):
             assert not any(line.startswith(("MUXY_APPIMAGE_", "WEBKIT_EXEC_PATH=", "WEBKIT_INJECTED_BUNDLE_PATH=",
                                             "GIO_EXTRA_MODULES=", "LD_LIBRARY_PATH=")) for line in inherited), inherited
             if gui is not None:
-                wait_for(lambda: (home / "profile/app.sock").exists(), "AppImage browser API did not start")
+                wait_for(lambda: (home / "profile/app.sock").exists(),
+                         "AppImage browser API did not start", process=gui)
                 tab = cli("browser", "open", "about:blank", "--project", "Home").strip()
                 assert json.loads(cli("browser", "wait", tab, "--function", "document.readyState === 'complete'",
                                       "--timeout-ms", "10000")), "Packaged browser did not finish loading"
@@ -142,13 +135,22 @@ def appimage(archive, version, desktop, fuse):
                                env=env, check=True, timeout=60)
             print("Verified AppImage: matching helpers, durable terminal, clean shell environment" +
                   (", GUI/server startup and system WebKit/TLS" if desktop else ""))
+        except Exception:
+            if gui is not None:
+                print(f"Packaged desktop exit status: {gui.poll()}", file=sys.stderr, flush=True)
+            for diagnostic in sorted((home / "profile").glob("app-diagnostics-*.log")):
+                print(f"Desktop diagnostic ({diagnostic.name}):\n{diagnostic.read_text(errors='replace')}",
+                      file=sys.stderr, flush=True)
+            raise
         finally:
-            if gui is not None and gui.poll() is None:
-                os.killpg(gui.pid, signal.SIGTERM)
-                gui.wait(timeout=15)
-            for cli in (home / "data/murvix-appimage").glob("*/usr/bin/murvix"):
-                subprocess.run([str(cli), "server", "stop", "--force"], env=env, check=True, timeout=15)
-            stop_wayland(env)
+            try:
+                if gui is not None and gui.poll() is None:
+                    os.killpg(gui.pid, signal.SIGTERM)
+                    gui.wait(timeout=15)
+                for cli in (home / "data/murvix-appimage").glob("*/usr/bin/murvix"):
+                    subprocess.run([str(cli), "server", "stop", "--force"], env=env, check=True, timeout=15)
+            finally:
+                resources.close()
 
 
 def deb(archive, version, user):

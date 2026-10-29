@@ -121,6 +121,29 @@ the requested release version and the source's current protocol and compatibilit
 declarations, so stale binaries cannot enter a package. The Python regression
 suite covers protocol resolution independently of the installed Rust binaries.
 
+Linux package verification runs `scripts/verify-desktop-runtime.sh` in a disposable
+Ubuntu 24.04 container. It uses AppImage extraction mode, not privileged FUSE
+mounting; `verify-desktop-formats.py --fuse` is an explicit manual check on a
+FUSE-capable machine. The required `--desktop` check starts Weston nested under
+Xvfb with software rendering and a virtual input seat. GPUI uses Wayland while
+the offscreen GTK/WebKit worker uses X11 (`GDK_BACKEND=x11`). The packaged browser
+and terminal checks fail if either display path cannot start; no GUI gate is
+silently skipped.
+GTK/WebKit initialization and every browser context stay on the webview worker.
+Before other threads parse JavaScript, `initialize_before_javascript` waits for
+the worker to initialize the `WebKitWebContext` class. WebKitGTK 2.54 requires
+that worker to be JavaScriptCore's first registered thread. Browser profiles
+remain lazy so their configured data directories are preserved. Do not create
+WebKit contexts on the GPUI/main thread: subsequent cookie-manager creation on
+the worker aborts in both 2.52 and 2.54. The isolated native startup regression
+and packaged browser open/evaluate/read/close check cover both constraints.
+The Docker script travels over stdin as a quoted heredoc, so shell quoting inside
+the container cannot truncate the command. Check the actual container invocation,
+not just the outer script with `bash -n`, when changing this path.
+Apple ticket stapling retries recognized transient network failures after an
+accepted notarization; it never retries permanent ticket errors or bypasses
+stapler validation and Gatekeeper assessment.
+
 The vendored Ghostty build applies `lazy-benchmarks.patch` so disabled benchmarks
 do not fetch their unused GUI dependencies (`vaxis`, `freetype`, and their
 transitive packages) during terminal-library builds. Keep this patch when

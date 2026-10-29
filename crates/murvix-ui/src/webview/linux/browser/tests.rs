@@ -169,6 +169,40 @@ fn drained() {
 
 #[test]
 #[ignore = "Requires WebKitGTK and a display; runs in the Linux desktop guard"]
+fn initialization_precedes_automation_parser() {
+    const CHILD: &str = "MUXY_WEBKIT_STARTUP_TEST_CHILD";
+    if std::env::var_os(CHILD).is_none() {
+        let status = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                std::thread::current().name().unwrap(),
+                "--ignored",
+                "--nocapture",
+            ])
+            .env(CHILD, "1")
+            .status()
+            .unwrap();
+        assert!(status.success(), "isolated WebKit startup failed: {status}");
+        return;
+    }
+    super::super::initialize_before_javascript().unwrap();
+    assert!(crate::javascript::is_async_function_body(
+        "await Promise.resolve(); return document.title;"
+    ));
+    let root = std::env::temp_dir().join(format!("murvix-browser-startup-{}", std::process::id()));
+    let manager = ProfileManager::open_at(&root).unwrap();
+    let profile = manager.get_or_create("Startup").unwrap();
+    let server = Server::new();
+    let page = Page::new(&profile, &server.url);
+    page.loaded();
+    assert_eq!(page.eval("return document.title;"), json!("Browser test"));
+    drop(page);
+    drained();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+#[ignore = "Requires WebKitGTK and a display; runs in the Linux desktop guard"]
 fn navigating_while_the_initial_blank_page_loads_keeps_the_requested_address() {
     let _serial = super::super::tests::alone();
     let server = Server::new();

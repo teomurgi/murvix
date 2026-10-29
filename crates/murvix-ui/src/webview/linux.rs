@@ -46,66 +46,12 @@ fn data_directory() -> Option<PathBuf> {
         .clone()
 }
 
-/// Warms up `WebKitGTK`'s one-time initialization on the calling thread.
-///
-/// `WebKit` 2.54 hard-aborts when its platform init first runs on the webview
-/// worker thread — which is where every page context is made — so the app
-/// calls this once on its main thread at startup, before any page opens.
-/// Later contexts then skip the once-guard instead of aborting. Returns
-/// whether `WebKitGTK` loaded. No-op without `WebKitGTK`.
-///
-/// The prime is deliberately faithful: it builds the same website data
-/// manager (same properties) and context pages are made with, then touches
-/// the cookie manager the same way `Context::get` does, so every
-/// once-guarded path the worker would trip is already consumed on main.
-pub fn prime_javascript() -> bool {
-    let Ok(g) = ffi::load() else {
-        return false;
-    };
-    // SAFETY: Must run on the process main thread, once, before the GTK
-    // thread exists. Everything created here is dropped before returning;
-    // contexts the worker makes later are independent objects.
-    unsafe {
-        let kind = g.webkit_website_data_manager_get_type();
-        if kind == 0 {
-            return false;
-        }
-        let names = [
-            c"base-data-directory".as_ptr(),
-            c"base-cache-directory".as_ptr(),
-        ];
-        let dirs = [
-            c"/tmp/murvix-prime/data".as_ptr(),
-            c"/tmp/murvix-prime/cache".as_ptr(),
-        ];
-        let mut values = [ffi::GValue::EMPTY, ffi::GValue::EMPTY];
-        for (value, dir) in values.iter_mut().zip(&dirs) {
-            g.g_value_init(value, ffi::TYPE_STRING);
-            g.g_value_set_string(value, *dir);
-        }
-        let manager = g.g_object_new_with_properties(kind, 2, names.as_ptr(), values.as_ptr());
-        for value in &mut values {
-            g.g_value_unset(value);
-        }
-        if manager.is_null() {
-            return false;
-        }
-        let context = g.webkit_web_context_new_with_website_data_manager(manager);
-        g.g_object_unref(manager);
-        if context.is_null() {
-            return false;
-        }
-        let cookies = g.webkit_web_context_get_cookie_manager(context);
-        if !cookies.is_null() {
-            g.webkit_cookie_manager_set_persistent_storage(
-                cookies,
-                c"/tmp/murvix-prime/cookies.sqlite".as_ptr(),
-                1,
-            );
-        }
-        g.g_object_unref(context);
-    }
-    true
+pub fn initialize_before_javascript() -> Result<(), String> {
+    let (ready, completed) = mpsc::sync_channel(1);
+    post(move |runtime| {
+        let _ = ready.send(runtime.map(|_| ()).map_err(str::to_owned));
+    });
+    completed.recv().map_err(|error| error.to_string())?
 }
 
 /// Work for the GTK thread, or the reason there is none to run it.
