@@ -272,6 +272,12 @@ impl ReadyLine {
     }
 }
 
+/// Whether what the transport printed says any of `texts`, such as a shell
+/// reporting `murvix: not found` on stdout instead of stderr.
+fn printed_says(texts: &[&str], printed: &[u8]) -> bool {
+    let printed = String::from_utf8_lossy(printed);
+    texts.iter().any(|text| printed.contains(text))
+}
 /// Explains a transport that ended before the bridge was ready, from its
 /// exit status, its error output, and what it printed.
 fn explain(exit: &BridgeExit, printed: &[u8]) -> (RemoteReason, String) {
@@ -285,7 +291,7 @@ fn explain(exit: &BridgeExit, printed: &[u8]) -> (RemoteReason, String) {
         RemoteReason::HostKeyUnknown
     } else if ssh && said(&["Permission denied (", "Too many authentication failures"]) {
         RemoteReason::AuthenticationFailed
-    } else if exit.status == Some(127) || said(&NOT_FOUND) {
+    } else if exit.status == Some(127) || said(&NOT_FOUND) || printed_says(&NOT_FOUND, printed) {
         RemoteReason::NotInstalled
     } else if said(&["murvix: unknown command"]) {
         RemoteReason::Incompatible
@@ -301,6 +307,7 @@ fn explain(exit: &BridgeExit, printed: &[u8]) -> (RemoteReason, String) {
         RemoteReason::BridgeFailed
     };
     let detail = match reason {
+        RemoteReason::NotInstalled => "looked on PATH and in ~/.local/bin".into(),
         RemoteReason::Incompatible => "it predates remote connections".into(),
         RemoteReason::UnexpectedOutput => last_line(printed),
         RemoteReason::BridgeFailed if last.is_empty() => match exit.status {
@@ -401,5 +408,12 @@ mod tests {
             explain(&exit(None, "oops\n"), b"").0,
             RemoteReason::BridgeFailed
         );
+    }
+    #[test]
+    fn a_missing_remote_binary_on_stdout_is_not_an_unreachable_host() {
+        let printed = b"sh: line 1: exec: murvix: not found\n";
+        let closed = exit(Some(127), "Connection closed by UNKNOWN port 65535\r\n");
+        let (reason, _) = explain(&closed, printed);
+        assert_eq!(reason, RemoteReason::NotInstalled);
     }
 }
