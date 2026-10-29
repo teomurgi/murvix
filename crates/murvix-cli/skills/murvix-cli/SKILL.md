@@ -1,8 +1,7 @@
 ---
 name: murvix-cli
-description: How to drive Murvix 2 from a shell with the `murvix` command — start terminals that keep running, type into them, read and wait on their output, and manage projects and Git worktrees. Use this when you are an agent running inside a Murvix terminal (or any script on the same computer) and want work to run in its own terminal instead of blocking yours, or to drive the desktop app's built-in browser.
+description: How to drive Murvix 2 from a shell — start terminals, read output, manage projects, worktrees, and workspace folders. Use when asked to list workspace folders, work with extra roots, or drive terminals, sessions, projects, or the desktop browser from a Murvix terminal.
 ---
-
 # Murvix CLI
 
 Murvix keeps terminals in a background server. The `murvix` command talks to that
@@ -31,8 +30,9 @@ project, so most commands need no IDs.
 Read the live workspace with `murvix project here --json`: the project directory
 first, then its added folders, as text and exact byte arrays. This works for any
 agent and reflects added or removed folders even in an existing terminal.
-Use these roots when asked to list workspace folders; listing only the shell's
-current directory misses external roots. The command identifies your terminal
+Run this command yourself whenever asked to list workspace folders or work with
+more than the current directory; do not answer from the shell's current
+directory or from `MUXY_WORKSPACE_*` alone. The command identifies your terminal
 through its server and session, not cwd, and rejects stale or foreign identities.
 
 `MUXY_WORKSPACE_COUNT` and `MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on are
@@ -40,10 +40,15 @@ older terminal-start snapshots; prefer the live command. Files, search, exec,
 and Git still target the primary project folder.
 
 To start a new workspace-aware agent, use `murvix agent omp`, `murvix agent claude`,
-`murvix agent codex`, or `murvix agent copilot`. Native arguments follow `--`.
-The launcher supplies current roots through each tool's native options without
-bypassing its permissions. Plain tool commands and already-running agents are
-unchanged; use the tool's native folder commands or launch again after changes.
+`murvix agent codex`, `murvix agent copilot`, `murvix agent pi`, or
+`murvix agent opencode`. Native arguments follow `--`.
+omp, claude, codex and copilot receive current roots through each tool's native
+`--add-dir` options; pi has no multi-root flag so it starts in the project
+directory; opencode receives the project directory via `run --dir`.
+Extra roots reach pi and opencode through this skill: run `murvix project here`.
+The launcher never bypasses native permissions. Plain tool commands and
+already-running agents are unchanged; use the tool's native folder commands or
+launch again after changes.
 
 ## Start a terminal and capture its ID
 

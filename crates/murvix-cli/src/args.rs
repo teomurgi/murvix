@@ -121,7 +121,7 @@ fn agent(arguments: &[OsString]) -> io::Result<Command> {
     let agent = tool
         .to_str()
         .and_then(murvix_app_core::agent_launch::Agent::from_command)
-        .ok_or_else(|| invalid("unsupported workspace-aware agent; use omp, claude, codex or copilot; other agents can discover live roots with murvix project here"))?;
+        .ok_or_else(|| invalid("unsupported workspace-aware agent; use omp, claude, codex, copilot, pi or opencode; other agents can discover live roots with murvix project here"))?;
     let arguments = match rest {
         [separator, arguments @ ..] if separator == "--" => arguments,
         _ => rest,

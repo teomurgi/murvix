@@ -12,9 +12,18 @@ pub enum Agent {
     Codex,
     Copilot,
     OhMyPi,
+    Pi,
+    OpenCode,
 }
 
-pub const AGENTS: [Agent; 4] = [Agent::Claude, Agent::Codex, Agent::Copilot, Agent::OhMyPi];
+pub const AGENTS: [Agent; 6] = [
+    Agent::Claude,
+    Agent::Codex,
+    Agent::Copilot,
+    Agent::OhMyPi,
+    Agent::Pi,
+    Agent::OpenCode,
+];
 
 impl Agent {
     pub fn from_command(command: &str) -> Option<Self> {
@@ -23,6 +32,8 @@ impl Agent {
             "codex" => Self::Codex,
             "copilot" => Self::Copilot,
             "omp" => Self::OhMyPi,
+            "pi" => Self::Pi,
+            "opencode" => Self::OpenCode,
             _ => return None,
         })
     }
@@ -33,6 +44,8 @@ impl Agent {
             AgentProvider::Codex => Self::Codex,
             AgentProvider::Copilot => Self::Copilot,
             AgentProvider::OhMyPi => Self::OhMyPi,
+            AgentProvider::Pi => Self::Pi,
+            AgentProvider::OpenCode => Self::OpenCode,
             _ => return None,
         })
     }
@@ -43,6 +56,8 @@ impl Agent {
             Self::Codex => "codex",
             Self::Copilot => "copilot",
             Self::OhMyPi => "omp",
+            Self::Pi => "pi",
+            Self::OpenCode => "opencode",
         }
     }
 
@@ -52,7 +67,19 @@ impl Agent {
             Self::Codex => AgentProvider::Codex,
             Self::Copilot => AgentProvider::Copilot,
             Self::OhMyPi => AgentProvider::OhMyPi,
+            Self::Pi => AgentProvider::Pi,
+            Self::OpenCode => AgentProvider::OpenCode,
         }
+    }
+
+    /// Whether the native tool accepts repeatable `--add-dir` workspace roots.
+    /// Tools without that flag launch in the project directory; their agents
+    /// discover extra roots through the installed skill (`murvix project here`).
+    pub fn supports_add_dir(self) -> bool {
+        matches!(
+            self,
+            Self::Claude | Self::Codex | Self::Copilot | Self::OhMyPi
+        )
     }
 }
 

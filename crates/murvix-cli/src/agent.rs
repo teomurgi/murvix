@@ -1,4 +1,7 @@
 //! Local native launches use argv directly; no shell parsing or permission overrides.
+//! pi launches in the project directory (no native multi-root flag); opencode
+//! gets the project directory via `--dir`. Extra workspace roots reach both
+//! through the installed murvix-cli skill (`murvix project here`).
 
 use std::ffi::OsString;
 use std::os::unix::ffi::OsStrExt;
@@ -34,15 +37,27 @@ pub(crate) fn run(agent: Agent, arguments: &[OsString]) -> Result<(), Box<dyn st
         0
     };
     let mut command = Command::new(agent.command());
+    if agent == Agent::OpenCode {
+        // Only `run` accepts --dir; the bare TUI takes a positional project
+        // path instead. Extra roots arrive via the installed skill.
+        command.arg("run");
+        if let Some(directory) = roots.first() {
+            command
+                .arg("--dir")
+                .arg(std::ffi::OsStr::from_bytes(&directory.0));
+        }
+    }
     command.args(&arguments[..boundary]);
-    for root in roots {
-        let directory = std::ffi::OsStr::from_bytes(&root.0);
-        if matches!(agent, Agent::Claude | Agent::Copilot) {
-            let mut option = OsString::from("--add-dir=");
-            option.push(directory);
-            command.arg(option);
-        } else {
-            command.arg("--add-dir").arg(directory);
+    if agent.supports_add_dir() {
+        for root in roots {
+            let directory = std::ffi::OsStr::from_bytes(&root.0);
+            if matches!(agent, Agent::Claude | Agent::Copilot) {
+                let mut option = OsString::from("--add-dir=");
+                option.push(directory);
+                command.arg(option);
+            } else {
+                command.arg("--add-dir").arg(directory);
+            }
         }
     }
     command.args(&arguments[boundary..]);

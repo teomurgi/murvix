@@ -93,9 +93,10 @@ MUXY_CLI_TIMEOUT sets how many seconds the app has to answer (default 10).
 Text list columns: tab-id, title, url, profile, active (tab-separated).";
 pub(crate) const INSTALL_SKILLS: &str = "Usage: murvix install-skills [--dir DIR]...
 Installs the murvix-cli skill, which teaches AI coding agents to use this command,
-into each agent folder that exists: ~/.claude/skills, ~/.codex/skills and
-~/.agents/skills. --dir adds another skills folder; repeat it for more.
-An installed copy, including the Murvix 1.x skill, is replaced.";
+into each agent folder that exists: ~/.claude/skills, ~/.codex/skills,
+~/.agents/skills, ~/.omp/agent/skills, ~/.pi/agent/skills and
+~/.config/opencode/skills. --dir adds another skills folder; repeat it for
+more. An installed copy, including the Murvix 1.x skill, is replaced.";
 pub(crate) const SERVER: &str = "Usage: murvix server start|status|stop [--json]
   stop [--force]  Stop only if idle; --force ends all running terminals.";
 pub(crate) const PROJECT: &str = "Usage: murvix project <action> [--json]
@@ -189,14 +190,16 @@ For shell syntax, explicitly use /bin/sh -c '...'. Timeout defaults to 30000ms
 complete result. A failed, timed-out, cancelled or truncated run exits nonzero.";
 
 pub(crate) const AGENT: &str =
-    "Usage: murvix agent <omp|claude|codex|copilot> [-- <native arguments...>]
+    "Usage: murvix agent <omp|claude|codex|copilot|pi|opencode> [-- <native arguments...>]
 
 Launches the native tool with this terminal's current project directory and
-extra workspace roots using its --add-dir options. Arguments are passed directly,
-without shell evaluation. Native permissions and approval policies still apply.
-Requires a live Murvix terminal on this computer; --host is not supported.
-Plain native commands are unchanged. Other agents can discover live roots with
-murvix project here, but have no supported native workspace launcher.";
+extra workspace roots. omp, claude, codex and copilot receive every root
+through their --add-dir options; pi has no multi-root flag so it starts in the
+project directory; opencode receives the project directory via --dir. Arguments
+are passed directly, without shell evaluation. Native permissions and approval
+policies still apply. Requires a live Murvix terminal on this computer; --host
+is not supported. Plain native commands are unchanged. Other agents can discover
+live roots with murvix project here, but have no supported native workspace launcher.";
 
 pub(crate) fn topic(group: &str) -> Option<&'static str> {
     Some(match group {

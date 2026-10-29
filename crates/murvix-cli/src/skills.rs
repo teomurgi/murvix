@@ -10,14 +10,40 @@ const SKILL: &str = include_str!("../skills/murvix-cli/SKILL.md");
 /// Agent folders in the home folder; each keeps its skills in `skills`.
 const AGENTS: [&str; 3] = [".claude", ".codex", ".agents"];
 
-/// Writes the skill into every agent folder in `home` and into each of
-/// `directories`, replacing an older copy, and returns the files written.
+/// Native skill directories outside the `<agent>/skills` pattern: omp, pi and
+/// opencode keep skills beside their sessions/config. Installs when the parent
+/// exists (the tool is or was installed); `create_dir_all` creates the rest.
+fn native_skill_dirs(home: &Path) -> Vec<PathBuf> {
+    [".omp", ".pi", ".config/opencode"]
+        .into_iter()
+        .map(|parent| home.join(parent))
+        .filter(|parent| parent.is_dir())
+        .map(|parent| {
+            if parent.ends_with("opencode") {
+                parent.join("skills")
+            } else {
+                parent.join("agent/skills")
+            }
+        })
+        .collect()
+}
+
+/// Writes the skill into omp's native skills, every agent folder in `home`,
+/// and each of `directories`, replacing an older copy.
 pub(crate) fn install(home: Option<&Path>, directories: &[PathBuf]) -> io::Result<Vec<PathBuf>> {
     let mut roots: Vec<PathBuf> = home
         .into_iter()
-        .flat_map(|home| AGENTS.iter().map(move |agent| home.join(agent)))
-        .filter(|agent| agent.is_dir())
-        .map(|agent| agent.join("skills"))
+        .flat_map(|home: &Path| {
+            let agent_skills: Vec<PathBuf> = AGENTS
+                .iter()
+                .map(|agent| home.join(agent))
+                .filter(|agent| agent.is_dir())
+                .map(|agent| agent.join("skills"))
+                .collect();
+            let mut roots = agent_skills;
+            roots.extend(native_skill_dirs(home));
+            roots
+        })
         .collect();
     for directory in directories {
         roots.push(std::path::absolute(directory)?);
@@ -25,7 +51,7 @@ pub(crate) fn install(home: Option<&Path>, directories: &[PathBuf]) -> io::Resul
     if roots.is_empty() {
         return Err(io::Error::new(
             io::ErrorKind::NotFound,
-            "found no AI agent folder (~/.claude, ~/.codex or ~/.agents); choose one with --dir",
+            "found no AI agent folder (~/.claude, ~/.codex, ~/.agents, ~/.omp, ~/.pi or ~/.config/opencode); choose one with --dir",
         ));
     }
     roots
@@ -49,12 +75,19 @@ mod tests {
         let home = tempfile::tempdir()?;
         assert!(install(Some(home.path()), &[]).is_err());
         fs::create_dir(home.path().join(".claude"))?;
+        fs::create_dir_all(home.path().join(".omp/agent"))?;
+        fs::create_dir_all(home.path().join(".pi/agent"))?;
+        fs::create_dir_all(home.path().join(".config/opencode"))?;
         let chosen = home.path().join("chosen");
         let written = install(Some(home.path()), std::slice::from_ref(&chosen))?;
         assert_eq!(
             written,
             [
                 home.path().join(".claude/skills/murvix-cli/SKILL.md"),
+                home.path().join(".omp/agent/skills/murvix-cli/SKILL.md"),
+                home.path().join(".pi/agent/skills/murvix-cli/SKILL.md"),
+                home.path()
+                    .join(".config/opencode/skills/murvix-cli/SKILL.md"),
                 chosen.join("murvix-cli/SKILL.md"),
             ]
         );

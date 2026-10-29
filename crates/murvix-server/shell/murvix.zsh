@@ -59,3 +59,30 @@ _murvix_install() {
     return "$result"
 }
 precmd_functions+=(_murvix_install)
+
+# Workspace-aware agent launchers. Inside a Murvix terminal, bare
+# `omp`/`claude`/`codex`/`copilot` resolve the live workspace once at launch
+# (like `murvix agent <tool>`) instead of seeing only the shell's cwd.
+# Outside a Murvix terminal, with wrappers disabled
+# (`MUXY_WORKSPACE_WRAPPERS=0`), or when the server is unreachable, the plain
+# tool runs unchanged. `command <tool>` always bypasses the wrapper.
+_murvix_with_workspace() {
+    local tool=$1; shift
+    if [[ ${MUXY_WORKSPACE_WRAPPERS-} == 0 || -z ${MUXY_SERVER_ID-} || -z ${MUXY_SESSION_ID-} ]] || ! command -v murvix >/dev/null 2>&1; then
+        command $tool "$@"
+        return
+    fi
+    local roots root extra=()
+    if roots=$(command murvix project here 2>/dev/null) && [[ -n $roots ]]; then
+        while IFS= read -r root; do
+            [[ -n $root && -d $root ]] && extra+=(--add-dir="$root")
+        done <<<"$roots"
+        command $tool "${extra[@]}" "$@"
+    else
+        command $tool "$@"
+    fi
+}
+for _murvix_tool in omp claude codex copilot; do
+    eval "$_murvix_tool() { _murvix_with_workspace $_murvix_tool \"\$@\"; }"
+done
+unset _murvix_tool

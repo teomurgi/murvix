@@ -441,7 +441,11 @@ fn start_agents_preserves_existing_tabs_and_rolls_back_failed_saves(cx: &mut Tes
                 _ => None,
             })
             .collect();
-        assert_eq!(commands.len(), 4, "all workspace adapters are discoverable");
+        assert_eq!(
+            commands.len(),
+            murvix_app_core::agent_launch::AGENTS.len(),
+            "all workspace adapters are discoverable"
+        );
         for (index, (id, agent)) in commands.into_iter().enumerate() {
             model.start_agent(id, agent, cx);
             assert_eq!(model.state.current_project().id, project);
