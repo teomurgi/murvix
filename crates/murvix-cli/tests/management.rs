@@ -424,3 +424,87 @@ fn projects_can_be_created_and_reused() -> Result {
     assert_ne!(duplicate["id"], created["id"]);
     Ok(())
 }
+
+#[test]
+fn terminal_workspace_discovery_is_live_byte_exact_and_server_bound() -> Result {
+    use std::ffi::OsString;
+    use std::os::unix::ffi::{OsStrExt, OsStringExt};
+
+    let f = Fixture::new()?;
+    let project = f.project()?;
+    f.shell()?;
+    let session = f.ok(&["session", "create", &project])?.trim().to_owned();
+    let server = f.client()?.catalog()?.server.to_string();
+    let primary = f.directory.path().canonicalize()?;
+    // APFS rejects non-UTF-8 names; Linux also exercises byte-only paths.
+    let name = if cfg!(target_os = "macos") {
+        OsString::from("extra-é\nroot")
+    } else {
+        OsString::from_vec(b"extra-\xff\nroot".to_vec())
+    };
+    let extra = primary.join(name);
+    std::fs::create_dir(&extra)?;
+    // Keep the same terminal identity, changed cwd and stale inherited snapshot
+    // across every query, exactly as an already-running shell would.
+    let mut here = f.command(&["project", "here", "--json"]);
+    here.current_dir("/")
+        .env("MUXY_SESSION_ID", &session)
+        .env("MUXY_SERVER_ID", &server)
+        .env("MUXY_WORKSPACE_COUNT", "1")
+        .env("MUXY_WORKSPACE_0", "/obsolete-snapshot");
+    let read = |command: &mut Command| -> Result<Value> {
+        let output = command.output()?;
+        assert!(output.status.success(), "{output:?}");
+        Ok(serde_json::from_slice(&output.stdout)?)
+    };
+    let primary_bytes = primary.as_os_str().as_bytes();
+    assert_eq!(read(&mut here)?["workspace_bytes"], json!([primary_bytes]));
+    let changed = f.run(&[
+        OsString::from("project"),
+        OsString::from("workspace"),
+        OsString::from(&project),
+        extra.as_os_str().to_owned(),
+    ])?;
+    assert!(changed.status.success(), "{changed:?}");
+    let live = read(&mut here)?;
+    assert_eq!(
+        live["workspace_bytes"],
+        json!([primary_bytes, extra.as_os_str().as_bytes()])
+    );
+    assert_eq!(
+        live["workspace"],
+        json!([primary.to_string_lossy(), extra.to_string_lossy()])
+    );
+    let text = f
+        .command(&["project", "here"])
+        .current_dir("/")
+        .env("MUXY_SESSION_ID", &session)
+        .env("MUXY_SERVER_ID", &server)
+        .output()?;
+    assert!(text.status.success(), "{text:?}");
+    let mut expected = primary_bytes.to_vec();
+    expected.push(b'\n');
+    expected.extend_from_slice(extra.as_os_str().as_bytes());
+    expected.push(b'\n');
+    assert_eq!(text.stdout, expected);
+    f.ok(&["project", "clear-workspace", &project])?;
+    assert_eq!(read(&mut here)?["workspace_bytes"], json!([primary_bytes]));
+
+    let other = Fixture::new()?;
+    other.project()?;
+    let wrong = other
+        .command(&["project", "here", "--json"])
+        .env("MUXY_SESSION_ID", &session)
+        .env("MUXY_SERVER_ID", &server)
+        .env("MUXY_WORKSPACE_COUNT", "1")
+        .env("MUXY_WORKSPACE_0", "/obsolete-snapshot")
+        .output()?;
+    assert!(!wrong.status.success());
+    assert!(String::from_utf8(wrong.stderr)?.contains("on that server"));
+
+    f.ok(&["session", "end", &session, "--yes"])?;
+    let stale = here.output()?;
+    assert!(!stale.status.success());
+    assert!(String::from_utf8(stale.stderr)?.contains("no longer running"));
+    Ok(())
+}

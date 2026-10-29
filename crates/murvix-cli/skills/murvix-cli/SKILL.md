@@ -28,14 +28,23 @@ Murvix sets `MUXY_SESSION_ID` and `MUXY_SERVER_ID` in every terminal. Session
 commands then default to your own terminal, and `session create` to your
 project, so most commands need no IDs.
 
-Every terminal also carries its project's workspace: the project directory
-first, then the extra roots set with `murvix project workspace`. Read it with
-`murvix project here` — one root per line, or `--json` for text plus byte
-arrays — whatever agent you are; this is the directory set in scope, not just
-the shell's current folder. (The same roots are also in `MUXY_WORKSPACE_COUNT`
-plus `MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on.) Roots are captured
-when the terminal starts; Files, search, exec, and Git still target the
-project folder.
+Read the live workspace with `murvix project here --json`: the project directory
+first, then its added folders, as text and exact byte arrays. This works for any
+agent and reflects added or removed folders even in an existing terminal.
+Use these roots when asked to list workspace folders; listing only the shell's
+current directory misses external roots. The command identifies your terminal
+through its server and session, not cwd, and rejects stale or foreign identities.
+
+`MUXY_WORKSPACE_COUNT` and `MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on are
+older terminal-start snapshots; prefer the live command. Files, search, exec,
+and Git still target the primary project folder.
+
+To start a new workspace-aware agent, use `murvix agent omp`, `murvix agent claude`,
+`murvix agent codex`, or `murvix agent copilot`. Native arguments follow `--`.
+The launcher supplies current roots through each tool's native options without
+bypassing its permissions. Plain tool commands and already-running agents are
+unchanged; use the tool's native folder commands or launch again after changes.
+
 ## Start a terminal and capture its ID
 
 `session create` prints the new session ID. Everything after `--` is typed into

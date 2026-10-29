@@ -2,9 +2,11 @@ mod list;
 
 pub(crate) use list::{Entry, Recency};
 
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 use gpui::{AppContext, Context, Entity, FocusHandle, Focusable, Subscription, Task, Window};
+use murvix_app_core::agent_launch::{Agent, launch_command};
 use murvix_app_core::agent_sessions::{Catalog, Listing, PROVIDERS, Roots, Session, supported};
 use murvix_app_core::settings::AgentSessionsPosition;
 use murvix_app_core::{ProjectId, ProjectStatus};
@@ -293,6 +295,24 @@ impl AppModel {
         cx.notify();
     }
 
+    pub(crate) fn start_agent(&mut self, project: ProjectId, agent: Agent, cx: &mut Context<Self>) {
+        if self.quitting != Quitting::Idle
+            || self.close_prompt.is_some()
+            || self.close_request.is_some()
+            || self.pending_close.is_some()
+            || self.overlay.is_some()
+            || !self.state.project(project).is_some_and(|project| {
+                project.server_id.is_local() && project.status() == ProjectStatus::Available
+            })
+        {
+            return;
+        }
+        match workspace_agent_command(agent, &[]) {
+            Ok(command) => self.open_agent_terminal(project, None, &command, cx),
+            Err(error) => self.fail(error.to_string(), cx),
+        }
+    }
+
     pub(crate) fn resume_agent_session(&mut self, session: &Session, cx: &mut Context<Self>) {
         if self.quitting != Quitting::Idle
             || self.close_prompt.is_some()
@@ -315,18 +335,49 @@ impl AppModel {
             );
             return;
         }
+        let command = if let Some(agent) = Agent::from_provider(session.provider) {
+            // resume_command contains only fixed words and a validated ASCII
+            // session ID. Never tokenize a user command or transcript text.
+            let arguments: Vec<_> = command
+                .split_ascii_whitespace()
+                .skip(1)
+                .map(OsString::from)
+                .collect();
+            match workspace_agent_command(agent, &arguments) {
+                Ok(command) => command,
+                Err(error) => {
+                    self.fail(error.to_string(), cx);
+                    return;
+                }
+            }
+        } else {
+            command
+        };
+        self.open_agent_terminal(
+            self.state.current_project().id,
+            Some(session.title.clone()),
+            &command,
+            cx,
+        );
+    }
+
+    fn open_agent_terminal(
+        &mut self,
+        project: ProjectId,
+        title: Option<String>,
+        command: &str,
+        cx: &mut Context<Self>,
+    ) {
         let previous = self.state.clone();
         let result = (|| {
-            let tab = self
-                .state
-                .open_terminal_tab(self.state.current_project().id)?;
-            self.state.set_tab_title(tab, Some(session.title.clone()))?;
+            let tab = self.state.open_terminal_tab(project)?;
+            self.state.set_tab_title(tab, title)?;
             let pane = self
                 .state
                 .window()
                 .active_pane
-                .ok_or_else(|| "could not create session pane".to_owned())?;
-            self.state.set_startup_command(pane, &command)?;
+                .ok_or_else(|| "could not create agent pane".to_owned())?;
+            self.state.set_startup_command(pane, command)?;
             Ok::<_, Box<dyn std::error::Error>>(pane)
         })();
         let pane = match result {
@@ -350,4 +401,9 @@ impl AppModel {
             self.connect_server(server, cx);
         }
     }
+}
+
+fn workspace_agent_command(agent: Agent, arguments: &[OsString]) -> std::io::Result<String> {
+    let cli = murvix_core::executable::current_path()?.with_file_name("murvix");
+    launch_command(&cli, agent, arguments)
 }

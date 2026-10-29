@@ -50,6 +50,10 @@ pub(crate) enum Command {
     Worktrees(murvix_app_core::ProjectId),
     NewWorktree(murvix_app_core::ProjectId),
     NewProjectTab(murvix_app_core::ProjectId),
+    StartAgent(
+        murvix_app_core::ProjectId,
+        murvix_app_core::agent_launch::Agent,
+    ),
     RemoveWorktree(murvix_app_core::ProjectId),
     ExistingSessions(murvix_app_core::ProjectId),
     ProjectLayouts(murvix_app_core::ProjectId),
@@ -585,6 +589,7 @@ impl AppModel {
                 self.select_project(id, cx);
                 self.new_tab(cx);
             }
+            Command::StartAgent(project, agent) => self.start_agent(project, agent, cx),
             Command::Worktrees(id) => {
                 self.toggle_worktree_visibility(id, cx);
             }

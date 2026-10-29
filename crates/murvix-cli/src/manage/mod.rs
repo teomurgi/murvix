@@ -15,6 +15,7 @@ use serde_json::{Value, json};
 
 use crate::target::Target;
 use args::{Action, Invocation, Server};
+pub(crate) use projects::current as current_project;
 pub(crate) use projects::folder_project;
 
 type Result<T = ()> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -30,6 +31,7 @@ pub(crate) fn run(invocation: Invocation, host: Option<SshTarget>) -> Result {
     let start = if matches!(
         invocation.action,
         Action::Server(Server::Status | Server::Stop { .. })
+            | Action::Project(args::Project::WorkspaceHere)
     ) {
         Start::Never
     } else {

@@ -105,10 +105,6 @@ fn resume_is_transactional_and_uses_the_selected_project(cx: &mut TestAppContext
         assert_eq!(model.state.current_project().tabs.len(), tabs + 1);
         let pane = model.active_pane().expect("pane");
         assert_eq!(
-            model.state.startup_command(pane),
-            Some("codex resume session-123")
-        );
-        assert_eq!(
             model.initial_directories.get(&pane),
             Some(&model.state.current_project().directory)
         );
@@ -403,5 +399,109 @@ fn header_moves_pins_and_floats_the_panel(cx: &mut TestAppContext) {
     click(cx, "toggle-agent-sessions");
     view.read_with(cx, |model, _| {
         assert!(!model.appearance.agent_sessions_visible);
+    });
+}
+
+#[gpui::test]
+fn start_agents_preserves_existing_tabs_and_rolls_back_failed_saves(cx: &mut TestAppContext) {
+    use crate::views::menu::{Command, Item};
+    use murvix_app_core::agent_launch::Agent;
+
+    let directory = tempfile::tempdir().expect("directory");
+    let mut state = AppState::bootstrap().expect("state");
+    let home = state.home().id;
+    let project = state
+        .add_project(ServerId::local(), directory.path().to_path_buf())
+        .expect("project");
+    state.open_terminal_tab(project).expect("existing terminal");
+    let existing = state.project(project).expect("project").tabs.clone();
+    state.select_project(home).expect("home");
+    let (boot, requests) = stub_boot(state);
+    let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
+    view.update(cx, |model, cx| {
+        model.installation.preferences.cli_enabled = false;
+        let path = model.path.clone();
+        model.path = directory.path().to_path_buf();
+        model.start_agent(project, Agent::Codex, cx);
+        assert_eq!(model.state.current_project().id, home);
+        assert_eq!(
+            model.state.project(project).expect("project").tabs,
+            existing
+        );
+        model.path = path;
+
+        let commands: Vec<_> = model
+            .project_menu(model.state.project(project).expect("project"))
+            .iter()
+            .filter_map(Item::children)
+            .flatten()
+            .filter_map(Item::command)
+            .filter_map(|command| match command {
+                Command::StartAgent(id, agent) => Some((id, agent)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(commands.len(), 4, "all workspace adapters are discoverable");
+        for (index, (id, agent)) in commands.into_iter().enumerate() {
+            model.start_agent(id, agent, cx);
+            assert_eq!(model.state.current_project().id, project);
+            let tabs = &model.state.current_project().tabs;
+            assert_eq!(tabs.len(), existing.len() + index + 1);
+            assert_eq!(&tabs[..existing.len()], existing.as_slice());
+            let pane = model.active_pane().expect("new pane");
+            assert_eq!(
+                model.initial_directories.get(&pane),
+                Some(&directory.path().to_path_buf())
+            );
+        }
+        assert!(!model.installation.preferences.cli_enabled);
+    });
+    assert!(
+        !requests
+            .try_iter()
+            .any(|(_, work)| matches!(work, Work::Input(..))),
+        "existing terminals receive no launch input"
+    );
+}
+
+#[gpui::test]
+fn start_agent_rejects_missing_and_remote_projects(cx: &mut TestAppContext) {
+    use crate::views::menu::{Command, Item};
+    use murvix_app_core::agent_launch::Agent;
+
+    let directory = tempfile::tempdir().expect("directory");
+    let project_directory = directory.path().join("gone");
+    std::fs::create_dir(&project_directory).expect("directory");
+    let mut state = AppState::bootstrap().expect("state");
+    let gone = state
+        .add_project(ServerId::local(), project_directory.clone())
+        .expect("project");
+    state.select_project(state.home().id).expect("home");
+    std::fs::remove_dir(project_directory).expect("remove directory");
+    state.refresh_project_statuses();
+    let remote = ServerId::new();
+    let remote_home = ProjectId::new();
+    state
+        .apply_catalog(remote, &servers::page(2, remote_home, &[]))
+        .expect("remote catalog");
+    let (boot, _requests) = stub_boot(state);
+    let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
+    view.update(cx, |model, cx| {
+        let selected = model.state.current_project().id;
+        for id in [gone, remote_home] {
+            let before = model.state.project(id).expect("project").tabs.clone();
+            let menu = model.project_menu(model.state.project(id).expect("project"));
+            assert!(
+                !menu
+                    .iter()
+                    .filter_map(Item::children)
+                    .flatten()
+                    .filter_map(Item::command)
+                    .any(|command| matches!(command, Command::StartAgent(..)))
+            );
+            model.start_agent(id, Agent::Codex, cx);
+            assert_eq!(model.state.current_project().id, selected);
+            assert_eq!(model.state.project(id).expect("project").tabs, before);
+        }
     });
 }

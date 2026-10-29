@@ -1334,6 +1334,7 @@
 "Stage Selected" = "Stage Selected";
 "Staged" = "Staged";
 "Staged and unstaged" = "Staged and unstaged";
+"Start Agent" = "Start Agent";
 "Start Dictation" = "Start Dictation";
 "Start Murvix at login" = "Start Murvix at login";
 "Start new splits in the project folder or the current pane's working directory." = "Start new splits in the project folder or the current pane's working directory.";

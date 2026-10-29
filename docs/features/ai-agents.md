@@ -39,13 +39,51 @@ agents run, "waiting" wins.
 
 A project is a workspace: its directory plus the extra roots set with
 `murvix project workspace`, or right-click → Workspace → Add Folder… in the
-desktop app. Every terminal in the project inherits all of them as
-`MUXY_WORKSPACE_COUNT` with `MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so
-on — index 0 is the project directory. These variables are available to any
-program in the terminal; whether an agent uses them to add folders to its own
-context depends on that agent. Murvix does not configure the agent's workspace
-or permissions. Roots are captured when the terminal starts; existing terminals
-keep theirs. Files, search, exec, and Git still target the project folder.
+desktop app. Adding a folder does not make it a physical child of the project.
+Files, search, exec, and Git still target the project folder.
+
+### Start an agent with the workspace
+
+Right-click an available local project or worktree → **Start Agent** → choose
+the installed tool. Murvix opens a new terminal in that project and supplies
+the current workspace through the tool's native additional-directory options.
+The desktop uses its bundled CLI even when the public `murvix` command is disabled.
+
+Inside an existing Murvix terminal, use the shared launcher:
+
+| Agent | Command |
+| --- | --- |
+| Claude Code | `murvix agent claude` |
+| Codex | `murvix agent codex` |
+| Copilot | `murvix agent copilot` |
+| Oh My Pi | `murvix agent omp` |
+
+Pass native arguments after `--`, for example
+`murvix agent codex -- resume SESSION_ID`. The launcher reads the live project
+from the calling terminal's server and session, not its current directory or
+old environment variables. It includes the primary folder even after `cd`.
+Install and authenticate each tool separately.
+
+Native trust, approval, and sandbox policies still apply. Additional folders
+can grant file access and load tool-specific configuration; Murvix does not
+bypass permission prompts or restrict a tool to only those folders.
+Running agents are not restarted or reconfigured when folders change: launch
+again or use the agent's own folder-management commands. Native resume may
+also retain permissions from the saved session.
+
+Plain `omp`, `claude`, and other native commands are unchanged. Tools without
+a native adapter can discover the current workspace with
+`murvix project here --json`; installed Murvix CLI skills explain this command.
+It works from an already-running terminal after folders are added or removed.
+`--json` returns text and byte arrays for paths containing newlines or
+non-UTF-8 bytes. A terminal from another server or an ended session is rejected,
+without falling back to stale roots. On another computer, run the launcher
+inside that computer's Murvix terminal; `murvix --host … agent …` is not supported.
+
+For compatibility, terminals also inherit `MUXY_WORKSPACE_COUNT` and
+`MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on, with the project directory at
+index 0. These environment variables are snapshots from terminal creation;
+use `project here` for live membership.
 
 ## Notifications
 
@@ -106,8 +144,10 @@ This is separate from the running-agents panel.
   Tab opens provider filtering. Escape clears the search; Escape again returns
   focus to the terminal.
 - Click a session to resume it in a new project terminal using the harness's
-  native resume command. The harness must be installed and available on the
-  terminal's PATH. Murvix does not install, configure, or authenticate it.
+  native resume command. Claude Code, Codex, Copilot, and Oh My Pi resume through
+  the workspace-aware launcher; other supported providers keep ordinary resume.
+  The harness must be installed and available on the terminal's PATH.
+  Murvix does not install or authenticate it.
 - Drag the left edge to resize. The panel shares the right-panel area with
   Agents, extension panels, and the panel-mode composer; opening one replaces
   the other.

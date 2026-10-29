@@ -174,8 +174,13 @@ fn keyboard_resume_keeps_its_identity_when_results_arrive(cx: &mut TestAppContex
         assert_eq!(
             model
                 .state
-                .startup_command(model.active_pane().expect("pane")),
-            Some("codex resume session-1")
+                .current_project()
+                .tabs
+                .last()
+                .expect("resumed tab")
+                .custom_title
+                .as_deref(),
+            Some("Fix regression in terminal search")
         );
         model
             .agent_sessions
