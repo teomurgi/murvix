@@ -23,10 +23,12 @@ docker run --rm --cap-add SYS_PTRACE "${device_args[@]}" -v "$ROOT:/src:ro" -v "
     MUXY_DISPOSABLE_PACKAGE_TEST=1 python3 /src/scripts/verify-desktop-formats.py deb \
       "/packages/${PACKAGE}_${VERSION}_${DEB_ARCH}.deb" --version "$VERSION"
     fuse_args=()
-    if [[ -c /dev/fuse ]]; then
+    # Probe as the test user: root passes -w on any node, but only the
+    # unprivileged user reveals whether mounting will actually be permitted.
+    if runuser -u package-check -- bash -c '[[ -c /dev/fuse && -r /dev/fuse && -w /dev/fuse ]]'; then
         fuse_args=(--fuse)
     else
-        echo "No /dev/fuse in the verification container; checking the AppImage in extraction mode"
+        echo "No usable /dev/fuse in the verification container; checking the AppImage in extraction mode"
     fi
     runuser -u package-check -- dbus-run-session -- xvfb-run -a \
       python3 /src/scripts/verify-desktop-formats.py appimage \
