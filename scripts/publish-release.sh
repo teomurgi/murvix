@@ -23,6 +23,14 @@ fi
 
 cd "$ARTIFACTS"
 ASSETS=(install-murvix.sh install-desktop-linux.py murvix-desktop.apparmor)
+for ARCHIVE in "$ROOT"/extensions/dist/*.zip; do
+    if [[ ! -f "$ARCHIVE" || ! -s "$ARCHIVE" || -L "$ARCHIVE" ]]; then
+        echo "Error: missing or empty extension archive: $ARCHIVE" >&2
+        exit 1
+    fi
+    cp "$ARCHIVE" .
+    ASSETS+=("$(basename "$ARCHIVE")")
+done
 for ARCH in arm64 x86_64; do
     ASSETS+=("murvix-${VERSION}-linux-${ARCH}.tar.gz")
     ASSETS+=("murvix-desktop-${VERSION}-linux-${ARCH}.tar.gz" "Murvix-${VERSION}-linux-${ARCH}.AppImage")

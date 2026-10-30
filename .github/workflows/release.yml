@@ -191,6 +191,32 @@ jobs:
         run: |
           cp scripts/install-murvix.sh scripts/install-desktop-linux.py artifacts/
           cp packaging/linux/murvix-desktop.apparmor artifacts/
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build and pack marketplace extensions
+        run: |
+          set -euo pipefail
+          for extension in files git; do
+            pushd "extensions/$extension"
+            npm ci --no-audit --no-fund
+            npm run build
+            popd
+          done
+          node extensions/pack.mjs
+          node -e '
+            const fs = require("node:fs");
+            const manifest = JSON.parse(fs.readFileSync("extensions/manifest.json", "utf8"));
+            for (const entry of manifest) {
+              const zip = `extensions/dist/${entry.archive}`;
+              const data = fs.readFileSync(zip);
+              if (data.length !== entry.size) throw new Error(`${zip}: size mismatch`);
+              const crypto = require("node:crypto");
+              const sha = crypto.createHash("sha256").update(data).digest("hex");
+              if (sha !== entry.sha256) throw new Error(`${zip}: checksum mismatch`);
+            }
+            console.log(`verified ${manifest.length} extension archives against extensions/manifest.json`);
+          '
       - name: Publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

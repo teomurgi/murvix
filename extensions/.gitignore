@@ -1,0 +1,2 @@
+# Release-pack output; the release workflow rebuilds and verifies these.
+dist/

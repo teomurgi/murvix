@@ -1653,6 +1653,7 @@
 "extension identity changed during installation" = "extension identity changed during installation";
 "extension is already installed; uninstall it before installing this version" = "extension is already installed; uninstall it before installing this version";
 "extension is not installed" = "extension is not installed";
+"extension not found" = "extension not found";
 "extension script is too large" = "extension script is too large";
 "failed to install Carbon event handler (%lld)" = "failed to install Carbon event handler (%lld)";
 "failed to install Quick Terminal shortcut recorder" = "failed to install Quick Terminal shortcut recorder";
@@ -1672,8 +1673,7 @@
 "invalid archive checksum" = "invalid archive checksum";
 "invalid archive path" = "invalid archive path";
 "invalid archive size" = "invalid archive size";
-"invalid marketplace URL" = "invalid marketplace URL";
-"invalid marketplace details" = "invalid marketplace details";
+"invalid marketplace entry" = "invalid marketplace entry";
 "marketplace response is too large" = "marketplace response is too large";
 "menu close submenu" = "menu close submenu";
 "menu confirm highlighted" = "menu confirm highlighted";
