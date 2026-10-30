@@ -197,6 +197,11 @@ jobs:
       - name: Build and pack marketplace extensions
         run: |
           set -euo pipefail
+          # The committed manifest is authoritative: the app fetches it from
+          # the tag, so rebuilt archives must match it byte for byte. pack.mjs
+          # regenerates the file; any drift fails the release instead of
+          # shipping zips the published manifest does not describe.
+          cp extensions/manifest.json "$RUNNER_TEMP/committed-manifest.json"
           for extension in files git; do
             pushd "extensions/$extension"
             npm ci --no-audit --no-fund
@@ -206,17 +211,19 @@ jobs:
           node extensions/pack.mjs
           node -e '
             const fs = require("node:fs");
-            const manifest = JSON.parse(fs.readFileSync("extensions/manifest.json", "utf8"));
+            const manifest = JSON.parse(fs.readFileSync(process.env.COMMITTED_MANIFEST, "utf8"));
             for (const entry of manifest) {
               const zip = `extensions/dist/${entry.archive}`;
               const data = fs.readFileSync(zip);
               if (data.length !== entry.size) throw new Error(`${zip}: size mismatch`);
               const crypto = require("node:crypto");
               const sha = crypto.createHash("sha256").update(data).digest("hex");
-              if (sha !== entry.sha256) throw new Error(`${zip}: checksum mismatch`);
+              if (sha !== entry.sha256) throw new Error(`${zip}: checksum mismatch; re-run node extensions/pack.mjs and commit extensions/manifest.json`);
             }
-            console.log(`verified ${manifest.length} extension archives against extensions/manifest.json`);
+            console.log(`verified ${manifest.length} extension archives against the committed manifest`);
           '
+        env:
+          COMMITTED_MANIFEST: ${{ runner.temp }}/committed-manifest.json
       - name: Publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

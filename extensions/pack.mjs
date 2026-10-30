@@ -45,6 +45,22 @@ function readPackage(dir) {
   };
 }
 
+function collectFiles(dir, prefix, out) {
+  const entries = fs
+    .readdirSync(dir, { withFileTypes: true })
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  for (const entry of entries) {
+    if (entry.name === ".DS_Store" || entry.name === "Thumbs.db") continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isSymbolicLink()) throw new Error(`refusing to pack symlink: ${full}`);
+    if (entry.isDirectory()) {
+      collectFiles(full, `${prefix}${entry.name}/`, out);
+    } else if (entry.isFile()) {
+      out.push(`${prefix}${entry.name}`);
+    }
+  }
+}
+
 function packExtension(dir) {
   const meta = readPackage(dir);
   const dist = path.join(dir, "dist");
@@ -54,10 +70,31 @@ function packExtension(dir) {
   // The loader prefers dist/ when it exists; the archive ships dist's content
   // at its root so install/extract land a runnable package directly. No
   // symlinks: the loader rejects them and the app refuses to install them.
+  // Entries are sorted and mtimes clamped so every checkout builds
+  // byte-identical archives; the committed manifest.json stays valid.
+  const names = [];
+  collectFiles(dist, "", names);
   const stage = fs.mkdtempSync(path.join(os.tmpdir(), `murvix-pack-${meta.name}-`));
   try {
-    execFileSync("zip", ["-X", "-9", "-r", "-q", path.join(stage, "extension.zip"), "."], {
-      cwd: dist,
+    // Copy into the stage tree so mtime clamping never touches the working
+    // tree; entry dates are the only nondeterminism left after sorting.
+    const tree = path.join(stage, "tree");
+    fs.mkdirSync(tree, { recursive: true });
+    const stamp = ["-d", "2000-01-01T00:00:00Z"];
+    const dirs = new Set([tree]);
+    for (const name of names) {
+      const target = path.join(tree, name);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.copyFileSync(path.join(dist, name), target);
+      for (let dir = path.dirname(target); dir !== tree; dir = path.dirname(dir)) {
+        dirs.add(dir);
+      }
+    }
+    // Files and their parent directories: every timestamp zip can record.
+    execFileSync("touch", [...stamp, ...names.map((n) => path.join(tree, n))]);
+    execFileSync("touch", [...stamp, ...dirs]);
+    execFileSync("zip", ["-X", "-9", "-q", path.join(stage, "extension.zip"), ...names], {
+      cwd: tree,
       stdio: ["ignore", "ignore", "inherit"],
     });
     const zip = fs.readFileSync(path.join(stage, "extension.zip"));
