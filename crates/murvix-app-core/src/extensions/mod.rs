@@ -22,7 +22,10 @@ use std::path::{Path, PathBuf};
 #[derive(Clone, Debug, Default)]
 pub struct Registry {
     pub extensions: BTreeMap<String, Extension>,
+    /// Scan errors from the latest `reload`, plus any preference errors from `load`.
     pub errors: Vec<String>,
+    /// Corrupt-preference errors that survive `reload`, which rebuilds `errors`.
+    preference_errors: Vec<String>,
     enabled: BTreeSet<String>,
     unpacked: BTreeMap<String, PathBuf>,
     profile: PathBuf,
@@ -51,13 +54,13 @@ impl Registry {
             Ok(value) => match serde_json::from_value(value) {
                 Ok(value) => value,
                 Err(error) => {
-                    self.errors.push(format!("{name}: {error}"));
+                    self.preference_errors.push(format!("{name}: {error}"));
                     T::default()
                 }
             },
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => T::default(),
             Err(error) => {
-                self.errors.push(format!("{name}: {error}"));
+                self.preference_errors.push(format!("{name}: {error}"));
                 T::default()
             }
         }
@@ -69,6 +72,8 @@ impl Registry {
 
     pub fn reload(&mut self) {
         self.extensions.clear();
+        self.errors.clear();
+        self.errors.extend(self.preference_errors.iter().cloned());
         match std::fs::read_dir(self.directory()) {
             Ok(entries) => {
                 for entry in entries {

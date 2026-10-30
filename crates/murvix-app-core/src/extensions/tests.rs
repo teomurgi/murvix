@@ -31,6 +31,21 @@ fn unpacked_packages_require_explicit_enable_and_unload_keeps_sources() {
 }
 
 #[test]
+fn reload_rebuilds_scan_errors_instead_of_appending() {
+    let profile = tempfile::tempdir().unwrap();
+    fs::create_dir_all(profile.path().join("extensions/broken")).unwrap();
+    fs::write(
+        profile.path().join("extensions/broken/package.json"),
+        json!({"name": "broken", "version": "1.0.0"}).to_string(),
+    )
+    .unwrap();
+    let mut registry = Registry::load(profile.path());
+    assert_eq!(registry.errors.len(), 1, "{:?}", registry.errors);
+    registry.reload();
+    assert_eq!(registry.errors.len(), 1, "{:?}", registry.errors);
+}
+
+#[test]
 fn manifests_reject_escaping_resources_and_invalid_commands() {
     let root = tempfile::tempdir().unwrap();
     package(root.path(), "files");
