@@ -22,12 +22,15 @@ publicly accessible; do not rely on the old pull-request publishing instructions
 
 ## Marketplace behavior
 
-**Settings → Extensions → Browse** requests listings from the configured-in-code
-`https://murvix.app` service. Availability and acceptance of new submissions
-are controlled by that external service, not this repository. There is no
-in-app package upload or publish command.
+**Settings → Extensions → Browse** reads `extensions/manifest.json` from the
+app's own release tag (`v<app-version>`, falling back to `main` for
+development builds). Each entry's archive is a GitHub release asset named
+`<name>-<version>.zip`, built from the vendored sources in `extensions/`
+via `node extensions/pack.mjs` and uploaded by the release workflow. There is
+no in-app package upload or publish command.
 
-The installer requires a ZIP download from `https://murvix.app` on port 443.
+The installer downloads the ZIP from `github.com` (or
+`objects.githubusercontent.com` after redirect) on port 443.
 The downloaded archive must match the listing's size and SHA-256 checksum. After
 extraction, its manifest's name, version, and permissions must match the listing.
 Archives cannot contain symlinks or escaping paths, and are limited to 256 MiB

@@ -10,9 +10,14 @@ use serde_json::Value;
 mod version;
 pub(crate) use version::is_update;
 
-const BASE: &str = "https://murvix.app";
+/// GitHub hosts the release-pinned extension manifest and archives.
+const MANIFEST_BASE: &str = "https://raw.githubusercontent.com/teomurgi/murvix";
+/// `extensions/manifest.json` committed in this repo; the release workflow
+/// uploads one `<name>-<version>.zip` asset per entry under the same tag.
+const MANIFEST_PATH: &str = "extensions/manifest.json";
 const MAX_ARCHIVE: u64 = 256 * 1024 * 1024;
 const MAX_EXPANDED: u64 = 512 * 1024 * 1024;
+const PAGE_SIZE: usize = 24;
 
 type Result<T> = std::result::Result<T, String>;
 
@@ -66,75 +71,121 @@ fn sha256(path: &Path) -> Result<String> {
         .ok_or_else(|| tr!("could not compute the archive checksum").into())
 }
 
+/// Manifest entries packaged for the app's release tag, falling back to `main`
+/// for development builds whose tag does not exist yet.
+fn manifest_entries() -> Result<Vec<Value>> {
+    let version = env!("CARGO_PKG_VERSION");
+    let mut last = String::new();
+    for reference in [format!("v{version}"), "main".to_string()] {
+        let url = format!("{MANIFEST_BASE}/{reference}/{MANIFEST_PATH}");
+        let response = match client()?.get(&url).send() {
+            Ok(response) => response,
+            Err(error) => {
+                last = error.to_string();
+                continue;
+            }
+        };
+        match serde_json::from_slice::<Vec<Value>>(&bytes(response, 2 * 1024 * 1024)?) {
+            Ok(entries) => return Ok(entries),
+            Err(error) => last = error.to_string(),
+        }
+    }
+    Err(last)
+}
+
+/// The `download_url` UI and installer code read for an entry. Constructed
+/// from the release tag so the manifest itself carries no per-release URLs.
+fn download_url(entry: &Value) -> Option<String> {
+    let (name, version, archive) = (
+        entry["name"].as_str()?,
+        entry["current_version"].as_str()?,
+        entry["archive"].as_str()?,
+    );
+    if archive != format!("{name}-{version}.zip") {
+        return None;
+    }
+    Some(format!(
+        "https://github.com/teomurgi/murvix/releases/download/v{}/{archive}",
+        env!("CARGO_PKG_VERSION")
+    ))
+}
+
+fn with_download_url(mut entry: Value) -> Result<Value> {
+    let url = download_url(&entry).ok_or_else(|| tr!("invalid marketplace entry").to_string())?;
+    entry["download_url"] = Value::String(url);
+    entry["version"] = entry["current_version"].clone();
+    Ok(entry)
+}
+
 /// One page of published extensions, optionally limited to a marketplace
 /// category such as `localization`.
 pub(crate) fn list(search: &str, page: u32, category: Option<&str>) -> Result<Value> {
-    let page = page.to_string();
-    let mut query = vec![
-        ("search", search),
-        ("sort", "all"),
-        ("per_page", "24"),
-        ("page", &page),
-    ];
-    query.extend(category.map(|category| ("category", category)));
-    let response = client()?
-        .get(format!("{BASE}/api/extensions"))
-        .query(&query)
-        .send()
-        .map_err(|error| error.to_string())?;
-    serde_json::from_slice(&bytes(response, 2 * 1024 * 1024)?).map_err(|error| error.to_string())
+    let query = search.to_lowercase();
+    let mut items: Vec<Value> = manifest_entries()?
+        .into_iter()
+        .filter(|entry| {
+            let matches_category = category.is_none_or(|category| {
+                entry["categories"]
+                    .as_array()
+                    .is_some_and(|categories| categories.iter().any(|c| c == category))
+            });
+            let haystack = format!(
+                "{} {}",
+                entry["name"].as_str().unwrap_or(""),
+                entry["description"].as_str().unwrap_or("")
+            )
+            .to_lowercase();
+            matches_category && (query.is_empty() || haystack.contains(&query))
+        })
+        .map(|entry| {
+            let mut item = serde_json::json!({
+                "name": entry["name"],
+                "description": entry["description"],
+            });
+            if let Some(categories) = entry.get("categories") {
+                item["categories"] = categories.clone();
+            }
+            item
+        })
+        .collect();
+    items.sort_by(|a, b| {
+        a["name"]
+            .as_str()
+            .unwrap_or("")
+            .cmp(b["name"].as_str().unwrap_or(""))
+    });
+    let start = (page.saturating_sub(1) as usize).saturating_mul(PAGE_SIZE);
+    let next = if items.len() > start + PAGE_SIZE {
+        Value::String(format!("page={}", page + 1))
+    } else {
+        Value::Null
+    };
+    let data: Vec<Value> = items.into_iter().skip(start).take(PAGE_SIZE).collect();
+    Ok(serde_json::json!({"data": data, "links": {"next": next}}))
 }
 
 pub(crate) fn detail(name: &str) -> Result<Value> {
-    let mut url = reqwest::Url::parse(&format!("{BASE}/api/extensions/"))
-        .map_err(|error| error.to_string())?;
-    url.path_segments_mut()
-        .map_err(|()| tr!("invalid marketplace URL").to_string())?
-        .pop_if_empty()
-        .push(name);
-    let response = client()?
-        .get(url)
-        .send()
-        .map_err(|error| error.to_string())?;
-    let value: Value = serde_json::from_slice(&bytes(response, 2 * 1024 * 1024)?)
-        .map_err(|error| error.to_string())?;
-    value
-        .get("data")
-        .filter(|v| v.is_object())
-        .cloned()
-        .ok_or_else(|| tr!("invalid marketplace details").into())
+    let entry = manifest_entries()?
+        .into_iter()
+        .find(|entry| entry["name"] == name)
+        .ok_or_else(|| tr!("extension not found").to_string())?;
+    with_download_url(entry)
 }
 
 pub(crate) fn versions(names: &[String]) -> Result<BTreeMap<String, String>> {
-    let client = client()?;
-    versions_with(names, |batch| {
-        let response = client
-            .post(format!("{BASE}/api/extensions/versions"))
-            .header(reqwest::header::CONTENT_TYPE, "application/json")
-            .header(reqwest::header::ACCEPT, "application/json")
-            .body(serde_json::json!({"names":batch}).to_string())
-            .send()
-            .map_err(|error| error.to_string())?;
-        serde_json::from_slice(&bytes(response, 2 * 1024 * 1024)?)
-            .map_err(|error| error.to_string())
-    })
-}
-
-fn versions_with(
-    names: &[String],
-    mut request: impl FnMut(&[String]) -> Result<BTreeMap<String, Option<String>>>,
-) -> Result<BTreeMap<String, String>> {
+    let entries = manifest_entries()?;
     let mut versions = BTreeMap::new();
-    for batch in names.chunks(100) {
-        versions.extend(
-            request(batch)?
-                .into_iter()
-                .filter_map(|(name, version)| version.map(|version| (name, version))),
-        );
+    for name in names {
+        if let Some(version) = entries
+            .iter()
+            .find(|entry| entry["name"].as_str() == Some(name))
+            .and_then(|entry| entry["current_version"].as_str())
+        {
+            versions.insert(name.clone(), version.to_string());
+        }
     }
     Ok(versions)
 }
-
 /// Download and validate into a sibling staging directory; callers decide when to activate it.
 pub(crate) fn download(details: &Value, directory: &Path) -> Result<tempfile::TempDir> {
     let url = reqwest::Url::parse(
@@ -144,7 +195,10 @@ pub(crate) fn download(details: &Value, directory: &Path) -> Result<tempfile::Te
     )
     .map_err(|error| error.to_string())?;
     if url.scheme() != "https"
-        || url.host_str() != Some("murvix.app")
+        || !matches!(
+            url.host_str(),
+            Some("github.com" | "objects.githubusercontent.com")
+        )
         || url.port_or_known_default() != Some(443)
         || !url.username().is_empty()
         || url.password().is_some()
@@ -408,6 +462,26 @@ mod tests {
         )
         .unwrap();
         Extension::load(root).unwrap()
+    }
+
+    #[test]
+    fn release_manifest_lists_searchable_entries_with_release_downloads() {
+        let entries: Vec<Value> = serde_json::from_str(&format!(
+            "[{{\"name\":\"files\",\"current_version\":\"1.21.6\",\"description\":\"File explorer\",\
+              \"permissions\":[],\"archive\":\"files-1.21.6.zip\",\"sha256\":\"{}\",\"size\":7}}]",
+            "a".repeat(64)
+        ))
+        .unwrap();
+        let entry = with_download_url(entries.into_iter().next().unwrap()).unwrap();
+        assert_eq!(entry["name"], "files");
+        assert_eq!(entry["version"], "1.21.6");
+        let url = entry["download_url"].as_str().unwrap();
+        assert!(
+            url.starts_with("https://github.com/teomurgi/murvix/releases/download/v")
+                && url.ends_with("/files-1.21.6.zip"),
+            "{url}"
+        );
+        assert!(download_url(&serde_json::json!({"name": "files"})).is_none());
     }
 
     #[test]
