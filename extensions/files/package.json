@@ -35,8 +35,8 @@
     "@codemirror/view": "^6.43.0",
     "@lezer/highlight": "^1.2.3",
     "jsonc-parser": "^3.3.1",
-    "mermaid": "^11.15.0",
-    "pdfjs-dist": "^6.1.200",
+    "mermaid": "^12.2.0",
+    "pdfjs-dist": "^6.2.108",
     "web-tree-sitter": "^0.26.9",
     "yaml": "^2.9.0"
   },
@@ -45,8 +45,8 @@
     "@tree-sitter-grammars/tree-sitter-lua": "^0.4.1",
     "@tree-sitter-grammars/tree-sitter-toml": "^0.7.0",
     "@tree-sitter-grammars/tree-sitter-zig": "^1.1.2",
-    "esbuild": "^0.27.7",
-    "material-icon-theme": "^5.35.0",
+    "esbuild": "^0.28.2",
+    "material-icon-theme": "^5.40.0",
     "tailwindcss": "^4.3.0",
     "tree-sitter-bash": "^0.25.1",
     "tree-sitter-c": "^0.24.1",
@@ -59,7 +59,7 @@
     "tree-sitter-ruby": "^0.23.1",
     "tree-sitter-rust": "^0.24.0",
     "tree-sitter-typescript": "^0.23.2",
-    "vite": "^7.3.5"
+    "vite": "^7.3.7"
   },
   "murvix": {
     "$schema": "https://raw.githubusercontent.com/teomurgi/murvix/main/docs/extensions/schema/manifest.schema.json",
