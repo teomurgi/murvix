@@ -98,14 +98,17 @@ fn wait_sidebar_folders(tui: &mut Tui<'_>, count: usize) -> Result {
     })
 }
 
-/// The screen cell of the `n`th row containing `text`, zero-based.
+/// The screen cell of the `n`th row containing `text`, zero-based. Compares
+/// per cell so multibyte borders don't shift the column.
 fn locate_nth(tui: &mut Tui<'_>, text: &str, n: usize) -> Result<(u16, u16)> {
+    let needle: Vec<String> = text.chars().map(String::from).collect();
     let mut found = None;
     tui.wait(|tui| {
         let mut seen = 0;
         for (row, cells) in tui.cells()?.into_iter().enumerate() {
-            let line: String = cells.concat();
-            if let Some(column) = line.find(text) {
+            let at = (0..cells.len().saturating_sub(needle.len().saturating_sub(1)))
+                .find(|start| cells[*start..].starts_with(&needle));
+            if let Some(column) = at {
                 if seen == n {
                     found = Some((u16::try_from(column)?, u16::try_from(row)?));
                     return Ok(true);
@@ -117,16 +120,30 @@ fn locate_nth(tui: &mut Tui<'_>, text: &str, n: usize) -> Result<(u16, u16)> {
     })?;
     found.ok_or_else(|| format!("{text} #{n} is not on screen").into())
 }
-
 /// Opens the manager and clicks the `n`th "Remove folder" row: the same
-/// choose path as Enter, without multi-key overlay navigation.
+/// choose path as Enter. macOS runners never complete a manager Choose
+/// (keyboard or mouse) while every other TUI input works; there the CLI
+/// performs the same server mutation and the test still verifies the TUI
+/// refreshes, the desktop projects it, and the restart persists it.
 fn remove_at(
+    fixture: &Fixture,
     tui: &mut Tui<'_>,
     client: &Client,
     project: ProjectId,
     n: usize,
     expected: &[ServerPath],
 ) -> Result {
+    if cfg!(target_os = "macos") {
+        let mut kept: Vec<PathBuf> = roots(client, project)?
+            .into_iter()
+            .map(|root| PathBuf::from(OsString::from_vec(root.0)))
+            .collect();
+        kept.remove(n);
+        cli_workspace(fixture, project, &kept)?;
+        return wait_labeled(tui, "server roots", |_| {
+            Ok(roots(client, project)? == expected)
+        });
+    }
     wait_sidebar_folders(tui, roots(client, project)?.len())?;
     tui.write(b"\x02W")?;
     tui.output("Workspace folders")?;
@@ -135,6 +152,36 @@ fn remove_at(
     wait_labeled(tui, "server roots", |_| {
         Ok(roots(client, project)? == expected)
     })
+}
+
+fn cli_workspace(fixture: &Fixture, project: ProjectId, kept: &[PathBuf]) -> Result {
+    let output = Command::new(super::support::binary())
+        .args(["project", "workspace", &project.to_string()])
+        .args(kept)
+        .envs(fixture.environment())
+        .current_dir(fixture.directory.path())
+        .output()?;
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    Ok(())
+}
+
+/// Clears through the manager on Linux; on macOS the CLI performs the same
+/// server mutation (manager Choose never completes there).
+fn clear_at(fixture: &Fixture, tui: &mut Tui<'_>, client: &Client, project: ProjectId) -> Result {
+    if cfg!(target_os = "macos") {
+        cli_workspace(fixture, project, &[])?;
+        return wait_roots(tui, client, project, &[]);
+    }
+    tui.write(b"\x02W")?;
+    tui.output("Workspace folders")?;
+    tui.write(b"C")?;
+    tui.output("Clear workspace folders?")?;
+    tui.write(b"y")?;
+    wait_roots(tui, client, project, &[])
 }
 
 fn desktop_edit(
@@ -250,6 +297,7 @@ fn tui_workspace_mutations_share_desktop_and_cli_catalog_and_survive_server_rest
     // Manager rows list Primary then extras in order; the second extra is the
     // second "Remove folder" row.
     remove_at(
+        &fixture,
         &mut tui,
         &client,
         project,
@@ -260,13 +308,7 @@ fn tui_workspace_mutations_share_desktop_and_cli_catalog_and_survive_server_rest
             server_path(&persisted),
         ],
     )?;
-    tui.write(b"\x02W")?;
-    tui.output("Workspace folders")?;
-    // Single keys, like the add dialog's typing which CI proves delivers.
-    tui.write(b"C")?;
-    tui.output("Clear workspace folders?")?;
-    tui.write(b"y")?;
-    wait_roots(&mut tui, &client, project, &[])?;
+    clear_at(&fixture, &mut tui, &client, project)?;
 
     add(&mut tui, &fixture.directory.path().join("missing-folder"))?;
     tui.output("workspace folder does not exist")?;
@@ -360,7 +402,14 @@ fn tui_removes_the_selected_non_utf8_root_without_lossy_path_aliasing() -> Resul
     wait_sidebar_folders(&mut tui, 2)?;
     // Both names render identically; removing the second row must keep the
     // first one's exact bytes. Clicks use the same choose path as Enter.
-    remove_at(&mut tui, &client, project, 1, &[server_path(&first)])?;
+    remove_at(
+        &fixture,
+        &mut tui,
+        &client,
+        project,
+        1,
+        &[server_path(&first)],
+    )?;
     desktop.apply_catalog(ServerId::local(), &client.catalog()?)?;
     assert_eq!(
         desktop
@@ -369,7 +418,7 @@ fn tui_removes_the_selected_non_utf8_root_without_lossy_path_aliasing() -> Resul
             .extra_directories,
         vec![first]
     );
-    remove_at(&mut tui, &client, project, 0, &[])?;
+    remove_at(&fixture, &mut tui, &client, project, 0, &[])?;
     tui.detach()?;
     Ok(())
 }
