@@ -75,12 +75,27 @@ fn wait_roots(
     project: ProjectId,
     expected: &[ServerPath],
 ) -> Result {
-    tui.wait(|_| Ok(roots(client, project)? == expected))
+    wait_labeled(tui, "server roots", |_| {
+        Ok(roots(client, project)? == expected)
+    })
+}
+
+/// Names the failing step: the fixture's wait error only carries the screen.
+fn wait_labeled(
+    tui: &mut Tui<'_>,
+    step: &str,
+    mut predicate: impl FnMut(&mut Tui<'_>) -> Result<bool>,
+) -> Result {
+    tui.wait(&mut predicate)
+        .map_err(|error| format!("workspace step {step:?} timed out: {error}"))?;
+    Ok(())
 }
 
 /// The sidebar card's folder rows, so manager input never races a stale frame.
 fn wait_sidebar_folders(tui: &mut Tui<'_>, count: usize) -> Result {
-    tui.wait(|tui| Ok(tui.text()?.iter().filter(|row| row.contains('▸')).count() == count))
+    wait_labeled(tui, &format!("sidebar shows {count} folders"), |tui| {
+        Ok(tui.text()?.iter().filter(|row| row.contains('▸')).count() == count)
+    })
 }
 
 /// Opens the manager, runs `keys`, and waits for `expected`. Retries once: a
@@ -299,6 +314,21 @@ fn tui_removes_the_selected_non_utf8_root_without_lossy_path_aliasing() -> Resul
     });
     fs::create_dir(&first)?;
     fs::create_dir(&second)?;
+    // The UI sanitizes control characters, so both names render as `same-A`
+    // even though their bytes stay distinct for exact removal.
+    assert_eq!(
+        first
+            .to_string_lossy()
+            .chars()
+            .filter(|character| !character.is_control())
+            .collect::<String>(),
+        second
+            .to_string_lossy()
+            .chars()
+            .filter(|character| !character.is_control())
+            .collect::<String>(),
+    );
+    #[cfg(not(target_os = "macos"))]
     assert_eq!(first.to_string_lossy(), second.to_string_lossy());
     let mut desktop = AppState::bootstrap()?;
     desktop.apply_catalog(ServerId::local(), &client.catalog()?)?;
