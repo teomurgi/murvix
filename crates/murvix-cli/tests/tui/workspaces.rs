@@ -107,7 +107,7 @@ fn locate_nth(tui: &mut Tui<'_>, text: &str, n: usize) -> Result<(u16, u16)> {
             let line: String = cells.concat();
             if let Some(column) = line.find(text) {
                 if seen == n {
-                    found = Some((column as u16, row as u16));
+                    found = Some((u16::try_from(column)?, u16::try_from(row)?));
                     return Ok(true);
                 }
                 seen += 1;
