@@ -1158,3 +1158,57 @@ fn new_worktree_form_stays_closed_when_the_parent_is_no_longer_a_repository(
         Some(Overlay::Worktrees(_))
     )));
 }
+
+#[gpui::test]
+fn workspace_card_tracks_project_selection_and_excludes_worktrees(cx: &mut TestAppContext) {
+    use murvix_app_core::settings::AppLayout;
+
+    for layout in [
+        AppLayout::ProjectFocused,
+        AppLayout::TabFocused,
+        AppLayout::AgentsFocused,
+    ] {
+        // GPUI retains debug bounds across frames, so each selection gets a fresh window.
+        for selection in 0..3 {
+            let (mut state, root, [child, _, _], directory) = pruning_fixture();
+            state
+                .set_project_extra_directories(root, vec![directory.path().to_path_buf()])
+                .expect("workspace");
+            let home = state.home().id;
+            let selected = [root, child, home][selection];
+            state.select_project(selected).expect("selection");
+            let (mut boot, _requests) = stub_boot(state);
+            boot.settings.appearance.sidebar_expanded = true;
+            boot.settings.appearance.layout = layout;
+            let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
+            cx.simulate_resize(size(px(1200.0), px(800.0)));
+            view.update(cx, |model, cx| {
+                model.expanded_worktrees.insert(root);
+                cx.notify();
+            });
+            let card_selector = format!("workspace-card-{root}").leak();
+            let folder_selector = format!("workspace-folder-{root}-0").leak();
+            let worktree_selector = format!("worktree-{child}").leak();
+            cx.update(|window, _| window.refresh());
+            cx.run_until_parked();
+            if selected == home {
+                assert!(cx.debug_bounds(card_selector).is_none());
+                assert!(cx.debug_bounds(folder_selector).is_none());
+                continue;
+            }
+            let card = cx
+                .debug_bounds(card_selector)
+                .expect("selected workspace card");
+            let folder = cx.debug_bounds(folder_selector).expect("workspace folder");
+            assert!(folder.top() >= card.top() && folder.bottom() <= card.bottom());
+            assert!(folder.left() >= card.left() && folder.right() <= card.right());
+            if layout == AppLayout::ProjectFocused {
+                let worktree = cx.debug_bounds(worktree_selector).expect("worktree");
+                assert!(
+                    worktree.top() >= card.bottom(),
+                    "worktrees stay outside the card"
+                );
+            }
+        }
+    }
+}

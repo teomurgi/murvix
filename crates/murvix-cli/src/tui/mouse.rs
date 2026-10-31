@@ -145,6 +145,9 @@ impl Pointer {
                     let below = Position::new(at.x, at.y.saturating_add(1));
                     super::menu::tab(worker, ui, pane, below);
                 }
+                Some(Target::Project(project) | Target::Workspace(project)) => {
+                    super::keys::workspace(worker, ui, project, false);
+                }
                 _ => {}
             }
             return Ok(());
@@ -176,6 +179,12 @@ impl Pointer {
                 return worker.send(Action::ListSessions);
             }
             Some(Target::Project(project)) if left => return worker.send(Action::Open(project)),
+            Some(Target::Workspace(project)) if left => {
+                super::keys::workspace(worker, ui, project, false);
+            }
+            Some(Target::AddWorkspaceFolder(project)) if left => {
+                super::keys::workspace(worker, ui, project, true);
+            }
             Some(Target::Agent(session, project)) if left => {
                 let pane = {
                     let shared = lock(&worker.shared);
@@ -444,7 +453,12 @@ fn wheel(
             );
             Ok(())
         }
-        Some(Target::SidebarList | Target::Project(_)) => {
+        Some(
+            Target::SidebarList
+            | Target::Project(_)
+            | Target::Workspace(_)
+            | Target::AddWorkspaceFolder(_),
+        ) => {
             ui.sidebar_scroll = if up {
                 ui.sidebar_scroll.saturating_sub(2)
             } else {
@@ -479,6 +493,14 @@ fn dialog(event: MouseEvent, target: Option<Target>, worker: &Worker, ui: &mut U
         }
         (MouseEventKind::Moved, Some(Target::Item(index))) => match &mut ui.overlay {
             Overlay::Projects { selected, .. } | Overlay::Sessions(selected) => *selected = index,
+            Overlay::Workspace {
+                selected, scroll, ..
+            } => {
+                if *selected != index {
+                    *scroll = 0;
+                }
+                *selected = index;
+            }
             Overlay::Menu(menu) if menu.command(index).is_some() => menu.selected = Some(index),
             _ => {}
         },
@@ -494,8 +516,22 @@ fn dialog(event: MouseEvent, target: Option<Target>, worker: &Worker, ui: &mut U
                         *selected + 1
                     };
                 }
+                Overlay::Workspace {
+                    selected, scroll, ..
+                } => {
+                    *selected = if up {
+                        selected.saturating_sub(1)
+                    } else {
+                        selected.saturating_add(1)
+                    };
+                    *scroll = 0;
+                }
                 Overlay::Menu(menu) => menu.step(!up),
-                Overlay::None | Overlay::Confirm(_) | Overlay::Rename { .. } => {}
+                Overlay::None
+                | Overlay::Confirm(_)
+                | Overlay::Rename { .. }
+                | Overlay::AddWorkspaceFolder { .. }
+                | Overlay::ClearWorkspaceFolders(_) => {}
             }
             if let Overlay::Help(scroll) = &mut ui.overlay {
                 *scroll = (*scroll).min(crate::ui::help_lines());
@@ -513,6 +549,13 @@ fn choose(index: usize, worker: &Worker, ui: &mut Ui) -> Result {
         Overlay::Menu(menu) => menu.command(index),
         Overlay::Projects { selected, .. } | Overlay::Sessions(selected) => {
             *selected = index;
+            return super::keys::choose(worker, ui);
+        }
+        Overlay::Workspace {
+            selected, scroll, ..
+        } => {
+            *selected = index;
+            *scroll = 0;
             return super::keys::choose(worker, ui);
         }
         _ => None,

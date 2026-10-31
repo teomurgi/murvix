@@ -1,3 +1,4 @@
+pub(super) mod folders;
 mod resize;
 pub(super) mod tips;
 mod vibrancy;

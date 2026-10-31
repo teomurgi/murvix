@@ -2,6 +2,7 @@
 //! else goes to the focused terminal.
 
 use murvix_app_core::Direction;
+use murvix_protocol::{ProjectId, ServerPath};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use super::{focused_pane, scroll, to_terminal};
@@ -45,6 +46,24 @@ fn direction(code: KeyCode) -> Option<Direction> {
     }
 }
 
+fn project_picker(worker: &Worker, ui: &mut Ui) {
+    let shared = lock(&worker.shared);
+    let selected = shared
+        .catalog
+        .as_ref()
+        .zip(shared.state.as_ref())
+        .and_then(|(catalog, state)| {
+            ui::project_choices(catalog, "")
+                .iter()
+                .position(|entry| entry.project.id == state.active)
+        })
+        .unwrap_or(0);
+    ui.overlay = Overlay::Projects {
+        filter: String::new(),
+        selected,
+    };
+}
+
 fn prefix(key: KeyEvent, worker: &Worker, ui: &mut Ui) -> Result {
     let action =
         match key.code {
@@ -78,21 +97,17 @@ fn prefix(key: KeyEvent, worker: &Worker, ui: &mut Ui) -> Result {
                 }
             }
             KeyCode::Char('s' | 'g') => {
-                let shared = lock(&worker.shared);
-                let selected = shared
-                    .catalog
+                project_picker(worker, ui);
+                return Ok(());
+            }
+            KeyCode::Char('a' | 'W') => {
+                let project = lock(&worker.shared)
+                    .state
                     .as_ref()
-                    .zip(shared.state.as_ref())
-                    .and_then(|(catalog, state)| {
-                        ui::project_choices(catalog, "")
-                            .iter()
-                            .position(|entry| entry.project.id == state.active)
-                    })
-                    .unwrap_or(0);
-                ui.overlay = Overlay::Projects {
-                    filter: String::new(),
-                    selected,
-                };
+                    .map(|state| state.active);
+                if let Some(project) = project {
+                    workspace(worker, ui, project, key.code == KeyCode::Char('a'));
+                }
                 return Ok(());
             }
             KeyCode::Char('w') => {
@@ -231,12 +246,12 @@ fn overlay(key: KeyEvent, worker: &Worker, ui: &mut Ui) -> Result {
             KeyCode::PageDown => *scroll = (*scroll + 10).min(ui::help_lines()),
             _ => {}
         },
-        Overlay::Confirm(_) => match key.code {
+        Overlay::Confirm(_) | Overlay::ClearWorkspaceFolders(_) => match key.code {
             KeyCode::Char('y' | 'Y') | KeyCode::Enter => return answer(worker, ui, true),
             KeyCode::Char('n' | 'N') => ui.overlay = Overlay::None,
             _ => {}
         },
-        Overlay::Rename { text, .. } => match key.code {
+        Overlay::Rename { text, .. } | Overlay::AddWorkspaceFolder { text, .. } => match key.code {
             KeyCode::Enter => return answer(worker, ui, true),
             KeyCode::Backspace => {
                 text.pop();
@@ -251,6 +266,35 @@ fn overlay(key: KeyEvent, worker: &Worker, ui: &mut Ui) -> Result {
             KeyCode::Enter => {
                 if let Some(command) = menu.selected.and_then(|index| menu.command(index)) {
                     return super::menu::run(command, worker, ui);
+                }
+            }
+            _ => {}
+        },
+        Overlay::Workspace {
+            selected, scroll, ..
+        } => match key.code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                *selected = selected.saturating_sub(1);
+                *scroll = 0;
+            }
+            KeyCode::Down | KeyCode::Char('j') | KeyCode::Tab => {
+                *selected += 1;
+                *scroll = 0;
+            }
+            KeyCode::PageUp => *scroll = scroll.saturating_sub(5),
+            KeyCode::PageDown => *scroll = scroll.saturating_add(5),
+            KeyCode::Enter => return choose(worker, ui),
+            KeyCode::Char('a') => {
+                if let Overlay::Workspace { project, .. } = ui.overlay {
+                    ui.overlay = Overlay::AddWorkspaceFolder {
+                        project,
+                        text: String::new(),
+                    };
+                }
+            }
+            KeyCode::Char('C') => {
+                if let Overlay::Workspace { project, .. } = ui.overlay {
+                    ui.overlay = Overlay::ClearWorkspaceFolders(project);
                 }
             }
             _ => {}
@@ -291,6 +335,13 @@ pub(super) fn answer(worker: &Worker, ui: &mut Ui, yes: bool) -> Result {
     match overlay {
         Overlay::Confirm(Closing::Pane(pane)) => worker.send(Action::Close(pane)),
         Overlay::Confirm(Closing::Tab(pane)) => worker.send(Action::CloseTab(pane)),
+        Overlay::ClearWorkspaceFolders(project) => {
+            worker.send(Action::ClearWorkspaceFolders(project))
+        }
+        Overlay::AddWorkspaceFolder { project, text } => worker.send(Action::AddWorkspaceFolder {
+            project,
+            directory: ServerPath(text.into_bytes()),
+        }),
         Overlay::Rename { pane, text } => worker.send(Action::RenameTab {
             pane,
             title: Some(text),
@@ -309,16 +360,61 @@ pub(super) fn clamp_selection(worker: &Worker, ui: &mut Ui) {
                 .as_ref()
                 .map_or(0, |catalog| ui::project_choices(catalog, filter).len()),
             Overlay::Sessions(_) => shared.sessions.len(),
+            Overlay::Workspace { project, .. } => shared
+                .catalog
+                .as_ref()
+                .and_then(|catalog| catalog.projects.iter().find(|entry| entry.id == *project))
+                .map_or(0, |entry| entry.extra_directories.len() + 3),
             _ => return,
         }
     };
-    if let Overlay::Projects { selected, .. } | Overlay::Sessions(selected) = &mut ui.overlay {
+    if let Overlay::Projects { selected, .. }
+    | Overlay::Sessions(selected)
+    | Overlay::Workspace { selected, .. } = &mut ui.overlay
+    {
         *selected = (*selected).min(count.saturating_sub(1));
     }
 }
 
 /// Opens what is selected in the project finder or the existing terminals.
 pub(super) fn choose(worker: &Worker, ui: &mut Ui) -> Result {
+    if let Overlay::Workspace {
+        project, selected, ..
+    } = ui.overlay
+    {
+        let directory = {
+            let shared = lock(&worker.shared);
+            let Some(descriptor) = shared
+                .catalog
+                .as_ref()
+                .and_then(|catalog| catalog.projects.iter().find(|entry| entry.id == project))
+            else {
+                ui.overlay = Overlay::None;
+                return Ok(());
+            };
+            let count = descriptor.extra_directories.len();
+            if selected == count + 1 {
+                ui.overlay = Overlay::AddWorkspaceFolder {
+                    project,
+                    text: String::new(),
+                };
+                return Ok(());
+            }
+            if selected == count + 2 {
+                ui.overlay = Overlay::ClearWorkspaceFolders(project);
+                return Ok(());
+            }
+            selected
+                .checked_sub(1)
+                .and_then(|index| descriptor.extra_directories.get(index))
+                .cloned()
+        };
+        if let Some(directory) = directory {
+            ui.overlay = Overlay::None;
+            worker.send(Action::RemoveWorkspaceFolder { project, directory })?;
+        }
+        return Ok(());
+    }
     let action = {
         let shared = lock(&worker.shared);
         match &ui.overlay {
@@ -341,4 +437,30 @@ pub(super) fn choose(worker: &Worker, ui: &mut Ui) -> Result {
         ui.overlay = Overlay::None;
     }
     Ok(())
+}
+
+/// Captures the primary project when opening, independent of later selection changes.
+pub(super) fn workspace(worker: &Worker, ui: &mut Ui, project: ProjectId, add: bool) {
+    let mut shared = lock(&worker.shared);
+    let primary = shared
+        .catalog
+        .as_ref()
+        .and_then(|catalog| ui::workspace_project(catalog, project))
+        .map(|entry| entry.id);
+    if let Some(project) = primary {
+        ui.overlay = if add {
+            Overlay::AddWorkspaceFolder {
+                project,
+                text: String::new(),
+            }
+        } else {
+            Overlay::Workspace {
+                project,
+                selected: 0,
+                scroll: 0,
+            }
+        };
+    } else {
+        shared.say("Workspace folders can only be edited for a primary project, not Home.");
+    }
 }

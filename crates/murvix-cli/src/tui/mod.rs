@@ -134,7 +134,9 @@ fn events(host: &mut Host, worker: &Worker, mut ui: Ui) -> Result {
                 if ui.mode == Mode::Prefix {
                     ui.mode = Mode::Normal;
                 }
-                if let Overlay::Rename { text: name, .. } = &mut ui.overlay {
+                if let Overlay::Rename { text: name, .. }
+                | Overlay::AddWorkspaceFolder { text: name, .. } = &mut ui.overlay
+                {
                     name.extend(text.chars().filter(|character| !character.is_control()));
                     Ok(())
                 } else if ui.overlay == Overlay::None && ui.mode == Mode::Normal {
@@ -179,6 +181,12 @@ fn forget_closed(shared: &Shared, ui: &mut Ui) {
     let gone = match &ui.overlay {
         Overlay::Confirm(closing) => !open(closing.pane()),
         Overlay::Rename { pane, .. } => !in_project(*pane),
+        Overlay::Workspace { project, .. }
+        | Overlay::AddWorkspaceFolder { project, .. }
+        | Overlay::ClearWorkspaceFolders(project) => !shared
+            .catalog
+            .as_ref()
+            .is_some_and(|catalog| catalog.projects.iter().any(|entry| entry.id == *project)),
         _ => false,
     };
     if gone {

@@ -1,8 +1,8 @@
 # Terminal UI
 
 Run `murvix` with no arguments to open Murvix inside any terminal. It shows the
-same projects and terminals as the desktop app, with its own tabs and splits.
-It works on macOS and Linux, locally or over SSH.
+same projects, workspace folders, and terminals as the desktop app, with its
+own tabs and splits. It works on macOS and Linux, locally or over SSH.
 
 ```bash
 murvix                   # this computer's server
@@ -12,7 +12,9 @@ murvix --host devbox     # the server on another computer, over SSH
 ## Keys
 
 Layout commands start with the prefix `Ctrl-B`, like tmux; ordinary keys go to
-the focused terminal. Press `Ctrl-B ?` for help.
+the focused terminal. Release `Ctrl-B`, then press the command key. The bottom
+prefix bar lists `a add folder` and `W workspace` first so they remain visible
+in narrower terminals. Press `Ctrl-B ?` for help.
 
 | After `Ctrl-B` | Action |
 | --- | --- |
@@ -29,12 +31,38 @@ the focused terminal. Press `Ctrl-B ?` for help.
 | `x` | Close the pane |
 | `s` / `g` | Switch project |
 | `(` / `)` | Previous / next project |
+| `a` | Add a folder to the selected project's workspace |
+| `W` (uppercase) | Manage workspace folders: inspect full paths, remove, or clear |
 | `b` | Toggle the sidebar |
 | `m` | Toggle mouse support |
 | `[` | Enter scrollback |
 | `w` | Open an existing terminal of this project |
 | `d` | Detach and quit; terminals keep running |
 | `Ctrl-B` | Send `Ctrl-B` to the terminal |
+
+## Workspace folders
+
+The selected project's name, primary folder, extra folders, and **+ Add folder
+to workspace…** action share a rounded sidebar card. Other projects hide their
+extra folders. Selecting a worktree keeps its parent's card visible, with
+worktrees listed outside the card.
+
+- Click the add action or press `Ctrl-B a`, enter an existing absolute path on
+  the server, and press `Enter`. `Esc` cancels; `Ctrl-U` clears the entry.
+- Click a workspace folder, right-click a project, or press `Ctrl-B W` to open
+  the manager. It shows full paths; use arrows to select and `PgUp`/`PgDn` to
+  scroll long paths. The primary folder is read-only. Select an extra folder
+  and press `Enter` to remove it, or choose **Clear workspace folders…** and
+  confirm. Removing roots does not delete their files.
+- Home has no workspace controls. When a worktree is selected, workspace
+  editing targets its primary project; the worktree itself keeps one folder.
+- With `--host`, paths refer to that server's filesystem, not this computer.
+
+Workspace folders belong to the **server catalog**, not `tui-state.json`.
+Desktop, TUI, and CLI clients connected to the same server see updates live,
+and the folders survive server restarts. Both local clients must use the same
+profile (`MUXY_DIR` if overridden); debug and release builds use separate
+profiles. Tabs and splits remain client-specific.
 
 ## Behavior
 

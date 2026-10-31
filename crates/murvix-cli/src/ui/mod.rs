@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 
 use murvix_app_core::PaneId;
 use murvix_app_core::activity::{self, ActivityIndicator};
-use murvix_protocol::{ProjectId, SessionId};
+use murvix_protocol::{CatalogPage, ProjectDescriptor, ProjectId, SessionId};
 use ratatui::{
     Frame,
     layout::{Position, Rect},
@@ -63,12 +63,24 @@ pub(crate) enum Overlay {
         pane: PaneId,
         text: String,
     },
+    Workspace {
+        project: ProjectId,
+        selected: usize,
+        scroll: usize,
+    },
+    AddWorkspaceFolder {
+        project: ProjectId,
+        text: String,
+    },
+    ClearWorkspaceFolders(ProjectId),
 }
 
 /// Something on screen the mouse can act on.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Target {
     Project(ProjectId),
+    Workspace(ProjectId),
+    AddWorkspaceFolder(ProjectId),
     Agent(SessionId, ProjectId),
     SidebarList,
     SidebarEdge,
@@ -214,6 +226,19 @@ pub(crate) fn draw(frame: &mut Frame<'_>, shared: &Shared, ui: &mut Ui) {
         bar::draw(frame, shared, state, ui, chrome.body);
     }
     overlay::draw(frame, shared, ui);
+}
+
+/// Workspace editing belongs to the primary project, never Home or a worktree.
+pub(crate) fn workspace_project(
+    catalog: &CatalogPage,
+    project: ProjectId,
+) -> Option<&ProjectDescriptor> {
+    let selected = catalog.projects.iter().find(|entry| entry.id == project)?;
+    let primary = match selected.parent_id {
+        Some(parent) => catalog.projects.iter().find(|entry| entry.id == parent)?,
+        None => selected,
+    };
+    (!primary.home && primary.parent_id.is_none()).then_some(primary)
 }
 
 pub(crate) fn clean(text: &str) -> String {

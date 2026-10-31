@@ -1,7 +1,7 @@
 //! Dialogs drawn over a dimmed screen: the project finder, existing
 //! terminals, help, and the close confirmation.
 
-use murvix_protocol::CatalogPage;
+use murvix_protocol::{CatalogPage, ProjectId};
 use ratatui::{
     Frame,
     layout::Rect,
@@ -43,6 +43,8 @@ pub(crate) const HELP: &[(&str, &[(&str, &str)])] = &[
             ("s", "find a project"),
             ("( / )", "previous / next project"),
             ("w", "existing terminals"),
+            ("a", "add a folder to the workspace"),
+            ("W", "manage workspace folders"),
             ("b", "show or hide the sidebar"),
         ],
     ),
@@ -63,7 +65,7 @@ pub(crate) const HELP: &[(&str, &[(&str, &str)])] = &[
         "Mouse",
         &[
             ("click", "focus panes, pick tabs and projects"),
-            ("right-click", "menu for a terminal or a tab"),
+            ("right-click", "terminal/tab menu; project workspace"),
             ("drag a border", "resize panes or the sidebar"),
             ("wheel", "scroll back, or scroll the app"),
             ("drag", "select and copy text"),
@@ -74,7 +76,7 @@ pub(crate) const HELP: &[(&str, &[(&str, &str)])] = &[
 ];
 
 const NOTES: &[&str] = &[
-    "Typing and paste always go to the focused terminal.",
+    "Typing and paste go to the terminal, except in text-entry dialogs.",
     "Closing a pane ends its terminal only when nothing else shows it.",
     "The desktop app keeps its own layout; terminal UI windows share one.",
 ];
@@ -126,6 +128,13 @@ pub(super) fn draw(frame: &mut Frame<'_>, shared: &Shared, ui: &mut Ui) {
         Overlay::Confirm(closing) => confirm(frame, ui, closing),
         Overlay::Menu(menu) => super::menu::draw(frame, ui, &menu),
         Overlay::Rename { text, .. } => rename(frame, ui, &text),
+        Overlay::Workspace {
+            project,
+            selected,
+            scroll,
+        } => workspace(frame, shared, ui, project, selected, scroll),
+        Overlay::AddWorkspaceFolder { text, .. } => add_folder(frame, ui, &text),
+        Overlay::ClearWorkspaceFolders(_) => clear_workspace(frame, ui),
     }
 }
 
@@ -433,4 +442,220 @@ fn rename(frame: &mut Frame<'_>, ui: &mut Ui, text: &str) {
     );
     ui.hits.push((save, Target::Confirm(true)));
     ui.hits.push((cancel, Target::Confirm(false)));
+}
+
+/// Wrap by terminal columns without interpreting server paths as terminal control text.
+fn path_lines(text: &str, width: usize) -> Vec<Line<'static>> {
+    if width == 0 {
+        return Vec::new();
+    }
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    let mut used = 0;
+    for character in clean(text).chars() {
+        let mut buffer = [0; 4];
+        let size = Span::raw(&*character.encode_utf8(&mut buffer)).width();
+        if used + size > width && !line.is_empty() {
+            lines.push(Line::raw(std::mem::take(&mut line)));
+            used = 0;
+        }
+        line.push(character);
+        used += size;
+    }
+    lines.push(Line::raw(line));
+    lines
+}
+
+fn workspace(
+    frame: &mut Frame<'_>,
+    shared: &Shared,
+    ui: &mut Ui,
+    project: ProjectId,
+    selected: usize,
+    scroll: usize,
+) {
+    let descriptor = shared
+        .catalog
+        .as_ref()
+        .and_then(|catalog| catalog.projects.iter().find(|entry| entry.id == project));
+    let Some(descriptor) = descriptor else {
+        return;
+    };
+    let inner = panel(frame, ui, (84, 24), "Workspace folders", theme::accent());
+    if inner.height < 2 {
+        return;
+    }
+    let width = usize::from(inner.width);
+    let mut items = Vec::new();
+    for (index, directory) in std::iter::once(&descriptor.directory)
+        .chain(&descriptor.extra_directories)
+        .enumerate()
+    {
+        let label = if index == 0 {
+            "Primary (read-only)"
+        } else {
+            "Remove folder"
+        };
+        let mut lines = vec![Line::styled(label, theme::muted())];
+        lines.extend(path_lines(&String::from_utf8_lossy(&directory.0), width));
+        items.push(lines);
+    }
+    items.push(vec![Line::styled(
+        "+ Add folder to workspace…",
+        theme::accent(),
+    )]);
+    items.push(vec![Line::styled(
+        "Clear workspace folders…",
+        theme::danger(),
+    )]);
+    let selected = selected.min(items.len().saturating_sub(1));
+    let body = Rect::new(inner.x, inner.y, inner.width, inner.height - 1);
+    let height = usize::from(body.height);
+    let scroll = scroll.min(items[selected].len().saturating_sub(height));
+    ui.overlay = Overlay::Workspace {
+        project,
+        selected,
+        scroll,
+    };
+    let starts: Vec<usize> = items
+        .iter()
+        .scan(0, |offset, lines| {
+            let start = *offset;
+            *offset += lines.len();
+            Some(start)
+        })
+        .collect();
+    let end = starts[selected] + items[selected].len();
+    let first = end.saturating_sub(height).min(starts[selected]) + scroll;
+    for (index, lines) in items.into_iter().enumerate() {
+        for (offset, line) in lines.into_iter().enumerate() {
+            let Some(y) = (starts[index] + offset)
+                .checked_sub(first)
+                .filter(|y| *y < height)
+            else {
+                continue;
+            };
+            let rect = Rect::new(
+                body.x,
+                body.y + u16::try_from(y).unwrap_or(0),
+                body.width,
+                1,
+            );
+            frame.render_widget(Paragraph::new(line), rect);
+            if index == selected {
+                frame.buffer_mut().set_style(rect, theme::pill());
+            }
+            ui.hits.push((rect, Target::Item(index)));
+        }
+    }
+    hint(
+        frame,
+        inner,
+        "↑↓ choose · PgUp/PgDn path · enter act · esc close",
+    );
+}
+
+fn add_folder(frame: &mut Frame<'_>, ui: &mut Ui, text: &str) {
+    let inner = panel(
+        frame,
+        ui,
+        (76, 8),
+        "Add folder to workspace",
+        theme::accent(),
+    );
+    if inner.height < 3 {
+        hint(frame, inner, "enter add · esc cancel");
+        return;
+    }
+    let field = Rect::new(inner.x, inner.y, inner.width, 1);
+    let shown = clean(text);
+    // Keep the insertion end visible when a remote path is longer than the field.
+    let mut start = shown.len();
+    let mut used = 1;
+    for (index, character) in shown.char_indices().rev() {
+        let mut buffer = [0; 4];
+        used += Span::raw(&*character.encode_utf8(&mut buffer)).width();
+        if used > usize::from(field.width) {
+            break;
+        }
+        start = index;
+    }
+    frame.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::raw(shown[start..].to_owned()),
+            Span::styled(" ", Style::new().add_modifier(Modifier::REVERSED)),
+        ]))
+        .style(Style::new().add_modifier(Modifier::UNDERLINED)),
+        field,
+    );
+    frame.render_widget(
+        Paragraph::new("Enter an absolute path on the server. Ctrl-U clears the entry.")
+            .style(theme::muted()),
+        Rect::new(inner.x, inner.y + 1, inner.width, 1),
+    );
+    let save = Rect::new(inner.x, inner.bottom() - 1, 8.min(inner.width), 1);
+    let cancel = Rect::new(save.right().saturating_add(1), save.y, 12, 1).intersection(inner);
+    frame.render_widget(Paragraph::new(" ↵ add ").style(theme::pill()), save);
+    frame.render_widget(
+        Paragraph::new(" esc cancel ").style(theme::button()),
+        cancel,
+    );
+    ui.hits.push((save, Target::Confirm(true)));
+    ui.hits.push((cancel, Target::Confirm(false)));
+}
+
+fn clear_workspace(frame: &mut Frame<'_>, ui: &mut Ui) {
+    let inner = panel(
+        frame,
+        ui,
+        (70, 7),
+        "Clear workspace folders?",
+        theme::danger(),
+    );
+    if inner.height == 0 {
+        return;
+    }
+    frame.render_widget(
+        Paragraph::new("Remove all extra folders? The primary folder and files stay unchanged."),
+        Rect::new(
+            inner.x,
+            inner.y,
+            inner.width,
+            inner.height.saturating_sub(1),
+        ),
+    );
+    let clear = Rect::new(inner.x, inner.bottom() - 1, 10.min(inner.width), 1);
+    let cancel = Rect::new(clear.right().saturating_add(1), clear.y, 12, 1).intersection(inner);
+    frame.render_widget(
+        Paragraph::new(" ↵ clear ").style(theme::danger_pill()),
+        clear,
+    );
+    frame.render_widget(
+        Paragraph::new(" esc cancel ").style(theme::button()),
+        cancel,
+    );
+    ui.hits.push((clear, Target::Confirm(true)));
+    ui.hits.push((cancel, Target::Confirm(false)));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn full_server_paths_wrap_without_losing_unicode_or_interpreting_controls() {
+        let path = "/remote/长文件夹/a folder/\u{1b}\nfinal";
+        let expected = clean(path);
+        for width in [2, 3, 8, 30] {
+            let lines = path_lines(path, width);
+            assert!(lines.iter().all(|line| line.width() <= width));
+            let joined: String = lines
+                .iter()
+                .flat_map(|line| &line.spans)
+                .map(|span| span.content.as_ref())
+                .collect();
+            assert_eq!(joined, expected);
+        }
+        assert!(path_lines(path, 0).is_empty());
+    }
 }

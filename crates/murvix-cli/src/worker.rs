@@ -1,4 +1,5 @@
 mod io;
+mod workspace;
 pub(crate) use io::{Closing, Fetcher, InputWriter, Shared, View, lock};
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -15,7 +16,7 @@ use murvix_app_core::{Direction, PaneId};
 use murvix_client::{Client, ClientError, Start};
 use murvix_protocol::{
     CatalogPage, ChannelId, ErrorCode, MouseEvent, ProjectId, ProjectSession, ServerIdentity,
-    SessionId, Size,
+    ServerPath, SessionId, Size,
 };
 use ratatui::layout::Rect;
 
@@ -29,6 +30,15 @@ const POLL: Duration = Duration::from_millis(100);
 #[derive(Clone, Debug)]
 pub(crate) enum Action {
     Open(ProjectId),
+    AddWorkspaceFolder {
+        project: ProjectId,
+        directory: ServerPath,
+    },
+    RemoveWorkspaceFolder {
+        project: ProjectId,
+        directory: ServerPath,
+    },
+    ClearWorkspaceFolders(ProjectId),
     New(Option<Direction>),
     SelectTab(usize),
     SelectPane(ProjectId, PaneId),
@@ -418,7 +428,7 @@ impl Core {
                         Action::Input(input) => input.length(),
                         _ => 0,
                     };
-                    if let Err(error) = self.action(action, client, &catalog) {
+                    if let Err(error) = self.action(action, client, &mut catalog) {
                         self.message(&error);
                     }
                     self.publish(&catalog);
@@ -453,7 +463,7 @@ impl Core {
         Ok(())
     }
 
-    fn action(&mut self, action: Action, client: &Client, catalog: &CatalogPage) -> Result {
+    fn action(&mut self, action: Action, client: &Client, catalog: &mut CatalogPage) -> Result {
         self.close_ended_sessions(catalog)?;
         if matches!(action, Action::CheckClose) {
             return self.check_close(client, catalog);
@@ -471,6 +481,14 @@ impl Core {
             return self.list_sessions(client, catalog);
         }
         self.input.flush()?;
+        if matches!(
+            action,
+            Action::AddWorkspaceFolder { .. }
+                | Action::RemoveWorkspaceFolder { .. }
+                | Action::ClearWorkspaceFolders(_)
+        ) {
+            return self.workspace(action, client, catalog);
+        }
         let (selection, selected_tab) = {
             let shared = lock(&self.shared);
             let state = shared.state.as_ref().ok_or("TUI state is not ready")?;
@@ -530,7 +548,7 @@ impl Core {
         }
     }
 
-    fn check_close(&mut self, client: &Client, catalog: &CatalogPage) -> Result {
+    fn check_close(&mut self, client: &Client, catalog: &mut CatalogPage) -> Result {
         self.input.flush()?;
         let tab = self.store_mut()?.state.tab().ok_or("No pane to close")?;
         let id = tab.focus;
@@ -545,7 +563,7 @@ impl Core {
         self.action(Action::Close(id), client, catalog)
     }
 
-    fn check_close_tab(&mut self, client: &Client, catalog: &CatalogPage) -> Result {
+    fn check_close_tab(&mut self, client: &Client, catalog: &mut CatalogPage) -> Result {
         self.input.flush()?;
         let tab = self.store_mut()?.state.tab().ok_or("No tab to close")?;
         let focus = tab.focus;
@@ -978,6 +996,9 @@ fn apply(
             }
         }
         Action::ListSessions
+        | Action::AddWorkspaceFolder { .. }
+        | Action::RemoveWorkspaceFolder { .. }
+        | Action::ClearWorkspaceFolders(_)
         | Action::Detach
         | Action::Input(_)
         | Action::Mouse(..)

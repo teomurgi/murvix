@@ -14,6 +14,8 @@ use crate::state::State;
 use crate::worker::Shared;
 
 const PREFIX: &[(&str, &str)] = &[
+    ("a", "add folder"),
+    ("W", "workspace"),
     ("c", "tab"),
     ("%", "split"),
     ("\"", "stack"),
