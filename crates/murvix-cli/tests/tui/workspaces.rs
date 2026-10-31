@@ -78,6 +78,38 @@ fn wait_roots(
     tui.wait(|_| Ok(roots(client, project)? == expected))
 }
 
+/// The sidebar card's folder rows, so manager input never races a stale frame.
+fn wait_sidebar_folders(tui: &mut Tui<'_>, count: usize) -> Result {
+    tui.wait(|tui| Ok(tui.text()?.iter().filter(|row| row.contains('▸')).count() == count))
+}
+
+/// Opens the manager, runs `keys`, and waits for `expected`. Retries once: a
+/// loaded runner can process dialog keys against a settling frame, swallowing
+/// the selection without an error.
+fn manage(
+    tui: &mut Tui<'_>,
+    client: &Client,
+    project: ProjectId,
+    keys: &[u8],
+    expected: &[ServerPath],
+) -> Result {
+    let mut attempts = 0;
+    loop {
+        wait_sidebar_folders(tui, roots(client, project)?.len())?;
+        tui.write(b"\x02W")?;
+        tui.output("Workspace folders")?;
+        tui.write(keys)?;
+        if wait_roots(tui, client, project, expected).is_ok() {
+            return Ok(());
+        }
+        attempts += 1;
+        if attempts > 1 {
+            return wait_roots(tui, client, project, expected);
+        }
+        tui.write(b"\x1b")?;
+    }
+}
+
 fn desktop_edit(
     desktop: &mut AppState,
     client: &Client,
@@ -188,13 +220,12 @@ fn tui_workspace_mutations_share_desktop_and_cli_catalog_and_survive_server_rest
         ]
     );
 
-    tui.write(b"\x02W")?;
-    tui.output("Workspace folders")?;
-    tui.write(b"jj\r")?; // Primary is read-only item zero; remove the second extra.
-    wait_roots(
+    // Primary is read-only item zero; remove the second extra.
+    manage(
         &mut tui,
         &client,
         project,
+        b"jj\r",
         &[
             server_path(&first),
             server_path(&cli_folder),
@@ -254,14 +285,18 @@ fn tui_removes_the_selected_non_utf8_root_without_lossy_path_aliasing() -> Resul
     let mut tui = Tui::start(&fixture, &[])?;
     tui.ready()?;
     let (client, project, _) = project(&fixture, &mut tui)?;
-    let first = fixture
-        .directory
-        .path()
-        .join(OsString::from_vec(b"same-\xff".to_vec()));
-    let second = fixture
-        .directory
-        .path()
-        .join(OsString::from_vec(b"same-\xfe".to_vec()));
+    // APFS rejects non-UTF-8 names; control bytes are distinct on every
+    // filesystem yet render identically once the UI sanitizes them.
+    let first = fixture.directory.path().join(if cfg!(target_os = "macos") {
+        OsString::from("same-\u{1}A")
+    } else {
+        OsString::from_vec(b"same-\xff".to_vec())
+    });
+    let second = fixture.directory.path().join(if cfg!(target_os = "macos") {
+        OsString::from("same-\u{2}A")
+    } else {
+        OsString::from_vec(b"same-\xfe".to_vec())
+    });
     fs::create_dir(&first)?;
     fs::create_dir(&second)?;
     assert_eq!(first.to_string_lossy(), second.to_string_lossy());
@@ -273,7 +308,12 @@ fn tui_removes_the_selected_non_utf8_root_without_lossy_path_aliasing() -> Resul
         project,
         vec![first.clone(), second.clone()],
     )?;
-    tui.output("same-�")?;
+    tui.output(if cfg!(target_os = "macos") {
+        "same-A"
+    } else {
+        "same-�"
+    })?;
+    wait_sidebar_folders(&mut tui, 2)?;
     tui.write(b"\x02W")?;
     tui.output("Workspace folders")?;
     tui.write(b"jj\r")?;
