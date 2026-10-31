@@ -262,11 +262,10 @@ fn tui_workspace_mutations_share_desktop_and_cli_catalog_and_survive_server_rest
     )?;
     tui.write(b"\x02W")?;
     tui.output("Workspace folders")?;
-    let (column, row) = locate_nth(&mut tui, "Clear workspace folders…", 0)?;
-    tui.click(column, row)?;
+    // Single keys, like the add dialog's typing which CI proves delivers.
+    tui.write(b"C")?;
     tui.output("Clear workspace folders?")?;
-    let (column, row) = locate_nth(&mut tui, "↵ clear", 0)?;
-    tui.click(column, row)?;
+    tui.write(b"y")?;
     wait_roots(&mut tui, &client, project, &[])?;
 
     add(&mut tui, &fixture.directory.path().join("missing-folder"))?;
