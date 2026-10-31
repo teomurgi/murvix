@@ -98,31 +98,43 @@ fn wait_sidebar_folders(tui: &mut Tui<'_>, count: usize) -> Result {
     })
 }
 
-/// Opens the manager, runs `keys`, and waits for `expected`. Retries once: a
-/// loaded runner can process dialog keys against a settling frame, swallowing
-/// the selection without an error.
-fn manage(
+/// The screen cell of the `n`th row containing `text`, zero-based.
+fn locate_nth(tui: &mut Tui<'_>, text: &str, n: usize) -> Result<(u16, u16)> {
+    let mut found = None;
+    tui.wait(|tui| {
+        let mut seen = 0;
+        for (row, cells) in tui.cells()?.into_iter().enumerate() {
+            let line: String = cells.concat();
+            if let Some(column) = line.find(text) {
+                if seen == n {
+                    found = Some((column as u16, row as u16));
+                    return Ok(true);
+                }
+                seen += 1;
+            }
+        }
+        Ok(false)
+    })?;
+    found.ok_or_else(|| format!("{text} #{n} is not on screen").into())
+}
+
+/// Opens the manager and clicks the `n`th "Remove folder" row: the same
+/// choose path as Enter, without multi-key overlay navigation.
+fn remove_at(
     tui: &mut Tui<'_>,
     client: &Client,
     project: ProjectId,
-    keys: &[u8],
+    n: usize,
     expected: &[ServerPath],
 ) -> Result {
-    let mut attempts = 0;
-    loop {
-        wait_sidebar_folders(tui, roots(client, project)?.len())?;
-        tui.write(b"\x02W")?;
-        tui.output("Workspace folders")?;
-        tui.write(keys)?;
-        if wait_roots(tui, client, project, expected).is_ok() {
-            return Ok(());
-        }
-        attempts += 1;
-        if attempts > 1 {
-            return wait_roots(tui, client, project, expected);
-        }
-        tui.write(b"\x1b")?;
-    }
+    wait_sidebar_folders(tui, roots(client, project)?.len())?;
+    tui.write(b"\x02W")?;
+    tui.output("Workspace folders")?;
+    let (column, row) = locate_nth(tui, "Remove folder", n)?;
+    tui.click(column, row)?;
+    wait_labeled(tui, "server roots", |_| {
+        Ok(roots(client, project)? == expected)
+    })
 }
 
 fn desktop_edit(
@@ -235,12 +247,13 @@ fn tui_workspace_mutations_share_desktop_and_cli_catalog_and_survive_server_rest
         ]
     );
 
-    // Primary is read-only item zero; remove the second extra.
-    manage(
+    // Manager rows list Primary then extras in order; the second extra is the
+    // second "Remove folder" row.
+    remove_at(
         &mut tui,
         &client,
         project,
-        b"jj\r",
+        1,
         &[
             server_path(&first),
             server_path(&cli_folder),
@@ -249,9 +262,11 @@ fn tui_workspace_mutations_share_desktop_and_cli_catalog_and_survive_server_rest
     )?;
     tui.write(b"\x02W")?;
     tui.output("Workspace folders")?;
-    tui.write(b"C")?;
+    let (column, row) = locate_nth(&mut tui, "Clear workspace folders…", 0)?;
+    tui.click(column, row)?;
     tui.output("Clear workspace folders?")?;
-    tui.write(b"y")?;
+    let (column, row) = locate_nth(&mut tui, "↵ clear", 0)?;
+    tui.click(column, row)?;
     wait_roots(&mut tui, &client, project, &[])?;
 
     add(&mut tui, &fixture.directory.path().join("missing-folder"))?;
@@ -344,10 +359,9 @@ fn tui_removes_the_selected_non_utf8_root_without_lossy_path_aliasing() -> Resul
         "same-�"
     })?;
     wait_sidebar_folders(&mut tui, 2)?;
-    tui.write(b"\x02W")?;
-    tui.output("Workspace folders")?;
-    tui.write(b"jj\r")?;
-    wait_roots(&mut tui, &client, project, &[server_path(&first)])?;
+    // Both names render identically; removing the second row must keep the
+    // first one's exact bytes. Clicks use the same choose path as Enter.
+    remove_at(&mut tui, &client, project, 1, &[server_path(&first)])?;
     desktop.apply_catalog(ServerId::local(), &client.catalog()?)?;
     assert_eq!(
         desktop
@@ -356,10 +370,7 @@ fn tui_removes_the_selected_non_utf8_root_without_lossy_path_aliasing() -> Resul
             .extra_directories,
         vec![first]
     );
-    tui.write(b"\x02W")?;
-    tui.output("Workspace folders")?;
-    tui.write(b"j\r")?;
-    wait_roots(&mut tui, &client, project, &[])?;
+    remove_at(&mut tui, &client, project, 0, &[])?;
     tui.detach()?;
     Ok(())
 }
