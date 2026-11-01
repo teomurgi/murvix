@@ -1,7 +1,8 @@
 name: Build release
 
-# Builds, signs, notarizes and verifies one release for every platform. Used
-# by the release workflow.
+# Builds, signs and verifies one release for every platform, then notarizes
+# macOS packages in a separate job so notarization retries skip the rebuild.
+# Used by the release workflow.
 on:
   workflow_call:
     inputs:
@@ -131,28 +132,16 @@ jobs:
         run: >-
           bash scripts/build-release.sh --arch "$ARCH" --version "$VERSION"
           ${BUILD_NUMBER:+--build-number "$BUILD_NUMBER"} --sign-identity "$SIGN_IDENTITY"
-      - name: Notarize and verify DMG
+      - name: Upload unstapled macOS packages for notarization
         if: runner.os == 'macOS'
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: bash scripts/notarize-release.sh "$PACKAGE_DIR/Murvix-$VERSION-$ARCH.dmg"
-      - name: Notarize standalone ZIP and verify extracted executables
-        if: runner.os == 'macOS'
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: bash scripts/notarize-release.sh "$PACKAGE_DIR/murvix-$VERSION-macos-$ARCH.zip"
-      - name: Verify packaged pair, desktop bytes and standalone installation
-        if: runner.os == 'macOS'
-        # Use the configured Python and the packaged architecture, including Rosetta.
-        run: >-
-          arch "-$ARCH" python3 scripts/verify-release-package.py
-          "$PACKAGE_DIR/murvix-$VERSION-macos-$ARCH.zip"
-          --version "$VERSION" --dmg "$PACKAGE_DIR/Murvix-$VERSION-$ARCH.dmg"
-          --notarized
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            ${{ env.PACKAGE_DIR }}/Murvix-${{ env.VERSION }}-${{ matrix.arch }}.dmg
+            ${{ env.PACKAGE_DIR }}/murvix-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}.zip
+          if-no-files-found: error
+          retention-days: 7
       - name: Build and package the native glibc 2.35 pair
         if: runner.os == 'Linux'
         run: bash scripts/build-cli-linux.sh "$ARCH" "$VERSION"
@@ -163,12 +152,11 @@ jobs:
           "$PACKAGE_DIR/murvix-$VERSION-linux-$ARCH.tar.gz"
           --version "$VERSION"
       - name: Upload distribution archives
+        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
           name: distribution-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            ${{ env.PACKAGE_DIR }}/Murvix-${{ env.VERSION }}-${{ matrix.arch }}.dmg
-            ${{ env.PACKAGE_DIR }}/murvix-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}.zip
             ${{ env.PACKAGE_DIR }}/murvix-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
           if-no-files-found: error
           retention-days: 7
@@ -194,6 +182,77 @@ jobs:
             security delete-keychain "$KEYCHAIN_PATH"
           fi
           rm -f "$RUNNER_TEMP/murvix-release-certificate.p12"
+
+  notarize:
+    if: >-
+      github.repository == 'teomurgi/murvix' &&
+      contains(fromJSON('["teomurgi"]'), github.actor) &&
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor)
+    name: Notarize (${{ matrix.platform }}, ${{ matrix.arch }})
+    needs: build
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-notarize-${{ matrix.target }}
+      cancel-in-progress: false
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos
+            directory: arm64
+            arch: arm64
+            target: aarch64-apple-darwin
+            runner: macos-15
+          - platform: macos
+            directory: x86_64
+            arch: x86_64
+            target: x86_64-apple-darwin
+            runner: macos-15
+    env:
+      VERSION: ${{ inputs.version }}
+      ARCH: ${{ matrix.arch }}
+      PACKAGE_DIR: target/packages/${{ inputs.version }}/${{ matrix.directory }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: ${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-${{ matrix.platform }}-${{ matrix.arch }}
+          path: ${{ env.PACKAGE_DIR }}
+      - name: Notarize and verify DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: bash scripts/notarize-release.sh "$PACKAGE_DIR/Murvix-$VERSION-$ARCH.dmg"
+      - name: Notarize standalone ZIP and verify extracted executables
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: bash scripts/notarize-release.sh "$PACKAGE_DIR/murvix-$VERSION-macos-$ARCH.zip"
+      - name: Verify packaged pair, desktop bytes and standalone installation
+        run: >-
+          arch "-$ARCH" python3 scripts/verify-release-package.py
+          "$PACKAGE_DIR/murvix-$VERSION-macos-$ARCH.zip"
+          --version "$VERSION" --dmg "$PACKAGE_DIR/Murvix-$VERSION-$ARCH.dmg"
+          --notarized
+      - name: Upload notarized distribution archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: distribution-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            ${{ env.PACKAGE_DIR }}/Murvix-${{ env.VERSION }}-${{ matrix.arch }}.dmg
+            ${{ env.PACKAGE_DIR }}/murvix-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}.zip
+          if-no-files-found: error
+          retention-days: 7
 
   omarchy:
     if: >-
