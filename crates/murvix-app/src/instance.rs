@@ -318,9 +318,11 @@ mod tests {
             let mut stream =
                 UnixStream::connect(profile.path().join("instance.sock")).expect("connect");
             stream.write_all(message).expect("write");
-            stream
-                .shutdown(std::net::Shutdown::Write)
-                .expect("shutdown");
+            // The listener may reject an oversized message and close before
+            // macOS reports the write half as shut down.
+            if stream.shutdown(std::net::Shutdown::Write).is_err() {
+                return Vec::new();
+            }
             let mut done = Vec::new();
             let _ = stream.read_to_end(&mut done);
             done
