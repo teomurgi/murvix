@@ -1,7 +1,11 @@
 MIT License
 
-Copyright (c) 2026 Murvix (https://github.com/murvix-app/murvix)
-Copyright (c) 2026 teomurgi (Omarchy integration, https://github.com/teomurgi/murvix)
+Copyright (c) 2026 Muxy (https://github.com/muxy-app/muxy)
+Copyright (c) 2026 Murvix (https://github.com/teomurgi/murvix)
+
+Murvix is a fork of Muxy. The Muxy notice above applies to material
+originating from Muxy; modifications and new material are covered by
+the Murvix / teomurgi notices.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

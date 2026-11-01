@@ -13,8 +13,8 @@
       "tabs:write"
     ],
     "archive": "files-1.21.6.zip",
-    "sha256": "5263d7f16372cb20b668a8144674dc70867d288aa08bdbb632bb61f3687c01f2",
-    "size": 6992388
+    "sha256": "1f3f403ba3d9e517fd7b082e94fc2740b4dae77db247c8d344f00934bd7ea1e9",
+    "size": 7678476
   },
   {
     "name": "git",
@@ -34,7 +34,7 @@
       "worktrees:write"
     ],
     "archive": "git-1.16.0.zip",
-    "sha256": "673573929e274b3c3bf1eb6979d5cd1d8bbd2bfae78681a9aeb73bc9c4164692",
-    "size": 3394068
+    "sha256": "d4540261d409462c49836b57863c4a021d4383c95294408cba9bad0ae0ee61ea",
+    "size": 3400866
   }
 ]
