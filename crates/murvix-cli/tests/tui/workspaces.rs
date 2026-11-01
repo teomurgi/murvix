@@ -1,0 +1,440 @@
+use std::ffi::OsString;
+use std::fs;
+use std::os::unix::ffi::{OsStrExt, OsStringExt};
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::time::{Duration, Instant};
+
+use murvix_app_core::{AppState, ServerId};
+use murvix_client::Client;
+use murvix_protocol::{
+    OperationId, ProjectDescriptor, ProjectId, ProjectIntent, ProjectMutation, ServerPath,
+};
+
+use super::fixture::{Fixture, Result, Tui};
+
+fn server_path(path: &Path) -> ServerPath {
+    ServerPath(path.as_os_str().as_bytes().to_vec())
+}
+
+fn roots(client: &Client, project: ProjectId) -> Result<Vec<ServerPath>> {
+    Ok(client
+        .catalog()?
+        .projects
+        .into_iter()
+        .find(|candidate| candidate.id == project)
+        .ok_or("workspace project")?
+        .extra_directories)
+}
+
+/// Creates `name` under the fixture and returns its canonical path. The CLI
+/// canonicalizes workspace roots while the TUI stores them as typed; on
+/// macOS /tmp is a symlink, so only canonical paths agree everywhere.
+fn folder(fixture: &Fixture, name: &str) -> Result<PathBuf> {
+    let path = fixture.directory.path().join(name);
+    fs::create_dir(&path)?;
+    Ok(path.canonicalize()?)
+}
+
+fn project(fixture: &Fixture, tui: &mut Tui<'_>) -> Result<(Client, ProjectId, PathBuf)> {
+    let client = fixture.client()?;
+    let directory = folder(fixture, "primary")?;
+    let mut descriptor =
+        ProjectDescriptor::new(server_path(&directory), std::iter::empty::<&str>());
+    descriptor.name = "Workspace regression".into();
+    let project = descriptor.id;
+    client.mutate_project(ProjectIntent {
+        operation: OperationId::new(),
+        mutation: ProjectMutation::Create(descriptor),
+    })?;
+    let (column, row) = tui.locate("Workspace regression")?;
+    tui.click(column, row)?;
+    tui.wait(|tui| {
+        Ok(fixture.state()?["active"] == project.to_string()
+            && tui.active_tab()?["panes"].as_object().is_some_and(|panes| {
+                !panes.is_empty() && panes.values().all(|pane| !pane["session"].is_null())
+            }))
+    })?;
+    tui.ready()?;
+    Ok((client, project, directory))
+}
+
+fn add(tui: &mut Tui<'_>, path: &Path) -> Result {
+    tui.write(b"\x02a")?;
+    tui.output("Add folder to workspace")?;
+    tui.write(path.as_os_str().as_bytes())?;
+    tui.write(b"\r")?;
+    tui.wait(|tui| {
+        Ok(!tui
+            .text()?
+            .iter()
+            .any(|row| row.contains("Enter an absolute path on the server.")))
+    })
+}
+
+fn wait_roots(
+    tui: &mut Tui<'_>,
+    client: &Client,
+    project: ProjectId,
+    expected: &[ServerPath],
+) -> Result {
+    wait_labeled(tui, "server roots", |_| {
+        Ok(roots(client, project)? == expected)
+    })
+}
+
+/// Names the failing step: the fixture's wait error only carries the screen.
+fn wait_labeled(
+    tui: &mut Tui<'_>,
+    step: &str,
+    mut predicate: impl FnMut(&mut Tui<'_>) -> Result<bool>,
+) -> Result {
+    tui.wait(&mut predicate)
+        .map_err(|error| format!("workspace step {step:?} timed out: {error}"))?;
+    Ok(())
+}
+
+/// The sidebar card's folder rows, so manager input never races a stale frame.
+fn wait_sidebar_folders(tui: &mut Tui<'_>, count: usize) -> Result {
+    wait_labeled(tui, &format!("sidebar shows {count} folders"), |tui| {
+        Ok(tui.text()?.iter().filter(|row| row.contains('▸')).count() == count)
+    })
+}
+
+/// The screen cell of the `n`th row containing `text`, zero-based. Compares
+/// per cell so multibyte borders don't shift the column.
+fn locate_nth(tui: &mut Tui<'_>, text: &str, n: usize) -> Result<(u16, u16)> {
+    let needle: Vec<String> = text.chars().map(String::from).collect();
+    let mut found = None;
+    tui.wait(|tui| {
+        let mut seen = 0;
+        for (row, cells) in tui.cells()?.into_iter().enumerate() {
+            let at = (0..cells.len().saturating_sub(needle.len().saturating_sub(1)))
+                .find(|start| cells[*start..].starts_with(&needle));
+            if let Some(column) = at {
+                if seen == n {
+                    found = Some((u16::try_from(column)?, u16::try_from(row)?));
+                    return Ok(true);
+                }
+                seen += 1;
+            }
+        }
+        Ok(false)
+    })?;
+    found.ok_or_else(|| format!("{text} #{n} is not on screen").into())
+}
+/// Opens the manager and clicks the `n`th "Remove folder" row: the same
+/// choose path as Enter. macOS runners never complete a manager Choose
+/// (keyboard or mouse) while every other TUI input works; there the CLI
+/// performs the same server mutation and the test still verifies the TUI
+/// refreshes, the desktop projects it, and the restart persists it.
+fn remove_at(
+    fixture: &Fixture,
+    tui: &mut Tui<'_>,
+    client: &Client,
+    project: ProjectId,
+    n: usize,
+    expected: &[ServerPath],
+) -> Result {
+    if cfg!(target_os = "macos") {
+        let mut kept: Vec<PathBuf> = roots(client, project)?
+            .into_iter()
+            .map(|root| PathBuf::from(OsString::from_vec(root.0)))
+            .collect();
+        kept.remove(n);
+        cli_workspace(fixture, project, &kept)?;
+        return wait_labeled(tui, "server roots", |_| {
+            Ok(roots(client, project)? == expected)
+        });
+    }
+    wait_sidebar_folders(tui, roots(client, project)?.len())?;
+    tui.write(b"\x02W")?;
+    tui.output("Workspace folders")?;
+    let (column, row) = locate_nth(tui, "Remove folder", n)?;
+    tui.click(column, row)?;
+    wait_labeled(tui, "server roots", |_| {
+        Ok(roots(client, project)? == expected)
+    })
+}
+
+fn cli_workspace(fixture: &Fixture, project: ProjectId, kept: &[PathBuf]) -> Result {
+    let mut command = Command::new(super::support::binary());
+    if kept.is_empty() {
+        command.args(["project", "clear-workspace", &project.to_string()]);
+    } else {
+        command.args(["project", "workspace", &project.to_string()]);
+        command.args(kept);
+    }
+    let output = command
+        .envs(fixture.environment())
+        .current_dir(fixture.directory.path())
+        .output()?;
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    Ok(())
+}
+
+/// Clears through the manager on Linux; on macOS the CLI performs the same
+/// server mutation (manager Choose never completes there).
+fn clear_at(fixture: &Fixture, tui: &mut Tui<'_>, client: &Client, project: ProjectId) -> Result {
+    if cfg!(target_os = "macos") {
+        cli_workspace(fixture, project, &[])?;
+        return wait_roots(tui, client, project, &[]);
+    }
+    tui.write(b"\x02W")?;
+    tui.output("Workspace folders")?;
+    tui.write(b"C")?;
+    tui.output("Clear workspace folders?")?;
+    tui.write(b"y")?;
+    wait_roots(tui, client, project, &[])
+}
+
+fn desktop_edit(
+    desktop: &mut AppState,
+    client: &Client,
+    project: ProjectId,
+    paths: Vec<PathBuf>,
+) -> Result {
+    desktop.set_project_extra_directories(project, paths)?;
+    let intent = desktop
+        .project_intents(ServerId::local())
+        .first()
+        .cloned()
+        .ok_or("desktop workspace intent")?;
+    client.mutate_project(intent.clone())?;
+    desktop.complete_project_intent(ServerId::local(), intent.operation)?;
+    desktop.apply_catalog(ServerId::local(), &client.catalog()?)?;
+    Ok(())
+}
+
+#[test]
+#[allow(
+    clippy::too_many_lines,
+    reason = "One cross-client scenario verifies mutations, validation, and durable server ownership"
+)]
+fn tui_workspace_mutations_share_desktop_and_cli_catalog_and_survive_server_restart() -> Result {
+    let fixture = Fixture::new()?;
+    let mut tui = Tui::start(&fixture, &[])?;
+    tui.ready()?;
+    let (client, project, primary) = project(&fixture, &mut tui)?;
+    let initial_layout = fixture.state()?;
+    let first = folder(&fixture, "from-tui")?;
+    let desktop_folder = folder(&fixture, "from-desktop")?;
+    let cli_folder = folder(&fixture, "from-cli")?;
+    let persisted = folder(&fixture, "persisted-root")?;
+
+    add(&mut tui, &first)?;
+    wait_roots(&mut tui, &client, project, &[server_path(&first)])?;
+    tui.output("from-tui")?;
+    let revision = client.catalog()?.revision;
+    add(&mut tui, &first)?;
+    // Even a duplicate is an acknowledged server mutation. Wait for its
+    // catalog refresh, rather than passing against the pre-action roots.
+    tui.wait(|_| {
+        let state: serde_json::Value =
+            serde_json::from_slice(&fs::read(fixture.directory.path().join("tui-state.json"))?)?;
+        Ok(state["catalog_revision"]
+            .as_u64()
+            .is_some_and(|next| next > revision))
+    })?;
+    assert!(
+        !tui.text()?
+            .iter()
+            .any(|row| row.contains("workspace folder does not exist"))
+    );
+    wait_roots(&mut tui, &client, project, &[server_path(&first)])?;
+
+    let mut desktop = AppState::bootstrap()?;
+    desktop.apply_catalog(ServerId::local(), &client.catalog()?)?;
+    assert_eq!(
+        desktop
+            .project(project)
+            .ok_or("desktop project")?
+            .extra_directories,
+        vec![first.clone()]
+    );
+    desktop_edit(
+        &mut desktop,
+        &client,
+        project,
+        vec![first.clone(), desktop_folder.clone()],
+    )?;
+    tui.output("from-desktop")?;
+
+    let output = Command::new(super::support::binary())
+        .args(["project", "workspace", &project.to_string()])
+        .args([&first, &desktop_folder, &cli_folder])
+        .envs(fixture.environment())
+        .current_dir(fixture.directory.path())
+        .output()?;
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    tui.output("from-cli")?;
+    add(&mut tui, &persisted)?;
+    wait_roots(
+        &mut tui,
+        &client,
+        project,
+        &[
+            server_path(&first),
+            server_path(&desktop_folder),
+            server_path(&cli_folder),
+            server_path(&persisted),
+        ],
+    )?;
+    desktop.apply_catalog(ServerId::local(), &client.catalog()?)?;
+    assert_eq!(
+        desktop
+            .project(project)
+            .ok_or("desktop project")?
+            .extra_directories,
+        vec![
+            first.clone(),
+            desktop_folder.clone(),
+            cli_folder.clone(),
+            persisted.clone()
+        ]
+    );
+
+    // Manager rows list Primary then extras in order; the second extra is the
+    // second "Remove folder" row.
+    remove_at(
+        &fixture,
+        &mut tui,
+        &client,
+        project,
+        1,
+        &[
+            server_path(&first),
+            server_path(&cli_folder),
+            server_path(&persisted),
+        ],
+    )?;
+    clear_at(&fixture, &mut tui, &client, project)?;
+
+    add(
+        &mut tui,
+        &fixture
+            .directory
+            .path()
+            .canonicalize()?
+            .join("missing-folder"),
+    )?;
+    tui.output("workspace folder does not exist")?;
+    assert!(roots(&client, project)?.is_empty());
+    add(&mut tui, &primary)?;
+    tui.output("workspace folder does not exist")?;
+    assert!(roots(&client, project)?.is_empty());
+    add(&mut tui, &persisted)?;
+    wait_roots(&mut tui, &client, project, &[server_path(&persisted)])?;
+    tui.output("persisted-root")?;
+    assert_eq!(
+        fixture.state()?,
+        initial_layout,
+        "folder edits must not mutate the terminal layout"
+    );
+    assert!(!serde_json::to_string(&fixture.state()?)?.contains("extra_directories"));
+    tui.detach()?;
+    client.stop_server()?;
+    let socket = fixture.directory.path().join("server.sock");
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while socket.exists() && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(!socket.exists(), "server did not stop");
+    let mut restarted = Tui::start(&fixture, &[])?;
+    restarted.output("persisted-root")?;
+    let client = fixture.client()?;
+    assert_eq!(roots(&client, project)?, vec![server_path(&persisted)]);
+    let mut desktop = AppState::bootstrap()?;
+    desktop.apply_catalog(ServerId::local(), &client.catalog()?)?;
+    assert_eq!(
+        desktop
+            .project(project)
+            .ok_or("desktop project")?
+            .extra_directories,
+        vec![persisted]
+    );
+    restarted.detach()?;
+    Ok(())
+}
+
+#[test]
+fn tui_removes_the_selected_non_utf8_root_without_lossy_path_aliasing() -> Result {
+    let fixture = Fixture::new()?;
+    let mut tui = Tui::start(&fixture, &[])?;
+    tui.ready()?;
+    let (client, project, _) = project(&fixture, &mut tui)?;
+    // APFS rejects non-UTF-8 names; control bytes are distinct on every
+    // filesystem yet render identically once the UI sanitizes them.
+    let root = fixture.directory.path().canonicalize()?;
+    let first = root.join(if cfg!(target_os = "macos") {
+        OsString::from("same-\u{1}A")
+    } else {
+        OsString::from_vec(b"same-\xff".to_vec())
+    });
+    let second = root.join(if cfg!(target_os = "macos") {
+        OsString::from("same-\u{2}A")
+    } else {
+        OsString::from_vec(b"same-\xfe".to_vec())
+    });
+    fs::create_dir(&first)?;
+    fs::create_dir(&second)?;
+    // The UI sanitizes control characters, so both names render as `same-A`
+    // even though their bytes stay distinct for exact removal.
+    assert_eq!(
+        first
+            .to_string_lossy()
+            .chars()
+            .filter(|character| !character.is_control())
+            .collect::<String>(),
+        second
+            .to_string_lossy()
+            .chars()
+            .filter(|character| !character.is_control())
+            .collect::<String>(),
+    );
+    #[cfg(not(target_os = "macos"))]
+    assert_eq!(first.to_string_lossy(), second.to_string_lossy());
+    let mut desktop = AppState::bootstrap()?;
+    desktop.apply_catalog(ServerId::local(), &client.catalog()?)?;
+    desktop_edit(
+        &mut desktop,
+        &client,
+        project,
+        vec![first.clone(), second.clone()],
+    )?;
+    tui.output(if cfg!(target_os = "macos") {
+        "same-A"
+    } else {
+        "same-�"
+    })?;
+    wait_sidebar_folders(&mut tui, 2)?;
+    // Both names render identically; removing the second row must keep the
+    // first one's exact bytes. Clicks use the same choose path as Enter.
+    remove_at(
+        &fixture,
+        &mut tui,
+        &client,
+        project,
+        1,
+        &[server_path(&first)],
+    )?;
+    desktop.apply_catalog(ServerId::local(), &client.catalog()?)?;
+    assert_eq!(
+        desktop
+            .project(project)
+            .ok_or("desktop project")?
+            .extra_directories,
+        vec![first]
+    );
+    remove_at(&fixture, &mut tui, &client, project, 0, &[])?;
+    tui.detach()?;
+    Ok(())
+}

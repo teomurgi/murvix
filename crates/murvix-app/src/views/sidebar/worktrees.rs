@@ -149,10 +149,11 @@ pub(super) fn group(
     model: &AppModel,
     cx: &mut Context<AppModel>,
 ) -> AnyElement {
+    let header = super::project_row(project, index, shortcut, model, cx);
     let mut group = div()
         .flex()
         .flex_col()
-        .child(super::project_row(project, index, shortcut, model, cx));
+        .child(super::folders::card(project, header, model, cx));
     if model.appearance.sidebar_expanded
         && model.expanded_worktrees.contains(&project.id)
         && model.has_worktrees(project)

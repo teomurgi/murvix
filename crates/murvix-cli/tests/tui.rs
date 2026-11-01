@@ -13,6 +13,8 @@ mod proxy;
 #[path = "support/ssh.rs"]
 mod remote;
 mod support;
+#[path = "tui/workspaces.rs"]
+mod workspaces;
 
 use fixture::{Fixture, Result, Tui};
 

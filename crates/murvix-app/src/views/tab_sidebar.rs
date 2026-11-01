@@ -228,10 +228,11 @@ fn project_group(
     let id = project.id;
     let missing = project.status() == ProjectStatus::Missing;
     let expanded = model.project_expanded(id);
+    let header = project_header(project, model, cx);
     let mut group = div()
         .flex()
         .flex_col()
-        .child(project_header(project, model, cx));
+        .child(super::sidebar::folders::card(project, header, model, cx));
     if expanded && !missing {
         let tabs: Vec<_> = model.sidebar_tabs(project).collect();
         let measured: Vec<_> = tabs.iter().map(|tab| tab.id).collect();

@@ -115,6 +115,7 @@
 "Add Remote Server" = "Add Remote Server";
 "Add Server…" = "Add Server…";
 "Add a GitHub remote named origin to open a pull request" = "Add a GitHub remote named origin to open a pull request";
+"Add folder to workspace…" = "Add folder to workspace…";
 "Add space between terminal lines using pixels or a percentage, such as 10%%." = "Add space between terminal lines using pixels or a percentage, such as 10%%.";
 "Added %lld projects from Murvix 1.x. Projects and tabs you already had are unchanged." = "Added %lld projects from Murvix 1.x. Projects and tabs you already had are unchanged.";
 "Additional Prompt" = "Additional Prompt";

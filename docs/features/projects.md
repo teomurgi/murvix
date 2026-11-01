@@ -36,6 +36,34 @@ can't be removed. `Cmd+N` opens a tab in Home.
 - The filter in the sidebar header shows **All Projects**, **Focus Current
   Project**, or **Remote Servers** when a remote server has connected.
 
+## Workspace folders
+
+Workspace folders are stored by the project's server. Desktop, terminal UI,
+and CLI clients connected to that server share the same roots and receive
+catalog updates; the roots survive server restarts. They are not part of
+either client's tab layout. Local desktop and TUI clients must use the same
+profile; debug and release builds deliberately use separate profiles.
+
+In the expanded sidebar, the selected project's header and extra workspace
+folders share a rounded outline. Worktrees and tabs sit outside that outline.
+Workspace folders are hidden for other projects; selecting one of a project's
+worktrees keeps its parent's workspace visible. Hover a folder to see its full
+path. The list stays visible when the worktree list is collapsed.
+
+In the desktop app, for local projects, choose **Add folder to workspace…**
+below the folder list to open the folder picker. This action is also available before any folders
+have been added. To remove a folder or clear the list, right-click the project
+and use its **Workspace** menu.
+
+Extra folders extend the context available to agents; files, search, commands,
+and Git still target the primary project folder. Worktrees keep their own
+single checkout folder. Home does not show workspace-folder controls; remote
+projects show their extra folders without a local folder-picker action.
+
+The [terminal UI](terminal-ui.md#workspace-folders) provides the same selected
+project card, with `Ctrl-B a` to add an absolute server path and `Ctrl-B W` to
+inspect, remove, or clear roots. This also works on a remote server over SSH.
+
 ## Worktrees
 
 For Git projects, worktrees appear under their project and have their own

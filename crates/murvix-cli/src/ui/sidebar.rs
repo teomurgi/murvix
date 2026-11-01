@@ -68,6 +68,7 @@ pub(super) fn draw(frame: &mut Frame<'_>, shared: &Shared, state: &State, ui: &m
 struct Row<'a> {
     project: ProjectId,
     lines: Vec<Line<'a>>,
+    targets: Vec<Option<Target>>,
 }
 
 fn project_list(
@@ -114,7 +115,7 @@ fn project_list(
             continue;
         }
         let active = row.project == state.active;
-        let mut top = None;
+        let targets = row.targets;
         for (offset, text) in row.lines.into_iter().enumerate() {
             let Some(y) = (first + offset)
                 .checked_sub(ui.sidebar_scroll)
@@ -124,7 +125,10 @@ fn project_list(
                 continue;
             };
             let y = list.y + y;
-            top.get_or_insert(y);
+            let rect = Rect::new(list.x, y, list.width.saturating_sub(1), 1);
+            if let Some(target) = targets.get(offset).copied().flatten() {
+                ui.hits.push((rect, target));
+            }
             let stripe = if active { "▌" } else { " " };
             let hovered = !active && ui.hovers(Rect::new(list.x, y, list.width, 1));
             let mut spans = vec![Span::styled(stripe, theme::accent())];
@@ -135,15 +139,7 @@ fn project_list(
                     span
                 }
             }));
-            frame.render_widget(
-                Paragraph::new(Line::from(spans)),
-                Rect::new(list.x, y, list.width, 1),
-            );
-        }
-        if let Some(top) = top {
-            let rows = u16::try_from(line - first).unwrap_or(u16::MAX);
-            let visible = Rect::new(list.x, top, list.width, rows).intersection(list);
-            ui.hits.push((visible, Target::Project(row.project)));
+            frame.render_widget(Paragraph::new(Line::from(spans)), rect);
         }
     }
     scrollbar(frame, list, ui.sidebar_scroll, total);
@@ -156,10 +152,14 @@ fn project_rows<'a>(
     catalog: &CatalogPage,
     width: usize,
 ) -> Vec<Row<'a>> {
+    let workspace = super::workspace_project(catalog, state.active).map(|project| project.id);
     projects::tree(catalog)
         .into_iter()
         .map(|entry| {
             let project = entry.project;
+            let card = workspace == Some(project.id);
+            // Leave the stripe and scrollbar outside the workspace's border.
+            let width = width.saturating_sub(if card { 4 } else { 1 });
             let open = state
                 .projects
                 .get(&project.id)
@@ -205,9 +205,49 @@ fn project_rows<'a>(
                     theme::muted(),
                 ));
             }
+            let mut targets = vec![Some(Target::Project(project.id)); lines.len()];
+            if card {
+                for directory in &project.extra_directories {
+                    let path = clean(&String::from_utf8_lossy(&directory.0));
+                    let name = path
+                        .rsplit('/')
+                        .find(|part| !part.is_empty())
+                        .unwrap_or(&path);
+                    lines.push(Line::styled(
+                        format!("  ▸ {}", truncate(name, width.saturating_sub(4))),
+                        theme::text(),
+                    ));
+                    targets.push(Some(Target::Workspace(project.id)));
+                }
+                lines.push(Line::styled(
+                    truncate("+ Add folder to workspace…", width),
+                    theme::accent(),
+                ));
+                targets.push(Some(Target::AddWorkspaceFolder(project.id)));
+                let mut boxed = vec![Line::styled(
+                    format!("╭{}╮", "─".repeat(width)),
+                    theme::line(),
+                )];
+                boxed.extend(lines.into_iter().map(|line| {
+                    let padding = width.saturating_sub(line.width());
+                    let mut spans = vec![Span::styled("│", theme::line())];
+                    spans.extend(line.spans);
+                    spans.push(Span::raw(" ".repeat(padding)));
+                    spans.push(Span::styled("│", theme::line()));
+                    Line::from(spans)
+                }));
+                boxed.push(Line::styled(
+                    format!("╰{}╯", "─".repeat(width)),
+                    theme::line(),
+                ));
+                targets.insert(0, None);
+                targets.push(None);
+                lines = boxed;
+            }
             Row {
                 project: project.id,
                 lines,
+                targets,
             }
         })
         .collect()
@@ -216,10 +256,21 @@ fn project_rows<'a>(
 /// Scrolls the list just enough to show `project`.
 fn reveal(ui: &mut Ui, rows: &[Row<'_>], project: ProjectId, height: usize) {
     let mut top = 0;
+    let mut workspace_top = None;
     for row in rows {
+        if row
+            .targets
+            .iter()
+            .any(|target| matches!(target, Some(Target::AddWorkspaceFolder(_))))
+        {
+            workspace_top = Some(top);
+        }
         if row.project == project {
-            if top < ui.sidebar_scroll {
-                ui.sidebar_scroll = top;
+            let start = workspace_top
+                .filter(|start| top + row.lines.len() - start <= height)
+                .unwrap_or(top);
+            if start < ui.sidebar_scroll || row.lines.len() > height {
+                ui.sidebar_scroll = start;
             } else if top + row.lines.len() > ui.sidebar_scroll + height {
                 ui.sidebar_scroll = (top + row.lines.len()).saturating_sub(height);
             }
@@ -394,5 +445,148 @@ fn footer_row(frame: &mut Frame<'_>, shared: &Shared, ui: &mut Ui, area: Rect) {
         );
         ui.hits.push((help, Target::Help));
         ui.hits.push((hide, Target::HideSidebar));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use murvix_protocol::{ProjectDescriptor, ServerIdentity, ServerPath};
+    use ratatui::{Terminal, backend::TestBackend};
+
+    fn catalog() -> CatalogPage {
+        let descriptor = |id, name: &str, parent_id, home| ProjectDescriptor {
+            id: ProjectId::from_u128(id),
+            home,
+            name: name.into(),
+            icon: None,
+            logo: None,
+            color: "#808080".into(),
+            directory: ServerPath(format!("/projects/{name}").into_bytes()),
+            kind: None,
+            parent_id,
+            extra_directories: if parent_id.is_none() && !home {
+                vec![ServerPath(format!("/outside/{name}\n-folder").into_bytes())]
+            } else {
+                Vec::new()
+            },
+        };
+        CatalogPage {
+            server: ServerIdentity::new(),
+            home: ProjectId::from_u128(1),
+            revision: 0,
+            next: None,
+            legacy_home: None,
+            projects: vec![
+                descriptor(1, "Home", None, true),
+                descriptor(2, "Primary", None, false),
+                descriptor(3, "Child", Some(ProjectId::from_u128(2)), false),
+                descriptor(4, "Other", None, false),
+            ],
+        }
+    }
+
+    #[test]
+    fn only_selected_primary_or_selected_childs_parent_exposes_workspace() {
+        let catalog = catalog();
+        let shared = Shared::default();
+        for (active, expected) in [(1, None), (2, Some(2)), (3, Some(2)), (4, Some(4))] {
+            let mut state = State::new(&catalog);
+            state.active = ProjectId::from_u128(active);
+            let rows = project_rows(&shared, &state, &catalog, 30);
+            let editable: Vec<_> = rows
+                .iter()
+                .flat_map(|row| &row.targets)
+                .filter_map(|target| match target {
+                    Some(Target::AddWorkspaceFolder(project)) => Some(*project),
+                    _ => None,
+                })
+                .collect();
+            assert_eq!(
+                editable,
+                expected
+                    .map(ProjectId::from_u128)
+                    .into_iter()
+                    .collect::<Vec<_>>()
+            );
+            for row in &rows {
+                assert_eq!(row.lines.len(), row.targets.len());
+                assert!(
+                    row.lines
+                        .iter()
+                        .flat_map(|line| &line.spans)
+                        .all(|span| !span.content.chars().any(char::is_control))
+                );
+                if row.project == ProjectId::from_u128(3) {
+                    assert_eq!(row.lines.len(), 1, "worktrees remain outside the card");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn clipped_rows_have_only_their_own_hit_targets() -> Result<(), std::convert::Infallible> {
+        let catalog = catalog();
+        let shared = Shared::default();
+        let mut state = State::new(&catalog);
+        state.active = ProjectId::from_u128(3);
+        let mut terminal = Terminal::new(TestBackend::new(32, 24))?;
+        for width in [1, 2, 8, 24] {
+            for height in [3, 4, 7, 15] {
+                for scroll in [0, 3, 6, 30] {
+                    let area = Rect::new(2, 1, width, height);
+                    let mut ui = Ui {
+                        sidebar_scroll: scroll,
+                        revealed: Some(state.active),
+                        ..Ui::default()
+                    };
+                    terminal.draw(|frame| {
+                        project_list(frame, &shared, &state, &catalog, &mut ui, area);
+                    })?;
+                    let rows = project_rows(&shared, &state, &catalog, usize::from(width));
+                    let targets: Vec<_> = rows.into_iter().flat_map(|row| row.targets).collect();
+                    let list_y = area.y + HEADER_ROWS;
+                    for y in list_y..area.bottom() {
+                        let index = ui.sidebar_scroll + usize::from(y - list_y);
+                        let expected = targets
+                            .get(index)
+                            .copied()
+                            .flatten()
+                            .unwrap_or(Target::SidebarList);
+                        for x in area.x..area.right().saturating_sub(1) {
+                            assert_eq!(
+                                ui.target(x, y),
+                                Some(expected),
+                                "scroll={scroll}, cell={x},{y}"
+                            );
+                        }
+                        assert_eq!(ui.target(area.right() - 1, y), Some(Target::SidebarList));
+                    }
+                    assert_eq!(ui.target(area.right(), list_y), None);
+                    assert_eq!(ui.target(area.x, area.bottom()), None);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn revealing_a_child_keeps_its_parent_card_visible_when_the_group_fits() {
+        let catalog = catalog();
+        let shared = Shared::default();
+        let mut state = State::new(&catalog);
+        state.active = ProjectId::from_u128(3);
+        let rows = project_rows(&shared, &state, &catalog, 30);
+        let mut ui = Ui {
+            sidebar_scroll: 50,
+            ..Ui::default()
+        };
+        reveal(&mut ui, &rows, state.active, 12);
+        assert_eq!(ui.sidebar_scroll, 2);
+        assert_eq!(
+            super::super::workspace_project(&catalog, state.active).map(|entry| entry.id),
+            Some(ProjectId::from_u128(2))
+        );
+        assert!(super::super::workspace_project(&catalog, catalog.home).is_none());
     }
 }
