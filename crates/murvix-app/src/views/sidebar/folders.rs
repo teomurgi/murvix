@@ -4,7 +4,7 @@ use gpui::{
 };
 use murvix_app_core::{Project, ProjectId, ProjectStatus};
 use murvix_ui::{
-    components::{IconGlyph, Tooltip},
+    components::{IconButton, IconGlyph, Tooltip},
     icon::Icon,
     tr,
 };
@@ -64,6 +64,7 @@ fn section(project: &Project, model: &AppModel, cx: &mut Context<AppModel>) -> O
         let name = folder
             .file_name()
             .map_or_else(|| path.clone(), |name| name.to_string_lossy().into_owned());
+        let folder = folder.clone();
         section = section.child(
             div()
                 .id(SharedString::from(format!("workspace-folder-{id}-{index}")))
@@ -101,7 +102,34 @@ fn section(project: &Project, model: &AppModel, cx: &mut Context<AppModel>) -> O
                             model.theme.fg_muted,
                         )),
                 )
-                .child(div().flex_1().min_w(px(0.0)).truncate().child(name)),
+                .child(div().flex_1().min_w(px(0.0)).truncate().child(name))
+                .child(
+                    div()
+                        .debug_selector(move || format!("remove-workspace-folder-{id}-{index}"))
+                        .child(
+                            IconButton::new(
+                                SharedString::from(format!("remove-workspace-folder-{id}-{index}")),
+                                Icon::Trash,
+                                m.icon_xs(),
+                                m.control_small(),
+                                model.theme.fg_muted,
+                                model.theme.danger,
+                            )
+                            .tooltip(
+                                tr!("Remove Folder"),
+                                model.theme.raised(),
+                                model.theme.fg,
+                                model.theme.border,
+                                model.theme.bg,
+                            )
+                            .on_click(cx.listener(
+                                move |model, _, _, cx| {
+                                    cx.stop_propagation();
+                                    model.remove_workspace_folder(id, &folder, cx);
+                                },
+                            )),
+                        ),
+                ),
         );
     }
     if local {

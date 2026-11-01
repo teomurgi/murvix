@@ -1188,20 +1188,26 @@ fn workspace_card_tracks_project_selection_and_excludes_worktrees(cx: &mut TestA
             });
             let card_selector = format!("workspace-card-{root}").leak();
             let folder_selector = format!("workspace-folder-{root}-0").leak();
+            let remove_selector = format!("remove-workspace-folder-{root}-0").leak();
             let worktree_selector = format!("worktree-{child}").leak();
             cx.update(|window, _| window.refresh());
             cx.run_until_parked();
             if selected == home {
                 assert!(cx.debug_bounds(card_selector).is_none());
                 assert!(cx.debug_bounds(folder_selector).is_none());
+                assert!(cx.debug_bounds(remove_selector).is_none());
                 continue;
             }
             let card = cx
                 .debug_bounds(card_selector)
                 .expect("selected workspace card");
             let folder = cx.debug_bounds(folder_selector).expect("workspace folder");
+            let remove = cx
+                .debug_bounds(remove_selector)
+                .expect("workspace folder removal control");
             assert!(folder.top() >= card.top() && folder.bottom() <= card.bottom());
             assert!(folder.left() >= card.left() && folder.right() <= card.right());
+            assert!(remove.top() >= folder.top() && remove.bottom() <= folder.bottom());
             if layout == AppLayout::ProjectFocused {
                 let worktree = cx.debug_bounds(worktree_selector).expect("worktree");
                 assert!(

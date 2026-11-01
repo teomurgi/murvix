@@ -142,7 +142,7 @@ fn workspace_items(project: &Project) -> Vec<Item> {
     roots.sort();
     for root in roots {
         items.push(Item::action(
-            root.to_string_lossy().into_owned(),
+            format!("{} {}", tr!("Remove"), root.to_string_lossy()),
             Command::RemoveWorkspaceFolder(id, Box::new(root)),
         ));
     }

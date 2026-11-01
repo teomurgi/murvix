@@ -12,6 +12,8 @@
 
 Murvix is a native terminal multiplexer and development workspace for macOS and Linux. One persistent server keeps your terminals alive while you move between the desktop app, a tmux-style terminal UI, and a scriptable command line. Close the window, drop an SSH connection, or pick up the same project from another machine — the work keeps running.
 
+> **Built on Muxy.** Murvix is a fork of [Muxy](https://github.com/muxy-app/muxy) — deep gratitude to the Muxy authors and contributors for the original work this project builds on. Material originating from Muxy remains © Muxy; Murvix modifications and new material are © Murvix 2026. See [LICENSE](LICENSE).
+
 Built in Rust with GPUI and libghostty.
 
 ## Highlights
