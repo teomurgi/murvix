@@ -1,7 +1,7 @@
 [
   {
     "name": "files",
-    "current_version": "1.21.6",
+    "current_version": "1.21.7",
     "description": "File explorer for Murvix",
     "permissions": [
       "commands:exec",
@@ -12,13 +12,13 @@
       "panels:write",
       "tabs:write"
     ],
-    "archive": "files-1.21.6.zip",
-    "sha256": "1f3f403ba3d9e517fd7b082e94fc2740b4dae77db247c8d344f00934bd7ea1e9",
-    "size": 7678476
+    "archive": "files-1.21.7.zip",
+    "sha256": "e77b0aab1499fa33c543deb33ea3e10097d6f0840b498b4069618d3841cca3ee",
+    "size": 7678478
   },
   {
     "name": "git",
-    "current_version": "1.16.0",
+    "current_version": "1.16.1",
     "description": "Official Git extension for Murvix — GitHub, Forgejo, and Gitea",
     "permissions": [
       "commands:exec",
@@ -33,8 +33,8 @@
       "worktrees:read",
       "worktrees:write"
     ],
-    "archive": "git-1.16.0.zip",
-    "sha256": "d4540261d409462c49836b57863c4a021d4383c95294408cba9bad0ae0ee61ea",
+    "archive": "git-1.16.1.zip",
+    "sha256": "0f75ac9030e30d80d0e64f6eaa0a587738681c211a56e908f44c9c6539f6331d",
     "size": 3400866
   }
 ]
