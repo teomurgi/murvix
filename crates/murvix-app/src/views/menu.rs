@@ -646,19 +646,7 @@ impl AppModel {
                 return;
             }
             Command::RemoveWorkspaceFolder(id, folder) => {
-                let folder = folder.clone();
-                self.edit_project(
-                    |state| {
-                        let mut roots = state
-                            .project(id)
-                            .ok_or(murvix_app_core::AppError::UnknownProject(id))?
-                            .extra_directories
-                            .clone();
-                        roots.retain(|root| root != &*folder);
-                        state.set_project_extra_directories(id, roots)
-                    },
-                    cx,
-                );
+                self.remove_workspace_folder(id, &folder, cx);
             }
             Command::ClearWorkspaceFolders(id) => {
                 self.edit_project(
@@ -755,6 +743,28 @@ impl AppModel {
             }
             _ => {}
         }
+    }
+}
+
+impl AppModel {
+    pub(crate) fn remove_workspace_folder(
+        &mut self,
+        id: murvix_app_core::ProjectId,
+        folder: &std::path::Path,
+        cx: &mut Context<Self>,
+    ) {
+        self.edit_project(
+            |state| {
+                let mut roots = state
+                    .project(id)
+                    .ok_or(murvix_app_core::AppError::UnknownProject(id))?
+                    .extra_directories
+                    .clone();
+                roots.retain(|root| root != folder);
+                state.set_project_extra_directories(id, roots)
+            },
+            cx,
+        );
     }
 }
 
