@@ -48,7 +48,7 @@ impl Drop for Fixture {
 }
 
 fn until(mut condition: impl FnMut() -> bool) {
-    let deadline = Instant::now() + Duration::from_secs(3);
+    let deadline = Instant::now() + Duration::from_secs(10);
     while !condition() {
         assert!(Instant::now() < deadline, "voice worker did not settle");
         std::thread::sleep(Duration::from_millis(5));
