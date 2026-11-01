@@ -625,7 +625,9 @@ fn reader_eof_and_fatal_cancel_a_blocked_writer() -> TestResult {
             decoder.next()?,
             (CONTROL, Message::HelloReply { .. })
         ));
-        for id in 1..=50_000 {
+        // Fill the peer's receive buffer so the server writer is blocked, but
+        // leave enough client-side capacity to deliver the terminating frame.
+        for id in 1..=10_000 {
             encoder.send(
                 CONTROL,
                 &Message::Request {
