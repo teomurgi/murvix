@@ -27,10 +27,13 @@ fn roots(client: &Client, project: ProjectId) -> Result<Vec<ServerPath>> {
         .extra_directories)
 }
 
+/// Creates `name` under the fixture and returns its canonical path. The CLI
+/// canonicalizes workspace roots while the TUI stores them as typed; on
+/// macOS /tmp is a symlink, so only canonical paths agree everywhere.
 fn folder(fixture: &Fixture, name: &str) -> Result<PathBuf> {
     let path = fixture.directory.path().join(name);
     fs::create_dir(&path)?;
-    Ok(path)
+    Ok(path.canonicalize()?)
 }
 
 fn project(fixture: &Fixture, tui: &mut Tui<'_>) -> Result<(Client, ProjectId, PathBuf)> {
@@ -310,7 +313,14 @@ fn tui_workspace_mutations_share_desktop_and_cli_catalog_and_survive_server_rest
     )?;
     clear_at(&fixture, &mut tui, &client, project)?;
 
-    add(&mut tui, &fixture.directory.path().join("missing-folder"))?;
+    add(
+        &mut tui,
+        &fixture
+            .directory
+            .path()
+            .canonicalize()?
+            .join("missing-folder"),
+    )?;
     tui.output("workspace folder does not exist")?;
     assert!(roots(&client, project)?.is_empty());
     add(&mut tui, &primary)?;
@@ -358,12 +368,13 @@ fn tui_removes_the_selected_non_utf8_root_without_lossy_path_aliasing() -> Resul
     let (client, project, _) = project(&fixture, &mut tui)?;
     // APFS rejects non-UTF-8 names; control bytes are distinct on every
     // filesystem yet render identically once the UI sanitizes them.
-    let first = fixture.directory.path().join(if cfg!(target_os = "macos") {
+    let root = fixture.directory.path().canonicalize()?;
+    let first = root.join(if cfg!(target_os = "macos") {
         OsString::from("same-\u{1}A")
     } else {
         OsString::from_vec(b"same-\xff".to_vec())
     });
-    let second = fixture.directory.path().join(if cfg!(target_os = "macos") {
+    let second = root.join(if cfg!(target_os = "macos") {
         OsString::from("same-\u{2}A")
     } else {
         OsString::from_vec(b"same-\xfe".to_vec())
