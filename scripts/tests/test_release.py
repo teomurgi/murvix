@@ -201,6 +201,12 @@ pub const CURRENT: Version = V2;
         self.git("checkout", "--quiet", "main")
         self.assert_plan("main", "1.4.0", "patch", "1.4.1")
 
+    def test_plan_advances_past_a_version_stamped_without_a_release_tag(self):
+        self.git("tag", "v0.2.2")
+        self.cli("stamp", "0.2.3")
+        source = self.commit("fix: repair after prepared version", change_source=False)
+        self.assert_plan(source, "0.2.2", "patch", "0.2.4")
+
     def test_docs_chore_and_nonconventional_history_do_not_release(self):
         self.git("tag", "v0.2.2")
         for message in (
