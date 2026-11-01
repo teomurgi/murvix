@@ -158,9 +158,14 @@ fn remove_at(
 }
 
 fn cli_workspace(fixture: &Fixture, project: ProjectId, kept: &[PathBuf]) -> Result {
-    let output = Command::new(super::support::binary())
-        .args(["project", "workspace", &project.to_string()])
-        .args(kept)
+    let mut command = Command::new(super::support::binary());
+    if kept.is_empty() {
+        command.args(["project", "clear-workspace", &project.to_string()]);
+    } else {
+        command.args(["project", "workspace", &project.to_string()]);
+        command.args(kept);
+    }
+    let output = command
         .envs(fixture.environment())
         .current_dir(fixture.directory.path())
         .output()?;
