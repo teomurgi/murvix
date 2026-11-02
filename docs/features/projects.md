@@ -51,9 +51,11 @@ worktrees keeps its parent's workspace visible. Hover a folder to see its full
 path. The list stays visible when the worktree list is collapsed.
 
 In the desktop app, for local projects, choose **Add folder to workspace…**
-below the folder list to open the folder picker. This action is also available before any folders
-have been added. To remove a folder or clear the list, right-click the project
-and use its **Workspace** menu.
+below the folder list to open the folder picker. This action is also available
+before any folders have been added. Click the trash icon beside a folder to
+remove it, or right-click the project and use its **Workspace** menu to remove
+folders or clear the list. Removing a workspace folder does not delete it from
+disk.
 
 Extra folders extend the context available to agents; search, commands, and Git still target the primary project folder. The Files extension lists added folders for the selected workspace and can open them externally. Worktrees keep their own single checkout folder. Home does not show workspace-folder controls; remote projects show their extra folders without a local folder-picker action.
 
