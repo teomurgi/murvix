@@ -28,6 +28,7 @@ import { publish_pointer_over_panel } from "@/lib/pointer-guard";
 import { reconcile_children } from "@/lib/list-reconcile";
 import { GitStatusStore } from "@/lib/git-status";
 import { OpenTabsStore } from "@/lib/open-tabs";
+import { workspace_folder_entries } from "@/lib/workspace-folders";
 
 const RECONCILE_DEBOUNCE_MS = 250;
 
@@ -94,13 +95,15 @@ const NAME_COLLATOR = new Intl.Collator(undefined, { sensitivity: "base" });
 
 function sorted_rels(entries) {
   return entries
-    .map((entry) => entry_to_rel(entry))
-    .sort((a, b) => {
-      const ad = is_dir(a);
-      const bd = is_dir(b);
+    .map((entry) => ({ entry, rel: entry_to_rel(entry) }))
+    .sort(({ entry: a, rel: aRel }, { entry: b, rel: bRel }) => {
+      if (Boolean(a.isWorkspace) !== Boolean(b.isWorkspace)) return a.isWorkspace ? 1 : -1;
+      const ad = is_dir(aRel);
+      const bd = is_dir(bRel);
       if (ad !== bd) return ad ? -1 : 1;
-      return NAME_COLLATOR.compare(basename(a), basename(b));
-    });
+      return NAME_COLLATOR.compare(a.name ?? basename(aRel), b.name ?? basename(bRel));
+    })
+    .map(({ rel }) => rel);
 }
 
 function chevron_icon(expanded) {
@@ -126,6 +129,12 @@ function path_after_rename(sourcePath, newName, isFolder) {
 
 function context_menu_actions(item, ops, selection) {
   const path = item.path;
+  if (item.kind === "workspace") {
+    return [
+      { label: "Open Externally", run: () => void ops.openExternally(path) },
+      { label: "Copy Path", run: () => void ops.copyPath(path) },
+    ];
+  }
   const multi = selection.length > 1 && selection.includes(path);
   if (multi) {
     return [
@@ -325,6 +334,7 @@ export class FilesPanelApp {
       this.gitStatus.subscribe(() => this.onGitStatusChange()),
       murvix.events.subscribe("worktree.switched", () => void this.loadRoot()),
       murvix.events.subscribe("project.switched", () => void this.loadRoot()),
+      murvix.events.subscribe("projects.changed", () => void this.loadRoot()),
       // When our panel is (re)opened, pull keyboard focus into the tree so it's
       // navigable immediately without a click.
       murvix.events.subscribe("panel.opened", (payload) => {
@@ -387,7 +397,9 @@ export class FilesPanelApp {
       const entry = byRel.get(rel);
       this.entries.set(rel, {
         path: rel,
-        kind: rel.endsWith("/") ? "directory" : "file",
+        kind: entry?.isWorkspace ? "workspace" : rel.endsWith("/") ? "directory" : "file",
+        name: entry?.name ?? basename(rel),
+        workspacePath: entry?.workspacePath ?? null,
         isIgnored: Boolean(entry?.isIgnored),
       });
     }
@@ -417,9 +429,10 @@ export class FilesPanelApp {
     this.closeContextMenu();
     void this.gitStatus.refresh();
     const rootPromise = this.resolveRoot();
+    const workspaceFolders = this.workspaceFolderEntries();
     try {
       const entries = await murvix.files.list("");
-      this.recordChildren("", entries);
+      this.recordChildren("", [...entries, ...(await workspaceFolders)]);
     } catch (err) {
       void murvix
         .toast({
@@ -436,6 +449,14 @@ export class FilesPanelApp {
     this.render();
     this.maybeInitialFocus();
     void this.revealActiveOnLoad();
+  }
+
+  async workspaceFolderEntries() {
+    try {
+      return workspace_folder_entries(await murvix.projects.list());
+    } catch {
+      return [];
+    }
   }
 
   async revealActiveOnLoad() {
@@ -623,6 +644,7 @@ export class FilesPanelApp {
     const entry = this.entries.get(path);
     if (!entry) return;
     const directory = entry.kind === "directory";
+    const workspace = entry.kind === "workspace";
     const expanded = directory && this.expandedDirs.has(path);
     const renaming = this.renameState?.path === path;
     const gitStatus = this.gitStatus.statusFor(path, directory);
@@ -632,7 +654,7 @@ export class FilesPanelApp {
     const row =
       cached && cached.signature === signature && !renaming
         ? cached.element
-        : this.buildRow(path, depth, entry, directory, expanded, renaming, gitStatus);
+        : this.buildRow(path, depth, entry, directory, workspace, expanded, renaming, gitStatus);
     this.rowCache.set(path, { element: row, signature });
 
     const id = `ft-row-${this.visiblePaths.length}`;
@@ -654,7 +676,7 @@ export class FilesPanelApp {
     }
   }
 
-  buildRow(path, depth, entry, directory, expanded, renaming, gitStatus) {
+  buildRow(path, depth, entry, directory, workspace, expanded, renaming, gitStatus) {
     const row = h(
       "div",
       {
@@ -666,8 +688,8 @@ export class FilesPanelApp {
         ),
         role: "treeitem",
         "aria-expanded": directory ? expanded : undefined,
-        draggable: !renaming,
-        dataset: { path, type: "item", itemType: directory ? "directory" : "file", itemPath: path },
+        draggable: !renaming && !workspace,
+        dataset: { path, type: "item", itemType: workspace ? "workspace" : directory ? "directory" : "file", itemPath: path },
         onClick: (event) => {
           event.stopPropagation();
           if (renaming) return;
@@ -695,7 +717,15 @@ export class FilesPanelApp {
             this.setSelection(path);
             this.applySelection();
           }
-          this.showContextMenu({ kind: entry.kind, name: basename(path), path }, event.clientX, event.clientY);
+          this.showContextMenu(
+            {
+              kind: entry.kind,
+              name: entry.name,
+              path: workspace ? entry.workspacePath : path,
+            },
+            event.clientX,
+            event.clientY,
+          );
         },
         onDragStart: (event) => {
           if (!event.dataTransfer) return;
@@ -739,8 +769,8 @@ export class FilesPanelApp {
             chevron_icon(expanded),
           )
         : h("span", { class: "file-tree-disclosure file-tree-disclosure-placeholder" }),
-      h("span", { class: "file-tree-kind-icon" }, file_icon(entry.kind, path, this.iconTheme)),
-      renaming ? this.renderRenameInput(path, directory) : h("span", { class: "file-tree-name", title: path }, basename(path)),
+      h("span", { class: "file-tree-kind-icon" }, file_icon(workspace ? "directory" : entry.kind, path, this.iconTheme)),
+      renaming ? this.renderRenameInput(path, directory) : h("span", { class: "file-tree-name", title: workspace ? entry.workspacePath : path }, entry.name),
       !renaming && !directory && gitStatus
         ? h("span", { class: "file-tree-git-mark", title: GIT_STATUS_LABEL[gitStatus] }, GIT_STATUS_GLYPH[gitStatus])
         : null,
@@ -807,7 +837,10 @@ export class FilesPanelApp {
   async activatePath(path) {
     this.setSelection(path);
     const entry = this.entries.get(path);
-    if (!entry) return;
+    if (entry.kind === "workspace") {
+      void open_externally(entry.workspacePath);
+      return;
+    }
     if (entry.kind === "directory") {
       await this.toggleDirectory(path);
       return;
@@ -1015,13 +1048,15 @@ export class FilesPanelApp {
         void this.activatePath(paths[idx]);
         return;
       case "F2":
-        if (idx < 0 || paths[idx] === "") return;
+        if (idx < 0 || paths[idx] === "" || this.entries.get(paths[idx])?.kind === "workspace") return;
         event.preventDefault();
         this.startRename(paths[idx]);
         return;
       case "Delete":
       case "Backspace": {
-        const targets = this.selectionList().filter((path) => path !== "");
+        const targets = this.selectionList().filter(
+          (path) => path !== "" && this.entries.get(path)?.kind !== "workspace",
+        );
         if (targets.length === 0) return;
         event.preventDefault();
         void this.deletePaths(targets);
@@ -1095,7 +1130,8 @@ export class FilesPanelApp {
     const buffer = this.typeahead.buffer;
     for (let i = 1; i <= paths.length; i += 1) {
       const candidate = paths[(start + i) % paths.length];
-      if (basename(candidate).toLowerCase().startsWith(buffer)) {
+      const entry = this.entries.get(candidate);
+      if ((entry?.name ?? basename(candidate)).toLowerCase().startsWith(buffer)) {
         this.moveSelection(candidate);
         return;
       }

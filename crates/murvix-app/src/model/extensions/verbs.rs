@@ -120,6 +120,7 @@ impl AppModel {
                     "logo": project.logo.as_ref().map(|logo| {
                         format!("data:image/png;base64,{}", base64(logo))
                     }),
+                    "workspaceFolders": project.extra_directories.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
                     "worktreesEnabled": !project.home && self.worktrees_visible(project.id),
                 })
             })
