@@ -1,7 +1,7 @@
 [
   {
     "name": "files",
-    "current_version": "1.21.7",
+    "current_version": "1.22.0",
     "description": "File explorer for Murvix",
     "permissions": [
       "commands:exec",
@@ -10,11 +10,12 @@
       "files:write",
       "git:read",
       "panels:write",
+      "projects:read",
       "tabs:write"
     ],
-    "archive": "files-1.21.7.zip",
-    "sha256": "e77b0aab1499fa33c543deb33ea3e10097d6f0840b498b4069618d3841cca3ee",
-    "size": 7678478
+    "archive": "files-1.22.0.zip",
+    "sha256": "3010137ab2b1150d1c4a88013f4713a0450709dfad057c7a5110c0f4757553d3",
+    "size": 7678813
   },
   {
     "name": "git",
