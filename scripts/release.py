@@ -76,16 +76,16 @@ def plan_release(root, source="HEAD"):
     tags = git(root, "tag", "--merged", source).splitlines()
     stable = [tag for tag in tags if tag.startswith("v") and VERSION_PATTERN.fullmatch(tag[1:])]
     tag = max(stable, key=lambda value: version_key(value[1:]), default=None)
-    previous = tag[1:] if tag else check_version(
-        git_bytes(root, "show", f"{source}:VERSION").decode().strip()
-    )
+    current = check_version(git_bytes(root, "show", f"{source}:VERSION").decode().strip())
+    previous = tag[1:] if tag else current
+    baseline = max((previous, current), key=version_key)
     revision = f"refs/tags/{tag}..{source}" if tag else source
     messages = git_bytes(root, "log", "--format=%B%x00", revision).decode().split("\0")
     bumps = {commit_bump(message) for message in messages}
     bump = next((kind for kind in ("major", "minor", "patch") if kind in bumps), None)
     version = None
     if bump:
-        major, minor, patch = version_key(previous)
+        major, minor, patch = version_key(baseline)
         if bump == "major":
             version = f"{major + 1}.0.0"
         elif bump == "minor":
