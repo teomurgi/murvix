@@ -840,9 +840,14 @@ impl NfsFileSystem for Filesystem {
         }
         let root = self.writable(&snapshot, &location)?;
         let file = posix::beneath(&root, &location.relative, libc::O_WRONLY | libc::O_NOFOLLOW)
-            .map_err(io_to_nfs)?;
-        file.write_at(data, offset)
-            .map_err(|_| nfsstat3::NFS3ERR_IO)?;
+            .map_err(|error| {
+                eprintln!("NFS write open {location:?}: {error}");
+                io_to_nfs(error)
+            })?;
+        file.write_at(data, offset).map_err(|error| {
+            eprintln!("NFS write {location:?}: {error}");
+            nfsstat3::NFS3ERR_IO
+        })?;
         if let Some(mode) = self.table().pending_modes.remove(&location) {
             posix::chmod(&file, mode).map_err(io_to_nfs)?;
         }
