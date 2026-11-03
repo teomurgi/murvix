@@ -81,6 +81,10 @@ pub struct Appearance {
     pub worktree_recent_order: bool,
     pub worktree_recent: Vec<crate::ProjectId>,
     pub project_recent: Vec<crate::ProjectId>,
+    /// Top-level projects shown before their machine sections.
+    pub pinned_projects: Vec<crate::ProjectId>,
+    /// Machine-section order in the project sidebar.
+    pub sidebar_server_order: Vec<crate::ServerId>,
     pub hidden_worktrees: std::collections::BTreeSet<crate::ProjectId>,
     pub tab_focused_expanded: std::collections::BTreeMap<crate::ProjectId, bool>,
     #[serde(rename = "tab_focused_focus")]
@@ -151,6 +155,8 @@ impl Default for Appearance {
             worktree_recent_order: true,
             worktree_recent: Vec::new(),
             project_recent: Vec::new(),
+            pinned_projects: Vec::new(),
+            sidebar_server_order: Vec::new(),
             hidden_worktrees: std::collections::BTreeSet::new(),
             tab_focused_expanded: std::collections::BTreeMap::new(),
             sidebar_focus: false,

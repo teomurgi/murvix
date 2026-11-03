@@ -210,7 +210,28 @@ fn project_sort_recent_activity_follows_worktrees_and_keeps_server_groups(cx: &m
             .expect("saved parent activity")
             .appearance;
         assert_eq!(parent_ids(model), [local_home, ten, two, other]);
+        model.appearance.sidebar_project_order = ProjectOrder::Name;
+        model.appearance.pinned_projects = vec![two];
+        model.appearance.sidebar_server_order =
+            vec![second_server, first_server, ServerId::local()];
+        model.appearance.layout = AppLayout::ProjectFocused;
+        model.save_appearance(cx);
+        assert_eq!(parent_ids(model), [two, other, ten, local_home]);
+        let appearance = Settings::load(&model.path.with_file_name("settings.toml"))
+            .expect("saved section order")
+            .appearance;
+        assert_eq!(appearance.pinned_projects, [two]);
+        assert_eq!(
+            appearance.sidebar_server_order,
+            [second_server, first_server, ServerId::local()]
+        );
     });
+    cx.update(|window, _| window.refresh());
+    cx.run_until_parked();
+    assert!(
+        cx.debug_bounds("project-section-pinned").is_some(),
+        "pinned section rendered"
+    );
 }
 
 #[gpui::test]

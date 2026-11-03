@@ -11,7 +11,7 @@ use crate::model::{AppModel, git::Repository};
 
 /// The menu of a top-level project. `worktrees` is `None` when its folder is not
 /// a Git repository, and otherwise whether its worktrees are shown.
-pub(crate) fn items(project: &Project, worktrees: Option<bool>) -> Vec<Item> {
+pub(crate) fn items(project: &Project, worktrees: Option<bool>, pinned: bool) -> Vec<Item> {
     let id = project.id;
     if project.status() != ProjectStatus::Available {
         return removal(project);
@@ -40,6 +40,19 @@ pub(crate) fn items(project: &Project, worktrees: Option<bool>) -> Vec<Item> {
             Command::ProjectColor(id, index)
         }),
     ));
+    if !project.home && project.parent_id.is_none() {
+        items.push(
+            Item::action(
+                if pinned {
+                    tr!("Unpin Project")
+                } else {
+                    tr!("Pin Project")
+                },
+                Command::ToggleProjectPin(id),
+            )
+            .separated(),
+        );
+    }
     if !project.home
         && let Some(visible) = worktrees
     {
@@ -212,6 +225,7 @@ impl AppModel {
         items(
             project,
             repository.then(|| self.worktrees_visible(project.id)),
+            self.project_pinned(project.id),
         )
     }
 

@@ -47,6 +47,7 @@ pub(crate) enum Command {
     SelectAllProjects,
     SelectRemoteServers,
     SortProjects(murvix_app_core::settings::ProjectOrder),
+    ToggleProjectPin(murvix_app_core::ProjectId),
     Worktrees(murvix_app_core::ProjectId),
     NewWorktree(murvix_app_core::ProjectId),
     NewProjectTab(murvix_app_core::ProjectId),
@@ -580,6 +581,7 @@ impl AppModel {
                 self.save_appearance(cx);
                 cx.notify();
             }
+            Command::ToggleProjectPin(id) => self.toggle_project_pin(id, cx),
             Command::NewWorktree(id) => {
                 self.open_git_form(id, true, cx);
                 self.focus_git_form(window, cx);

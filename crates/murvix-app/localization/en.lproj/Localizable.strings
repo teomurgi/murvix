@@ -1051,8 +1051,10 @@
 "Permanently delete branch “%@”? Unmerged commits may become unreachable." = "Permanently delete branch “%@”? Unmerged commits may become unreachable.";
 "Permission rules" = "Permission rules";
 "Phones that can connect. Revoking one disconnects it immediately." = "Phones that can connect. Revoking one disconnects it immediately.";
+"Pin Project" = "Pin Project";
 "Pin Tab" = "Pin Tab";
 "Pink" = "Pink";
+"Pinned" = "Pinned";
 "Pixels" = "Pixels";
 "Points to change the font size by, such as 1." = "Points to change the font size by, such as 1.";
 "Port" = "Port";
@@ -1508,11 +1510,13 @@
 "Uninstalling…" = "Uninstalling…";
 "Unknown app setting" = "Unknown app setting";
 "Unknown composer preference" = "Unknown composer preference";
+"Unknown machine" = "Unknown machine";
 "Unknown mobile access setting" = "Unknown mobile access setting";
 "Unknown server setting" = "Unknown server setting";
 "Unload folder" = "Unload folder";
 "Unloading…" = "Unloading…";
 "Unpacked" = "Unpacked";
+"Unpin Project" = "Unpin Project";
 "Unpin Tab" = "Unpin Tab";
 "Unregister login activation without stopping running terminal sessions." = "Unregister login activation without stopping running terminal sessions.";
 "Unstage" = "Unstage";

@@ -149,8 +149,27 @@ pub(super) fn contents(
         .flex_col()
         .pt(model.metrics.spacing5())
         .pb(model.metrics.spacing3());
-    for project in model.sidebar_projects() {
-        rows = rows.child(project_group(project, &numbers, targets.clone(), model, cx));
+    for section in model.sidebar_sections() {
+        rows = rows.child(
+            div()
+                .mx(model.metrics.spacing3())
+                .h(model.metrics.control_medium())
+                .flex()
+                .flex_none()
+                .items_center()
+                .text_size(model.metrics.font_caption())
+                .font_weight(FontWeight::SEMIBOLD)
+                .text_color(model.theme.fg_muted)
+                .child(super::sidebar::section_title(section.id, model)),
+        );
+        for parent in section.projects {
+            rows = rows.child(project_group(parent, &numbers, targets.clone(), model, cx));
+            if model.worktrees_visible(parent.id) {
+                for project in model.worktree_children(parent.id) {
+                    rows = rows.child(project_group(project, &numbers, targets.clone(), model, cx));
+                }
+            }
+        }
     }
     if !model.appearance.sidebar_focus {
         rows = rows.child(add_project_button(model, cx));

@@ -990,6 +990,11 @@ impl AppModel {
             },
             cx,
         ) {
+            let pinned = self.appearance.pinned_projects.len();
+            self.appearance.pinned_projects.retain(|id| *id != project);
+            if self.appearance.pinned_projects.len() != pinned {
+                self.save_appearance(cx);
+            }
             self.discard_pending(server, cx);
         }
     }

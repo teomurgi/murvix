@@ -449,7 +449,7 @@ fn workspace_menu_lists_extra_roots_and_queues_its_mutations(cx: &mut TestAppCon
     std::fs::remove_dir_all(&gone).expect("delete");
     state.refresh_project_statuses();
     let project = state.project(id).expect("project");
-    let root_items = project_menu::items(project, None);
+    let root_items = project_menu::items(project, None, false);
     let commands: Vec<_> = root_items
         .iter()
         .filter_map(|item| item.children())

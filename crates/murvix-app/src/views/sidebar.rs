@@ -17,7 +17,7 @@ use gpui::{
     StyledImage, Window, div, px,
 };
 use murvix_app_core::{
-    Project, ProjectId, ProjectStatus,
+    Project, ProjectId, ProjectStatus, ServerId,
     settings::{AppLayout, ProjectOrder, SidebarCollapsedStyle},
 };
 
@@ -288,8 +288,15 @@ impl AppModel {
         tr!("All Projects")
     }
 
-    /// Top-level projects the sidebar filter lists, in sidebar order.
+    /// Top-level projects the sidebar filter lists, in visual section order.
     pub(crate) fn listed_parents(&self) -> Vec<&Project> {
+        self.sidebar_sections()
+            .into_iter()
+            .flat_map(|section| section.projects)
+            .collect()
+    }
+
+    fn sorted_listed_parents(&self) -> Vec<&Project> {
         let mut parents: Vec<_> = self
             .state
             .projects()
@@ -300,20 +307,148 @@ impl AppModel {
                     && self.project_listed(project)
             })
             .collect();
-        let server = |project: &Project| {
+        self.sort_projects(&mut parents);
+        parents
+    }
+
+    pub(super) fn sidebar_sections(&self) -> Vec<ProjectSection<'_>> {
+        let active = self.state.current_project();
+        let focused = active.parent_id.unwrap_or(active.id);
+        let mut remaining: Vec<_> = self
+            .sorted_listed_parents()
+            .into_iter()
+            .filter(|project| !self.appearance.sidebar_focus || project.id == focused)
+            .collect();
+        let mut sections = Vec::new();
+        let mut pinned = Vec::new();
+        for id in &self.appearance.pinned_projects {
+            if let Some(index) = remaining.iter().position(|project| project.id == *id) {
+                pinned.push(remaining.remove(index));
+            }
+        }
+        if !pinned.is_empty() {
+            sections.push(ProjectSection {
+                id: ProjectSectionId::Pinned,
+                projects: pinned,
+            });
+        }
+        let mut servers = Vec::new();
+        for project in &remaining {
+            if !servers.contains(&project.server_id) {
+                servers.push(project.server_id);
+            }
+        }
+        servers.sort_by_key(|server| self.server_section_order(*server));
+        sections.extend(servers.into_iter().map(|server| {
+            ProjectSection {
+                id: ProjectSectionId::Server(server),
+                projects: remaining
+                    .iter()
+                    .copied()
+                    .filter(|project| project.server_id == server)
+                    .collect(),
+            }
+        }));
+        sections
+    }
+
+    fn server_section_order(&self, server: ServerId) -> (bool, usize) {
+        let configured = self
+            .appearance
+            .sidebar_server_order
+            .iter()
+            .position(|candidate| *candidate == server);
+        let default = if server.is_local() {
+            0
+        } else {
             self.settings
                 .servers
                 .iter()
-                .position(|entry| entry.id == project.server_id)
-                .map_or(0, |index| index + 1)
+                .position(|entry| entry.id == server)
+                .map_or(usize::MAX, |index| index + 1)
         };
-        self.sort_projects(&mut parents);
-        if self.state.remote_servers_selected()
-            || self.appearance.sidebar_project_order != ProjectOrder::Manual
-        {
-            parents.sort_by_cached_key(|project| server(project));
+        (configured.is_none(), configured.unwrap_or(default))
+    }
+
+    fn project_section(&self, project: ProjectId) -> Option<ProjectSectionId> {
+        let project = self.state.project(project)?;
+        if project.parent_id.is_some() || project.home {
+            return None;
         }
-        parents
+        Some(if self.appearance.pinned_projects.contains(&project.id) {
+            ProjectSectionId::Pinned
+        } else {
+            ProjectSectionId::Server(project.server_id)
+        })
+    }
+
+    pub(crate) fn project_pinned(&self, project: ProjectId) -> bool {
+        self.project_section(project) == Some(ProjectSectionId::Pinned)
+    }
+
+    pub(crate) fn toggle_project_pin(&mut self, project: ProjectId, cx: &mut Context<Self>) {
+        let Some(section) = self.project_section(project) else {
+            return;
+        };
+        if section == ProjectSectionId::Pinned {
+            self.appearance.pinned_projects.retain(|id| *id != project);
+        } else {
+            self.appearance.pinned_projects.push(project);
+        }
+        self.save_appearance(cx);
+        cx.notify();
+    }
+
+    fn move_project_in_section(&mut self, from: ProjectId, to: ProjectId, cx: &mut Context<Self>) {
+        let (Some(from_section), Some(to_section)) =
+            (self.project_section(from), self.project_section(to))
+        else {
+            return;
+        };
+        if from_section != to_section {
+            return;
+        }
+        if from_section == ProjectSectionId::Pinned {
+            self.appearance.pinned_projects.retain(|id| *id != from);
+            let Some(index) = self
+                .appearance
+                .pinned_projects
+                .iter()
+                .position(|id| *id == to)
+            else {
+                return;
+            };
+            self.appearance.pinned_projects.insert(index, from);
+            self.save_appearance(cx);
+            cx.notify();
+        } else {
+            self.move_project(from, to, cx);
+        }
+    }
+
+    fn move_server_section(&mut self, from: ServerId, to: ServerId, cx: &mut Context<Self>) {
+        if from == to {
+            return;
+        }
+        let mut order: Vec<_> = self
+            .sidebar_sections()
+            .into_iter()
+            .filter_map(|section| match section.id {
+                ProjectSectionId::Pinned => None,
+                ProjectSectionId::Server(server) => Some(server),
+            })
+            .collect();
+        let Some(from_index) = order.iter().position(|server| *server == from) else {
+            return;
+        };
+        order.remove(from_index);
+        let Some(to_index) = order.iter().position(|server| *server == to) else {
+            return;
+        };
+        order.insert(to_index, from);
+        self.appearance.sidebar_server_order = order;
+        self.save_appearance(cx);
+        cx.notify();
     }
 
     pub(crate) fn sort_projects(&self, projects: &mut [&Project]) {
@@ -537,6 +672,22 @@ fn layout_selector(model: &AppModel, cx: &mut Context<AppModel>) -> AnyElement {
         .into_any_element()
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(super) enum ProjectSectionId {
+    Pinned,
+    Server(ServerId),
+}
+
+pub(super) struct ProjectSection<'a> {
+    pub(super) id: ProjectSectionId,
+    pub(super) projects: Vec<&'a Project>,
+}
+
+enum SidebarDrag {
+    Project(DraggedProject),
+    Section(DraggedSection),
+}
+
 struct DraggedProject {
     id: ProjectId,
     last_target: Cell<Option<ProjectId>>,
@@ -554,37 +705,192 @@ impl DraggedProject {
         if self.last_target.replace(target) != target
             && let Some(target) = target
         {
-            model.move_project(self.id, target, cx);
+            model.move_project_in_section(self.id, target, cx);
         }
     }
 }
 
-#[derive(Default)]
-struct ProjectRows(Vec<(ProjectId, Bounds<Pixels>)>);
+struct DraggedSection {
+    id: ServerId,
+    last_target: Cell<Option<ServerId>>,
+}
 
-impl ProjectRows {
-    fn at(&self, position: Point<Pixels>) -> Option<ProjectId> {
-        self.0
-            .iter()
-            .find_map(|(id, bounds)| bounds.contains(&position).then_some(*id))
+impl DraggedSection {
+    fn move_to(&self, target: Option<ServerId>, model: &mut AppModel, cx: &mut Context<AppModel>) {
+        if model.overlay.is_some() || model.close_prompt.is_some() {
+            return;
+        }
+        let target = target.filter(|target| *target != self.id);
+        if self.last_target.replace(target) != target
+            && let Some(target) = target
+        {
+            model.move_server_section(self.id, target, cx);
+        }
     }
 }
 
+impl SidebarDrag {
+    fn move_to(
+        &self,
+        target: Option<SidebarDropTarget>,
+        model: &mut AppModel,
+        cx: &mut Context<AppModel>,
+    ) {
+        match self {
+            Self::Project(drag) => drag.move_to(
+                target.and_then(|target| match target {
+                    SidebarDropTarget::Project(id) => Some(id),
+                    SidebarDropTarget::Section(_) => None,
+                }),
+                model,
+                cx,
+            ),
+            Self::Section(drag) => drag.move_to(
+                target.and_then(|target| match target {
+                    SidebarDropTarget::Project(_) => None,
+                    SidebarDropTarget::Section(id) => Some(id),
+                }),
+                model,
+                cx,
+            ),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum SidebarDropTarget {
+    Project(ProjectId),
+    Section(ServerId),
+}
+
+#[derive(Default)]
+struct ProjectRows {
+    projects: Vec<(ProjectId, Bounds<Pixels>)>,
+    sections: Vec<(ServerId, Bounds<Pixels>)>,
+}
+
+impl ProjectRows {
+    fn at(&self, position: Point<Pixels>) -> Option<SidebarDropTarget> {
+        self.projects
+            .iter()
+            .find_map(|(id, bounds)| {
+                bounds
+                    .contains(&position)
+                    .then_some(SidebarDropTarget::Project(*id))
+            })
+            .or_else(|| {
+                self.sections.iter().find_map(|(id, bounds)| {
+                    bounds
+                        .contains(&position)
+                        .then_some(SidebarDropTarget::Section(*id))
+                })
+            })
+    }
+}
+
+pub(super) fn section_title(section: ProjectSectionId, model: &AppModel) -> String {
+    match section {
+        ProjectSectionId::Pinned => tr!("Pinned").to_string(),
+        ProjectSectionId::Server(server) => model
+            .server_name(server)
+            .map_or_else(|| tr!("Unknown machine").to_string(), str::to_owned),
+    }
+}
+
+fn section_header(section: ProjectSectionId, model: &AppModel) -> AnyElement {
+    let m = model.metrics;
+    let theme = &model.theme;
+    let (id, drag) = match section {
+        ProjectSectionId::Pinned => ("pinned".to_owned(), None),
+        ProjectSectionId::Server(server) => (
+            server.to_string(),
+            Some(SidebarDrag::Section(DraggedSection {
+                id: server,
+                last_target: Cell::new(None),
+            })),
+        ),
+    };
+    let title = section_title(section, model);
+    div()
+        .id(SharedString::from(format!("project-section-{id}")))
+        .debug_selector(move || format!("project-section-{id}"))
+        .h(m.control_medium())
+        .px(m.spacing2())
+        .flex()
+        .flex_none()
+        .items_center()
+        .text_size(m.font_caption())
+        .font_weight(FontWeight::SEMIBOLD)
+        .text_color(theme.fg_muted)
+        .when_some(drag, |header, drag| {
+            header
+                .cursor_pointer()
+                .on_drag(drag, |_, _, _, cx| cx.new(|_| Empty))
+        })
+        .child(title)
+        .into_any_element()
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "Declarative project-section rendering and drag interaction"
+)]
 fn project_list(model: &AppModel, cx: &mut Context<AppModel>) -> AnyElement {
     let m = model.metrics;
     let wide = model.appearance.sidebar_expanded;
     let targets = Rc::new(RefCell::new(ProjectRows::default()));
-    let measured = targets.clone();
+    let measured_sections = targets.clone();
     let moving = targets.clone();
-    let projects = model.sidebar_projects();
+    let dropping = targets.clone();
+    let sections = model.sidebar_sections();
     let shortcuts = model.navigation_projects();
-    let ids: Vec<_> = projects
+    let section_servers: Vec<_> = sections
         .iter()
-        .map(|project| {
-            (!project.home
-                && project.parent_id.is_none()
-                && project.status() == ProjectStatus::Available)
-                .then_some(project.id)
+        .map(|section| match section.id {
+            ProjectSectionId::Pinned => None,
+            ProjectSectionId::Server(server) => Some(server),
+        })
+        .collect();
+    let mut index = 0;
+    let rows: Vec<_> = sections
+        .iter()
+        .map(|section| {
+            let ids: Vec<_> = section
+                .projects
+                .iter()
+                .filter(|project| {
+                    !project.home
+                        && project.status() == ProjectStatus::Available
+                        && project.parent_id.is_none()
+                })
+                .map(|project| project.id)
+                .collect();
+            let measured = targets.clone();
+            let groups: Vec<_> = section
+                .projects
+                .iter()
+                .map(|project| {
+                    let shortcut = shortcuts.iter().take(9).position(|id| *id == project.id);
+                    let group = worktrees::group(project, index, shortcut, model, cx);
+                    index += 1;
+                    group
+                })
+                .collect();
+            div()
+                .flex()
+                .flex_col()
+                .gap(m.spacing1())
+                .child(section_header(section.id, model))
+                .children(groups)
+                .on_children_prepainted(move |bounds, _, _| {
+                    let mut rows = measured.borrow_mut();
+                    rows.projects.retain(|(id, _)| !ids.contains(id));
+                    rows.projects.extend(
+                        ids.iter()
+                            .zip(bounds.iter().skip(1))
+                            .map(|(id, bounds)| (*id, *bounds)),
+                    );
+                })
         })
         .collect();
     div()
@@ -594,7 +900,7 @@ fn project_list(model: &AppModel, cx: &mut Context<AppModel>) -> AnyElement {
         .min_h(px(0.0))
         .overflow_y_scroll()
         .on_drag_move(cx.listener(
-            move |model, event: &DragMoveEvent<DraggedProject>, window, cx| {
+            move |model, event: &DragMoveEvent<SidebarDrag>, window, cx| {
                 if event.event.pressed_button != Some(gpui::MouseButton::Left) {
                     cx.stop_active_drag(window);
                     return;
@@ -604,17 +910,14 @@ fn project_list(model: &AppModel, cx: &mut Context<AppModel>) -> AnyElement {
                     .contains(&event.event.position)
                     .then(|| moving.borrow().at(event.event.position))
                     .flatten();
-                let drag = event.dragged_item().downcast_ref::<DraggedProject>();
-                if let Some(drag) = drag {
+                if let Some(drag) = event.dragged_item().downcast_ref::<SidebarDrag>() {
                     drag.move_to(target, model, cx);
                 }
             },
         ))
-        .on_drop(
-            cx.listener(move |model, drag: &DraggedProject, window, cx| {
-                drag.move_to(targets.borrow().at(window.mouse_position()), model, cx);
-            }),
-        )
+        .on_drop(cx.listener(move |model, drag: &SidebarDrag, window, cx| {
+            drag.move_to(dropping.borrow().at(window.mouse_position()), model, cx);
+        }))
         .child(
             div()
                 .flex()
@@ -624,18 +927,15 @@ fn project_list(model: &AppModel, cx: &mut Context<AppModel>) -> AnyElement {
                 .pt(if wide { m.spacing5() } else { m.spacing2() })
                 .pb(m.spacing3())
                 .when(!wide, Styled::items_center)
-                .children(projects.iter().enumerate().map(|(index, project)| {
-                    let shortcut = shortcuts.iter().take(9).position(|id| *id == project.id);
-                    worktrees::group(project, index, shortcut, model, cx)
-                }))
+                .children(rows)
                 .when(!model.appearance.sidebar_focus, |list| {
                     list.child(add_project_button(model, cx))
                 })
                 .on_children_prepainted(move |bounds, _, _| {
-                    measured.borrow_mut().0 = ids
+                    measured_sections.borrow_mut().sections = section_servers
                         .iter()
                         .zip(bounds)
-                        .filter_map(|(id, bounds)| id.map(|id| (id, bounds)))
+                        .filter_map(|(server, bounds)| server.map(|server| (server, bounds)))
                         .collect();
                 }),
         )
@@ -732,7 +1032,7 @@ fn project_row(
                 && project.parent_id.is_none()
                 && !missing
                 && model.appearance.sidebar_project_order == ProjectOrder::Manual,
-            |row| row.on_drag(drag, |_, _, _, cx| cx.new(|_| Empty)),
+            |row| row.on_drag(SidebarDrag::Project(drag), |_, _, _, cx| cx.new(|_| Empty)),
         )
         .child(tile)
         .when(wide, |row| {
