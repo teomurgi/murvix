@@ -941,7 +941,9 @@ impl NfsFileSystem for Filesystem {
                 )
                 .map_err(io_to_nfs)?;
                 posix::set_verifier(&file, &createverf.0).map_err(io_to_nfs)?;
-                let id = self.table().insert(location);
+                let mut table = self.table();
+                table.pending_modes.insert(location.clone(), 0o666);
+                let id = table.insert(location);
                 Ok(FileHandleU64::new(id))
             }
             Err(error) => Err(io_to_nfs(error)),
