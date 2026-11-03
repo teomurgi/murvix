@@ -788,7 +788,14 @@ impl NfsFileSystem for Filesystem {
         let file = posix::beneath(&root, &location.relative, libc::O_RDONLY | libc::O_NOFOLLOW)
             .map_err(io_to_nfs)?;
         if let set_mode3::Some(mode) = setattr.mode {
-            posix::chmod(&file, mode).map_err(io_to_nfs)?;
+            let mode = mode & 0o7777;
+            let mut table = self.table();
+            if let Some(pending) = table.pending_modes.get_mut(&location) {
+                *pending = mode;
+            } else {
+                drop(table);
+                posix::chmod(&file, mode).map_err(io_to_nfs)?;
+            }
         }
         match (setattr.uid, setattr.gid) {
             (set_uid3::None, set_gid3::None) => {}
