@@ -14,6 +14,7 @@ import platform
 import shlex
 import signal
 import socket
+import stat
 import subprocess
 import sys
 import tempfile
@@ -90,7 +91,10 @@ def agent(config, second):
     extra = root / entry["directory"]
     assert (extra / "sentinel").read_text() == "extra"
     denied(lambda: (extra / "sentinel").write_text("bad"))
-    denied(lambda: (primary / "locked/sentinel").write_text("bad"))
+    locked = primary / "locked"
+    locked_status = locked.stat()
+    assert stat.S_ISDIR(locked_status.st_mode), locked_status
+    denied(lambda: (locked / "sentinel").write_text("bad"))
     (primary / "crud").mkdir()
     (primary / "crud/a").write_text("content")
     assert (primary / "crud/a").read_text() == "content"
