@@ -108,7 +108,14 @@ pub(super) fn launch(binding: Binding, command: &[OsString]) -> Result {
             .arg(&mountpoint)
             .status()?;
         if !status.success() {
-            return Err(format!("native Unix-socket NFS mount failed: {status}").into());
+            let broker_error = broker
+                .as_ref()
+                .and_then(|broker| broker.failure.try_recv().ok())
+                .map_or_else(|| "no broker error".to_owned(), |error| error);
+            return Err(format!(
+                "native Unix-socket NFS mount failed: {status}; broker: {broker_error}"
+            )
+            .into());
         }
         mounted = true;
         let mut child = Command::new("/usr/bin/sandbox-exec");
