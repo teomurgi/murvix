@@ -36,7 +36,7 @@ their `clear` functions.
 
 | Call | Returns |
 | --- | --- |
-| `projects.list()` | `[{ id, name, path, isActive, sortOrder, iconColor, icon, logo, worktreesEnabled }]` |
+| `projects.list()` | `[{ id, name, path, isActive, sortOrder, iconColor, icon, logo, workspaceFolders, worktreesEnabled }]`; `workspaceFolders` holds the absolute paths added to each project's workspace |
 | `projects.switchTo(identifier)` | |
 | `projects.add(path)`, `create(path, { name, createIfMissing })` | Project ID |
 | `projects.rename(id, name)`, `setColor(id, color)`, `setIcon(id, icon)`, `setLogo(id, null)`, `reorder(ids)` | `setLogo` currently only clears an existing logo |
