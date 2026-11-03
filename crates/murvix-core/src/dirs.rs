@@ -8,7 +8,7 @@ use std::path::PathBuf;
 pub fn murvix_dir() -> io::Result<PathBuf> {
     let linux = cfg!(target_os = "linux");
     let directory = resolve_directory(
-        env::var_os("MUXY_DIR"),
+        env::var_os("MURVIX_DIR"),
         env::var_os("HOME"),
         env::var_os("XDG_STATE_HOME"),
         directory_name(cfg!(debug_assertions), linux),
@@ -42,7 +42,7 @@ fn resolve_directory(
         return if path.is_empty() {
             Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "MUXY_DIR must not be empty",
+                "MURVIX_DIR must not be empty",
             ))
         } else {
             Ok(PathBuf::from(path))

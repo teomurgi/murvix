@@ -61,7 +61,7 @@ worktrees listed outside the card.
 Workspace folders belong to the **server catalog**, not `tui-state.json`.
 Desktop, TUI, and CLI clients connected to the same server see updates live,
 and the folders survive server restarts. Both local clients must use the same
-profile (`MUXY_DIR` if overridden); debug and release builds use separate
+profile (`MURVIX_DIR` if overridden); debug and release builds use separate
 profiles. Tabs and splits remain client-specific.
 
 ## Behavior

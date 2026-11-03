@@ -170,7 +170,7 @@ fn drained() {
 #[test]
 #[ignore = "Requires WebKitGTK and a display; runs in the Linux desktop guard"]
 fn initialization_precedes_automation_parser() {
-    const CHILD: &str = "MUXY_WEBKIT_STARTUP_TEST_CHILD";
+    const CHILD: &str = "MURVIX_WEBKIT_STARTUP_TEST_CHILD";
     if std::env::var_os(CHILD).is_none() {
         let status = std::process::Command::new(std::env::current_exe().unwrap())
             .args([

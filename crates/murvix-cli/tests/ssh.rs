@@ -222,10 +222,10 @@ fn host_command(remote: &FakeRemote, local: &Path, args: &[&str]) -> Command {
     command
         .args(["--host", "box"])
         .args(args)
-        .env("MUXY_SSH", remote.ssh())
-        .env("MUXY_DIR", local)
-        .env_remove("MUXY_SERVER_BIN")
-        .env_remove("MUXY_PANE_ID")
+        .env("MURVIX_SSH", remote.ssh())
+        .env("MURVIX_DIR", local)
+        .env_remove("MURVIX_SERVER_BIN")
+        .env_remove("MURVIX_PANE_ID")
         .stdin(Stdio::null());
     command
 }

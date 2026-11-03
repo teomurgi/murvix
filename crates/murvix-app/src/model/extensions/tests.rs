@@ -54,7 +54,7 @@ fn exec_consent_preflight_validates_sync_and_async_commands(cx: &mut TestAppCont
                         .as_str()
                         .map(|path| { murvix_protocol::ServerPath(path.as_bytes().to_vec()) })
                 );
-                assert_eq!(request.env["MUXY_EXTENSION_ID"], "files");
+                assert_eq!(request.env["MURVIX_EXTENSION_ID"], "files");
             }
             for args in [
                 json!({}),

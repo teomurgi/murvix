@@ -13,10 +13,10 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use murvix_app_core::ServerId;
 
 /// Where the app answers. The app runs as askpass when it is set.
-pub(crate) const SOCKET: &str = "MUXY_ASKPASS_SOCKET";
+pub(crate) const SOCKET: &str = "MURVIX_ASKPASS_SOCKET";
 /// Which password ssh asks for. It is in the environment of the app's ssh
 /// runs, so only processes of this user can read it.
-pub(crate) const TOKEN: &str = "MUXY_ASKPASS_TOKEN";
+pub(crate) const TOKEN: &str = "MURVIX_ASKPASS_TOKEN";
 
 /// What the socket answers for one token.
 #[derive(Default)]

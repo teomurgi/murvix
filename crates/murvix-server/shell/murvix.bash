@@ -1,5 +1,5 @@
 # Source explicitly from your interactive Bash startup file. Bash startup is not redirected.
-[[ $- == *i* && ${MUXY_SHELL_INTEGRATION-} == 1 ]] || return
+[[ $- == *i* && ${MURVIX_SHELL_INTEGRATION-} == 1 ]] || return
 [[ ${_murvix_installed-} == 1 ]] && return
 _murvix_installed=1
 _murvix_running=0
@@ -46,7 +46,7 @@ _murvix_prompt_status() {
 
 # Bash 5 hides the caller's DEBUG trap while sourcing. Inspect it afterward,
 # directly in PROMPT_COMMAND, without replacing a user's trap.
-read -r -d '' _murvix_debug_setup <<'MUXY_DEBUG_SETUP' || :
+read -r -d '' _murvix_debug_setup <<'MURVIX_DEBUG_SETUP' || :
 if [[ ${_murvix_debug_checked-0} == 0 ]]; then
     _murvix_debug_checked=1
     if [[ -z $(trap -p DEBUG) ]]; then
@@ -54,7 +54,7 @@ if [[ ${_murvix_debug_checked-0} == 0 ]]; then
     fi
 fi
 _murvix_prompt_status
-MUXY_DEBUG_SETUP
+MURVIX_DEBUG_SETUP
 if (( BASH_VERSINFO[0] > 5 || (BASH_VERSINFO[0] == 5 && BASH_VERSINFO[1] >= 1) )); then
     PROMPT_COMMAND=(_murvix_precmd "$_murvix_debug_setup" "${PROMPT_COMMAND[@]}" _murvix_prompt_end)
 else
@@ -79,11 +79,11 @@ unset -f _murvix_bind_keys
 # `omp`/`claude`/`codex`/`copilot` resolve the live workspace once at launch
 # (like `murvix agent <tool>`) instead of seeing only the shell's cwd.
 # Outside a Murvix terminal, with wrappers disabled
-# (`MUXY_WORKSPACE_WRAPPERS=0`), or when the server is unreachable, the plain
+# (`MURVIX_WORKSPACE_WRAPPERS=0`), or when the server is unreachable, the plain
 # tool runs unchanged. `command <tool>` always bypasses the wrapper.
 _murvix_with_workspace() {
     local tool=$1; shift
-    if [[ ${MUXY_WORKSPACE_WRAPPERS-} == 0 || -z ${MUXY_SERVER_ID-} || -z ${MUXY_SESSION_ID-} ]] || ! command -v murvix >/dev/null 2>&1; then
+    if [[ ${MURVIX_WORKSPACE_WRAPPERS-} == 0 || -z ${MURVIX_SERVER_ID-} || -z ${MURVIX_SESSION_ID-} ]] || ! command -v murvix >/dev/null 2>&1; then
         command "$tool" "$@"
         return
     fi

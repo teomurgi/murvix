@@ -7,7 +7,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MACHINE="${MUXY_LINUX_MACHINE:-murvix-linux-x86}"
+MACHINE="${MURVIX_LINUX_MACHINE:-murvix-linux-x86}"
 ZIG_VERSION=0.15.2
 OUTPUT="$ROOT/target/linux-dev"
 ARCHIVE="$OUTPUT/murvix-dev-linux-x86_64.tar.gz"
@@ -39,7 +39,7 @@ if [ ! -x "$ZIG" ]; then
         tar -xJ --strip-components=1 -C "$HOME/.local/zig-$ZIG_VERSION"
 fi
 export PATH="$ROOT/scripts/zig:$HOME/.cargo/bin:$PATH"
-export MUXY_ZIG="$ZIG"
+export MURVIX_ZIG="$ZIG"
 export LIBGHOSTTY_VT_SYS_OPTIMIZE=ReleaseFast
 # Apart from the Mac's builds in target/.
 export CARGO_TARGET_DIR="$ROOT/target/linux"

@@ -238,7 +238,7 @@ mod tests {
     #[test]
     fn cleanup_handles_hangup_and_pending_mouse_reports() -> Result<(), Box<dyn std::error::Error>>
     {
-        if let Ok(scenario) = std::env::var("MUXY_TEST_HOST_CLEANUP") {
+        if let Ok(scenario) = std::env::var("MURVIX_TEST_HOST_CLEANUP") {
             let mut host = Host::enter()?;
             let _ = event::poll(Duration::ZERO)?;
             let events = (scenario == "suspend").then(Events::start).transpose()?;
@@ -296,7 +296,7 @@ mod tests {
     #[test]
     fn panic_restores_terminal_settings_and_output_modes() -> Result<(), Box<dyn std::error::Error>>
     {
-        if std::env::var_os("MUXY_TEST_HOST_PANIC").is_some() {
+        if std::env::var_os("MURVIX_TEST_HOST_PANIC").is_some() {
             let _host = Host::enter()?;
             panic!("deliberate terminal cleanup test");
         }

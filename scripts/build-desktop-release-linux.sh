@@ -20,7 +20,7 @@ if [[ "$(uname -s)" != Linux || "$(uname -m)" != "$MACHINE" || "$(getconf GNU_LI
 fi
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
 export LIBGHOSTTY_VT_SYS_OPTIMIZE=ReleaseFast
-export MUXY_ZIG="${MUXY_ZIG:-$(command -v zig)}"
+export MURVIX_ZIG="${MURVIX_ZIG:-$(command -v zig)}"
 export PATH="$ROOT/scripts/zig:$PATH"
 OUTPUT="$CARGO_TARGET_DIR/packages/$VERSION/linux-desktop-$ARCH"
 if [[ -e "$OUTPUT" ]]; then

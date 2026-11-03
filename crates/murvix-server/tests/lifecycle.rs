@@ -49,8 +49,8 @@ impl Fixture {
     fn command(&self) -> Command {
         let mut command = Command::new(binary());
         command
-            .env("MUXY_DIR", &self.directory)
-            .env("MUXY_REMOTE_BIND", "127.0.0.1")
+            .env("MURVIX_DIR", &self.directory)
+            .env("MURVIX_REMOTE_BIND", "127.0.0.1")
             .env("SHELL", "/bin/sh")
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
@@ -492,7 +492,7 @@ fn default_directory_does_not_touch_other_channels() -> TestResult {
     let socket = fixture.socket();
     let mut command = fixture.command();
     command
-        .env_remove("MUXY_DIR")
+        .env_remove("MURVIX_DIR")
         .env_remove("XDG_STATE_HOME")
         .env("HOME", &fixture.directory)
         .arg("--socket")

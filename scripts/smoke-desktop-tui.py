@@ -21,7 +21,7 @@ def main():
         (profile / "server.toml").write_text('default_shell = "/bin/zsh"\n')
         wrapper = profile / "server-wrapper.sh"
         wrapper.write_text(
-            '#!/bin/sh\nprintf "%s\\n" "$$" > "$MUXY_DIR/server.pid"\n'
+            '#!/bin/sh\nprintf "%s\\n" "$$" > "$MURVIX_DIR/server.pid"\n'
             f'exec {shlex.quote(str(server))} "$@"\n'
         )
         wrapper.chmod(0o700)
@@ -30,12 +30,12 @@ def main():
             "CARGO_HOME": os.environ.get("CARGO_HOME", str(Path.home() / ".cargo")),
             "RUSTUP_HOME": os.environ.get("RUSTUP_HOME", str(Path.home() / ".rustup")),
             "GHOSTTY_BUILD_CACHE_DIR": os.environ.get("GHOSTTY_BUILD_CACHE_DIR") or str(root / ".cache/ghostty-native"),
-            "MUXY_DIR": str(profile),
+            "MURVIX_DIR": str(profile),
             "HOME": str(home),
             "ZDOTDIR": str(home),
             "SHELL": "/bin/zsh",
-            "MUXY_TEST_TUI": str(binary),
-            "MUXY_SERVER_BIN": str(wrapper),
+            "MURVIX_TEST_TUI": str(binary),
+            "MURVIX_SERVER_BIN": str(wrapper),
         }
         build = subprocess.run(
             ["cargo", "test", "--locked", "-p", "murvix-app", "--no-run"],

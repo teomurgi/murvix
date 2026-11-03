@@ -142,7 +142,7 @@ libwayland-dev libxcb1-dev libvulkan-dev`. Runtime packages include
 `libwebkit2gtk-4.1-0` for extensions.
 The desktop checks also need `xvfb` and `xauth` for isolated X11 shortcut and
 window-lifecycle tests.
-Then run `bash scripts/build-desktop-linux.sh`. `MUXY_ZIG` can point at Zig, and
+Then run `bash scripts/build-desktop-linux.sh`. `MURVIX_ZIG` can point at Zig, and
 `CARGO_TARGET_DIR` must point to a guest-local writable directory when the source
 checkout is shared read-only. Keep `murvix-app`, `murvix`, and `murvix-server` together.
 
@@ -199,8 +199,8 @@ editing your startup files. Bash is opt-in. Add this to the file your Bash
 profile loads for interactive shells:
 
 ```bash
-if [[ ${MUXY_SHELL_INTEGRATION:-0} == 1 ]]; then
-    source "$MUXY_SHELL_INTEGRATION_DIR/murvix.bash"
+if [[ ${MURVIX_SHELL_INTEGRATION:-0} == 1 ]]; then
+    source "$MURVIX_SHELL_INTEGRATION_DIR/murvix.bash"
 fi
 ```
 

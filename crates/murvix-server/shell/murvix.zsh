@@ -1,4 +1,4 @@
-[[ -o interactive && ${MUXY_SHELL_INTEGRATION-} == 1 ]] || return
+[[ -o interactive && ${MURVIX_SHELL_INTEGRATION-} == 1 ]] || return
 (( ${+_murvix_installed} )) && return
 typeset -g _murvix_installed=1 _murvix_running=0 _murvix_prompt='' _murvix_user_prompt=''
 
@@ -64,11 +64,11 @@ precmd_functions+=(_murvix_install)
 # `omp`/`claude`/`codex`/`copilot` resolve the live workspace once at launch
 # (like `murvix agent <tool>`) instead of seeing only the shell's cwd.
 # Outside a Murvix terminal, with wrappers disabled
-# (`MUXY_WORKSPACE_WRAPPERS=0`), or when the server is unreachable, the plain
+# (`MURVIX_WORKSPACE_WRAPPERS=0`), or when the server is unreachable, the plain
 # tool runs unchanged. `command <tool>` always bypasses the wrapper.
 _murvix_with_workspace() {
     local tool=$1; shift
-    if [[ ${MUXY_WORKSPACE_WRAPPERS-} == 0 || -z ${MUXY_SERVER_ID-} || -z ${MUXY_SESSION_ID-} ]] || ! command -v murvix >/dev/null 2>&1; then
+    if [[ ${MURVIX_WORKSPACE_WRAPPERS-} == 0 || -z ${MURVIX_SERVER_ID-} || -z ${MURVIX_SESSION_ID-} ]] || ! command -v murvix >/dev/null 2>&1; then
         command $tool "$@"
         return
     fi

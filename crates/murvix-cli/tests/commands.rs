@@ -40,8 +40,8 @@ fn linked_client_finds_its_sibling_server_and_reuses_a_server_when_the_sibling_i
     symlink(&client, &link)?;
     let invoke = || {
         Command::new(&link)
-            .env_remove("MUXY_SERVER_BIN")
-            .env("MUXY_DIR", &profile.0)
+            .env_remove("MURVIX_SERVER_BIN")
+            .env("MURVIX_DIR", &profile.0)
             .args(["project", "list"])
             .output()
     };

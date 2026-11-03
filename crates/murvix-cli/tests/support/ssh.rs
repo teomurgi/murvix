@@ -39,8 +39,8 @@ impl FakeRemote {
         )?;
         let ssh = format!(
             "#!/bin/sh\n\
-             export HOME={home} MUXY_DIR={profile} PATH={bin}:/usr/bin:/bin SHELL=/bin/sh\n\
-             unset MUXY_SERVER_BIN MUXY_PANE_ID XDG_STATE_HOME\n\
+             export HOME={home} MURVIX_DIR={profile} PATH={bin}:/usr/bin:/bin SHELL=/bin/sh\n\
+             unset MURVIX_SERVER_BIN MURVIX_PANE_ID XDG_STATE_HOME\n\
              {script}\n\
              for last; do :; done\n\
              exec /bin/sh -c \"exec $last\"\n",
@@ -66,9 +66,9 @@ impl FakeRemote {
         command
             .args(args)
             .env("HOME", self.home())
-            .env("MUXY_DIR", self.profile())
-            .env_remove("MUXY_SERVER_BIN")
-            .env_remove("MUXY_PANE_ID");
+            .env("MURVIX_DIR", self.profile())
+            .env_remove("MURVIX_SERVER_BIN")
+            .env_remove("MURVIX_PANE_ID");
         command
     }
 

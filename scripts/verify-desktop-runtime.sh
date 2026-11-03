@@ -15,7 +15,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 useradd --create-home package-check
 DEB_ARCH="$ARCH"
 [[ "$ARCH" != x86_64 ]] || DEB_ARCH=amd64
-MUXY_DISPOSABLE_PACKAGE_TEST=1 python3 /src/scripts/verify-desktop-formats.py deb \
+MURVIX_DISPOSABLE_PACKAGE_TEST=1 python3 /src/scripts/verify-desktop-formats.py deb \
     "/packages/murvix-desktop_${VERSION}_${DEB_ARCH}.deb" --version "$VERSION"
 runuser -u package-check -- dbus-run-session -- xvfb-run -a \
     python3 /src/scripts/verify-desktop-formats.py appimage \

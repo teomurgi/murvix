@@ -30,7 +30,7 @@ class HeadlessTests(unittest.TestCase):
 
         def start(command, *, env, **kwargs):
             nonlocal profile
-            profile = Path(env["MUXY_DIR"])
+            profile = Path(env["MURVIX_DIR"])
             server = Mock()
             server.poll.return_value = None
             server.wait.return_value = 0
@@ -69,7 +69,7 @@ class HeadlessTests(unittest.TestCase):
             ]:
                 output = subprocess.check_output(
                     [ROOT / "scripts/zig/zig", *arguments],
-                    env={**os.environ, "MUXY_ZIG": str(zig)}, text=True,
+                    env={**os.environ, "MURVIX_ZIG": str(zig)}, text=True,
                 )
                 self.assertEqual(json.loads(output), expected)
 

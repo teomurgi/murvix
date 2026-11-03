@@ -28,12 +28,12 @@ impl Fixture {
         let mut command = Command::new(support::binary());
         command
             .args(args)
-            .env("MUXY_DIR", &self.profile)
+            .env("MURVIX_DIR", &self.profile)
             .env("XDG_CONFIG_HOME", self.profile.join("config"))
-            .env_remove("MUXY_SERVER_BIN")
-            .env_remove("MUXY_PANE_ID")
-            .env_remove("MUXY_SESSION_ID")
-            .env_remove("MUXY_SERVER_ID")
+            .env_remove("MURVIX_SERVER_BIN")
+            .env_remove("MURVIX_PANE_ID")
+            .env_remove("MURVIX_SESSION_ID")
+            .env_remove("MURVIX_SERVER_ID")
             .current_dir(self.directory.path());
         command
     }
@@ -42,8 +42,8 @@ impl Fixture {
         let server = self.client()?.catalog()?.server.to_string();
         Ok(self
             .command(args)
-            .env("MUXY_SESSION_ID", session)
-            .env("MUXY_SERVER_ID", server)
+            .env("MURVIX_SESSION_ID", session)
+            .env("MURVIX_SERVER_ID", server)
             .output()?)
     }
     fn ok(&self, args: &[&str]) -> Result<String> {
@@ -382,8 +382,8 @@ fn worktrees_use_the_default_location_and_run_hooks_only_when_asked() -> Result 
     std::fs::create_dir(f.directory.path().join(".murvix"))?;
     std::fs::write(
         f.directory.path().join(".murvix/worktree.json"),
-        r#"{"setup": ["touch \"$MUXY_PROJECT_PATH/setup-ran\""],
-            "teardown": ["touch \"$MUXY_PROJECT_PATH/teardown-ran\""]}"#,
+        r#"{"setup": ["touch \"$MURVIX_PROJECT_PATH/setup-ran\""],
+            "teardown": ["touch \"$MURVIX_PROJECT_PATH/teardown-ran\""]}"#,
     )?;
     let project = f.project()?;
     let plain = f.json(&["worktree", "create", &project, "plain", "--json"])?;
@@ -448,10 +448,10 @@ fn terminal_workspace_discovery_is_live_byte_exact_and_server_bound() -> Result 
     // across every query, exactly as an already-running shell would.
     let mut here = f.command(&["project", "here", "--json"]);
     here.current_dir("/")
-        .env("MUXY_SESSION_ID", &session)
-        .env("MUXY_SERVER_ID", &server)
-        .env("MUXY_WORKSPACE_COUNT", "1")
-        .env("MUXY_WORKSPACE_0", "/obsolete-snapshot");
+        .env("MURVIX_SESSION_ID", &session)
+        .env("MURVIX_SERVER_ID", &server)
+        .env("MURVIX_WORKSPACE_COUNT", "1")
+        .env("MURVIX_WORKSPACE_0", "/obsolete-snapshot");
     let read = |command: &mut Command| -> Result<Value> {
         let output = command.output()?;
         assert!(output.status.success(), "{output:?}");
@@ -478,8 +478,8 @@ fn terminal_workspace_discovery_is_live_byte_exact_and_server_bound() -> Result 
     let text = f
         .command(&["project", "here"])
         .current_dir("/")
-        .env("MUXY_SESSION_ID", &session)
-        .env("MUXY_SERVER_ID", &server)
+        .env("MURVIX_SESSION_ID", &session)
+        .env("MURVIX_SERVER_ID", &server)
         .output()?;
     assert!(text.status.success(), "{text:?}");
     let mut expected = primary_bytes.to_vec();
@@ -494,10 +494,10 @@ fn terminal_workspace_discovery_is_live_byte_exact_and_server_bound() -> Result 
     other.project()?;
     let wrong = other
         .command(&["project", "here", "--json"])
-        .env("MUXY_SESSION_ID", &session)
-        .env("MUXY_SERVER_ID", &server)
-        .env("MUXY_WORKSPACE_COUNT", "1")
-        .env("MUXY_WORKSPACE_0", "/obsolete-snapshot")
+        .env("MURVIX_SESSION_ID", &session)
+        .env("MURVIX_SERVER_ID", &server)
+        .env("MURVIX_WORKSPACE_COUNT", "1")
+        .env("MURVIX_WORKSPACE_0", "/obsolete-snapshot")
         .output()?;
     assert!(!wrong.status.success());
     assert!(String::from_utf8(wrong.stderr)?.contains("on that server"));

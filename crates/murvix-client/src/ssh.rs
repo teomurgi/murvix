@@ -160,7 +160,7 @@ impl SshTarget {
                 "Custom commands manage their own SSH settings and authentication",
             ));
         }
-        let program = program(self.program.as_deref(), std::env::var_os("MUXY_SSH"))?;
+        let program = program(self.program.as_deref(), std::env::var_os("MURVIX_SSH"))?;
         let output = Command::new(program)
             .args(["-G", "--", &self.destination])
             .stdin(Stdio::null())
@@ -178,7 +178,7 @@ impl SshTarget {
     /// Runs `remote` there through the same ssh and login as the bridge,
     /// such as an installer. Its output is the caller's to read.
     pub fn command(&self, remote: &str) -> io::Result<Command> {
-        let program = program(self.program.as_deref(), std::env::var_os("MUXY_SSH"))?;
+        let program = program(self.program.as_deref(), std::env::var_os("MURVIX_SSH"))?;
         let mut command = Command::new(program);
         command
             .args(self.arguments_for(remote))
@@ -293,13 +293,13 @@ fn identity_from(config: &str, home: &Path) -> Option<PathBuf> {
     })
 }
 
-/// The program set on the target, else `MUXY_SSH`, else ssh from `PATH`.
+/// The program set on the target, else `MURVIX_SSH`, else ssh from `PATH`.
 fn program(explicit: Option<&Path>, environment: Option<OsString>) -> io::Result<PathBuf> {
     match (explicit, environment) {
         (Some(program), _) => Ok(program.into()),
         (None, Some(program)) if program.is_empty() => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "MUXY_SSH must not be empty",
+            "MURVIX_SSH must not be empty",
         )),
         (None, Some(program)) => Ok(program.into()),
         (None, None) => Ok("ssh".into()),

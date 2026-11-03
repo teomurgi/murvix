@@ -98,25 +98,25 @@ fn environment_from(
     workspace: &[murvix_protocol::ServerPath],
 ) -> Vec<(OsString, OsString)> {
     env.retain(|(name, _)| {
-        name != "MUXY_SERVER_ID"
-            && name != "MUXY_SESSION_ID"
-            && !name.as_encoded_bytes().starts_with(b"MUXY_WORKSPACE_")
+        name != "MURVIX_SERVER_ID"
+            && name != "MURVIX_SESSION_ID"
+            && !name.as_encoded_bytes().starts_with(b"MURVIX_WORKSPACE_")
             && !STRIPPED_ENV
                 .iter()
                 .any(|stripped| name.as_encoded_bytes() == stripped.as_bytes())
     });
-    env.push(("MUXY_SERVER_ID".into(), identity.0.to_string().into()));
+    env.push(("MURVIX_SERVER_ID".into(), identity.0.to_string().into()));
     env.push((
-        "MUXY_SESSION_ID".into(),
+        "MURVIX_SESSION_ID".into(),
         identity.1.get().to_string().into(),
     ));
     env.push((
-        "MUXY_WORKSPACE_COUNT".into(),
+        "MURVIX_WORKSPACE_COUNT".into(),
         workspace.len().to_string().into(),
     ));
     for (index, root) in workspace.iter().enumerate() {
         env.push((
-            OsString::from(format!("MUXY_WORKSPACE_{index}")),
+            OsString::from(format!("MURVIX_WORKSPACE_{index}")),
             OsStr::from_bytes(&root.0).to_os_string(),
         ));
     }
@@ -153,33 +153,44 @@ mod tests {
         ];
         // Stale inherited entries larger than the new set must not leak.
         let base = vec![
-            (OsString::from("MUXY_WORKSPACE_COUNT"), OsString::from("9")),
-            (OsString::from("MUXY_WORKSPACE_0"), OsString::from("stale")),
-            (OsString::from("MUXY_WORKSPACE_7"), OsString::from("stale")),
-            (OsString::from("MUXY_SERVER_ID"), OsString::from("old")),
+            (
+                OsString::from("MURVIX_WORKSPACE_COUNT"),
+                OsString::from("9"),
+            ),
+            (
+                OsString::from("MURVIX_WORKSPACE_0"),
+                OsString::from("stale"),
+            ),
+            (
+                OsString::from("MURVIX_WORKSPACE_7"),
+                OsString::from("stale"),
+            ),
+            (OsString::from("MURVIX_SERVER_ID"), OsString::from("old")),
             (OsString::from("PATH"), OsString::from("/bin")),
         ];
         let env = environment_from(base, identity, &roots);
-        assert_eq!(get(&env, "MUXY_WORKSPACE_COUNT"), Some("2".into()));
+        assert_eq!(get(&env, "MURVIX_WORKSPACE_COUNT"), Some("2".into()));
         assert_eq!(
-            get(&env, "MUXY_WORKSPACE_0"),
+            get(&env, "MURVIX_WORKSPACE_0"),
             Some(OsString::from_vec(b"/srv/app".to_vec()))
         );
         assert_eq!(
-            get(&env, "MUXY_WORKSPACE_1"),
+            get(&env, "MURVIX_WORKSPACE_1"),
             Some(OsString::from_vec(b"/srv/\xff:we\nird".to_vec()))
         );
-        assert!(get(&env, "MUXY_WORKSPACE_2").is_none());
-        assert!(get(&env, "MUXY_WORKSPACE_7").is_none());
+        assert!(get(&env, "MURVIX_WORKSPACE_2").is_none());
+        assert!(get(&env, "MURVIX_WORKSPACE_7").is_none());
         // PATH passes through; stale server ID is replaced.
         assert_eq!(get(&env, "PATH"), Some("/bin".into()));
-        assert_ne!(get(&env, "MUXY_SERVER_ID"), Some("old".into()));
+        assert_ne!(get(&env, "MURVIX_SERVER_ID"), Some("old".into()));
         // Reader contract: increment from 0 while the name exists.
         let mut read = Vec::new();
         let mut index = 0;
         while let Some(value) = env
             .iter()
-            .find(|(key, _)| key.as_encoded_bytes() == format!("MUXY_WORKSPACE_{index}").as_bytes())
+            .find(|(key, _)| {
+                key.as_encoded_bytes() == format!("MURVIX_WORKSPACE_{index}").as_bytes()
+            })
             .map(|(_, value)| value.clone())
         {
             read.push(value);

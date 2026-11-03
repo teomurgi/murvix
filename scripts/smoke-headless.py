@@ -14,7 +14,7 @@ import time
 def smoke(binary):
     with tempfile.TemporaryDirectory(prefix="murvix-smoke-") as temporary:
         profile = Path(temporary)
-        env = {**os.environ, "MUXY_DIR": temporary, "SHELL": "/bin/sh"}
+        env = {**os.environ, "MURVIX_DIR": temporary, "SHELL": "/bin/sh"}
         def command(*args):
             return subprocess.check_output([binary, *args], env=env, text=True, timeout=10)
         for flag in ["--help", "--version", "--build-info"]:

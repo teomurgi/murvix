@@ -20,8 +20,8 @@ def verify(archive, version):
         home = work / "home"
         home.mkdir()
         profile = work / "profile"
-        env = {key: value for key, value in os.environ.items() if not key.startswith("MUXY_")}
-        env.update(HOME=str(home), XDG_DATA_HOME=str(home / ".local/share"), MUXY_DIR=str(profile),
+        env = {key: value for key, value in os.environ.items() if not key.startswith("MURVIX_")}
+        env.update(HOME=str(home), XDG_DATA_HOME=str(home / ".local/share"), MURVIX_DIR=str(profile),
                    PATH="/usr/bin:/bin", SHELL="/bin/sh", PYTHONDONTWRITEBYTECODE="1")
         env.pop("DISPLAY", None)
         env.pop("WAYLAND_DISPLAY", None)

@@ -8,7 +8,7 @@ Common problems and fixes. If yours isn't here, please
 | What | Where |
 | --- | --- |
 | Server | `server.log` in the [profile folder](../features/server.md#files) |
-| Desktop app | Start it with `MUXY_DIAGNOSTICS=1` to write `app-diagnostics-<pid>.log` to the profile folder |
+| Desktop app | Start it with `MURVIX_DIAGNOSTICS=1` to write `app-diagnostics-<pid>.log` to the profile folder |
 | Extensions | **Settings → Extensions →** the extension **→ Reveal log** |
 | CLI and terminal UI | Printed in the terminal |
 
@@ -161,7 +161,7 @@ shortcut.
 3. Move the [profile folder](../features/server.md#files) somewhere else.
 
 The release profile is `~/Library/Application Support/Murvix` on macOS, or
-`${XDG_STATE_HOME:-$HOME/.local/state}/murvix` on Linux. `MUXY_DIR` overrides it;
+`${XDG_STATE_HOME:-$HOME/.local/state}/murvix` on Linux. `MURVIX_DIR` overrides it;
 development builds use `Murvix Dev` / `murvix-dev`. Keep the moved folder until
 you are sure you no longer need its settings or saved sessions.
 

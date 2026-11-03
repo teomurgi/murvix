@@ -79,16 +79,16 @@ fn output(path: &Path) -> Result<String> {
 }
 
 #[test]
-#[ignore = "requires MUXY_TEST_SERVER, MUXY_TEST_SIGN_IDENTITY and MUXY_TEST_SIGN_TEAM; uses only temporary bundles"]
+#[ignore = "requires MURVIX_TEST_SERVER, MURVIX_TEST_SIGN_IDENTITY and MURVIX_TEST_SIGN_TEAM; uses only temporary bundles"]
 fn another_profiles_server_retains_its_bundle_without_a_tui() -> Result<()> {
-    let identity = std::env::var("MUXY_TEST_SIGN_IDENTITY")?;
-    let binary = PathBuf::from(std::env::var("MUXY_TEST_SERVER")?);
+    let identity = std::env::var("MURVIX_TEST_SIGN_IDENTITY")?;
+    let binary = PathBuf::from(std::env::var("MURVIX_TEST_SERVER")?);
     let directory = tempfile::tempdir()?;
     let bundle = directory.path().join(bundle_name());
     signed_bundle(&bundle, &binary, &identity)?;
     let installation = Installation {
         bundle: bundle.clone(),
-        team: std::env::var("MUXY_TEST_SIGN_TEAM")?,
+        team: std::env::var("MURVIX_TEST_SIGN_TEAM")?,
     };
     let first = directory.path().join("first");
     let second = directory.path().join("second");
@@ -120,7 +120,7 @@ fn start_server(bundle: &Path, profile: &Path) -> Result<Server> {
     std::fs::create_dir_all(profile)?;
     Ok(Server(
         Command::new(bundle.join("Contents/MacOS/murvix-server"))
-            .env("MUXY_DIR", profile)
+            .env("MURVIX_DIR", profile)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -129,11 +129,11 @@ fn start_server(bundle: &Path, profile: &Path) -> Result<Server> {
 }
 
 #[test]
-#[ignore = "requires MUXY_TEST_SERVER, MUXY_TEST_SIGN_IDENTITY and MUXY_TEST_SIGN_TEAM; uses only temporary bundles"]
+#[ignore = "requires MURVIX_TEST_SERVER, MURVIX_TEST_SIGN_IDENTITY and MURVIX_TEST_SIGN_TEAM; uses only temporary bundles"]
 fn signed_bundle_updates_preserve_shell_and_retire_only_unused_bundles() -> Result<()> {
-    let identity = std::env::var("MUXY_TEST_SIGN_IDENTITY")?;
-    let team = std::env::var("MUXY_TEST_SIGN_TEAM")?;
-    let binary = PathBuf::from(std::env::var("MUXY_TEST_SERVER")?);
+    let identity = std::env::var("MURVIX_TEST_SIGN_IDENTITY")?;
+    let team = std::env::var("MURVIX_TEST_SIGN_TEAM")?;
+    let binary = PathBuf::from(std::env::var("MURVIX_TEST_SERVER")?);
     let directory = tempfile::tempdir()?;
     let bundle = directory.path().join(bundle_name());
     signed_bundle(&bundle, &binary, &identity)?;
@@ -147,7 +147,7 @@ fn signed_bundle_updates_preserve_shell_and_retire_only_unused_bundles() -> Resu
     std::fs::write(data.join("shell-env"), "PS1='lease-test> '\n")?;
     let socket = data.join("server.sock");
     let child = Command::new(bundle.join("Contents/MacOS/murvix-server"))
-        .env("MUXY_DIR", &data)
+        .env("MURVIX_DIR", &data)
         .env("HOME", &data)
         .env("ENV", data.join("shell-env"))
         .env("SHELL", "/bin/sh")
@@ -200,7 +200,7 @@ fn signed_bundle_updates_preserve_shell_and_retire_only_unused_bundles() -> Resu
     assert!(client.stop_server_if_idle()?);
     server.0.wait()?;
     server.0 = Command::new(bundle.join("Contents/MacOS/murvix-server"))
-        .env("MUXY_DIR", &data)
+        .env("MURVIX_DIR", &data)
         .env("HOME", &data)
         .env("ENV", data.join("shell-env"))
         .env("SHELL", "/bin/sh")
@@ -260,13 +260,13 @@ fn replace_bundle(
 }
 
 #[test]
-#[ignore = "requires MUXY_TEST_LEGACY_SERVER; launches only an isolated temporary server"]
+#[ignore = "requires MURVIX_TEST_LEGACY_SERVER; launches only an isolated temporary server"]
 fn beta_mismatch_reports_incompatible_builds_without_stopping_the_old_server() -> Result<()> {
-    let executable = std::env::var("MUXY_TEST_LEGACY_SERVER")?;
+    let executable = std::env::var("MURVIX_TEST_LEGACY_SERVER")?;
     let directory = tempfile::tempdir()?;
     let socket = directory.path().join("server.sock");
     let child = Command::new(executable)
-        .env("MUXY_DIR", directory.path())
+        .env("MURVIX_DIR", directory.path())
         .env("SHELL", "/bin/sh")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
