@@ -104,6 +104,17 @@ def agent(config, second):
     repository = primary / "repository"
     repository.mkdir()
     subprocess.run(["/usr/bin/git", "init", str(repository)], check=True)
+    objects = repository / ".git/objects"
+    object_directory = objects / "murvix"
+    object_directory.mkdir()
+    source = object_directory / "source"
+    source.write_text("object")
+    linked = object_directory / "linked"
+    os.link(source, linked)
+    linked.rename(object_directory / "renamed")
+    source.unlink()
+    (object_directory / "renamed").unlink()
+    object_directory.rmdir()
     (repository / "tracked").write_text("git data")
     subprocess.run(["/usr/bin/git", "-C", str(repository), "add", "tracked"], check=True)
     subprocess.run(["/usr/bin/git", "-C", str(repository), "-c", "user.name=Smoke",
