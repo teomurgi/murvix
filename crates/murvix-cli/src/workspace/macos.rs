@@ -301,42 +301,51 @@ impl Broker {
         let (shutdown, mut receiver) = tokio::sync::oneshot::channel();
         let (ready_tx, ready_rx) = mpsc::sync_channel(1);
         let (failure_tx, failure) = mpsc::channel();
-        let thread = thread::Builder::new().name("workspace-nfs".into()).spawn(move || {
-            let result = (|| -> std::result::Result<(), String> {
-                let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(|e| e.to_string())?;
-                runtime.block_on(async move {
-                    let listener = tokio::net::UnixListener::from_std(listener).map_err(|e| e.to_string())?;
-                    ready_tx.send(()).map_err(|e| e.to_string())?;
-                    let mut connections = tokio::task::JoinSet::new();
-                    loop {
-                        tokio::select! {
-                            _ = &mut receiver => break,
-                            accepted = listener.accept() => {
-                                let (stream, _) = accepted.map_err(|e| e.to_string())?;
-                                let filesystem = filesystem.clone();
-                                connections.spawn(async move {
-                                    nfs3_server::transport::Connection::new("/workspace", filesystem)
-                                        .serve(stream).await.map_err(|e| e.to_string())
-                                });
-                            }
-                            completed = connections.join_next(), if !connections.is_empty() => {
-                                match completed {
-                                    Some(Ok(Ok(()))) => {},
-                                    Some(Ok(Err(error))) => return Err(error),
-                                    Some(Err(error)) => return Err(error.to_string()),
-                                    None => {},
+        let thread = thread::Builder::new()
+            .name("workspace-nfs".into())
+            .spawn(move || {
+                let result = (|| -> std::result::Result<(), String> {
+                    let runtime = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .map_err(|e| e.to_string())?;
+                    let connection =
+                        nfs3_server::transport::Connection::new("/workspace", filesystem);
+                    runtime.block_on(async move {
+                        let listener = tokio::net::UnixListener::from_std(listener)
+                            .map_err(|e| e.to_string())?;
+                        ready_tx.send(()).map_err(|e| e.to_string())?;
+                        let mut connections = tokio::task::JoinSet::new();
+                        loop {
+                            tokio::select! {
+                                _ = &mut receiver => break,
+                                accepted = listener.accept() => {
+                                    let (stream, _) = accepted.map_err(|e| e.to_string())?;
+                                    let connection = connection.clone();
+                                    connections.spawn(async move {
+                                        connection.serve(stream).await.map_err(|e| e.to_string())
+                                    });
+                                }
+                                completed = connections.join_next(), if !connections.is_empty() => {
+                                    match completed {
+                                        Some(Ok(Ok(()))) => {},
+                                        Some(Ok(Err(error))) => return Err(error),
+                                        Some(Err(error)) => return Err(error.to_string()),
+                                        None => {},
+                                    }
                                 }
                             }
                         }
-                    }
-                    connections.abort_all();
-                    while connections.join_next().await.is_some() {}
-                    Ok(())
-                })
-            })();
-            if let Err(error) = &result { let _ = failure_tx.send(error.clone()); }
-            result
-        })?;
+                        connections.abort_all();
+                        while connections.join_next().await.is_some() {}
+                        Ok(())
+                    })
+                })();
+                if let Err(error) = &result {
+                    let _ = failure_tx.send(error.clone());
+                }
+                result
+            })?;
         if let Err(error) = ready_rx.recv() {
             let details = thread.join().map_err(|_| "workspace broker panicked")?;
             return Err(details.err().unwrap_or_else(|| error.to_string()).into());

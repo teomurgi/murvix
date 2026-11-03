@@ -13,6 +13,14 @@ pub struct Connection<T: NfsFileSystem + 'static> {
     context: RPCContext<T>,
 }
 
+impl<T: NfsFileSystem + 'static> Clone for Connection<T> {
+    fn clone(&self) -> Self {
+        Self {
+            context: self.context.clone(),
+        }
+    }
+}
+
 impl<T: NfsFileSystem + 'static> Connection<T> {
     /// Creates a connection context for an exported filesystem.
     #[must_use]
