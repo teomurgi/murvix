@@ -61,10 +61,11 @@ where
         NFSPROC3_SYMLINK => handle(context, message, nfsproc3_symlink).await,
         NFSPROC3_READLINK => handle(context, message, nfsproc3_readlink).await,
         NFSPROC3_COMMIT => handle(context, message, nfsproc3_commit).await,
-        NFSPROC3_MKNOD | NFSPROC3_LINK => {
+        NFSPROC3_MKNOD => {
             warn!("Unimplemented message {proc}");
             message.into_error_reply(accept_stat_data::PROC_UNAVAIL)
         }
+        NFSPROC3_LINK => handle(context, message, nfsproc3_link).await,
     }
 }
 
@@ -855,6 +856,85 @@ where
                 RENAME3resfail {
                     fromdir_wcc,
                     todir_wcc,
+                },
+            ))
+        }
+    }
+}
+
+async fn nfsproc3_link<T>(context: RPCContext<T>, xid: u32, args: LINK3args<'_>) -> LINK3res
+where
+    T: NfsFileSystem,
+{
+    if !matches!(context.vfs.capabilities(), VFSCapabilities::ReadWrite) {
+        warn!("No write capabilities.");
+        return LINK3res::Err((
+            nfsstat3::NFS3ERR_ROFS,
+            LINK3resfail {
+                file_attributes: post_op_attr::None,
+                linkdir_wcc: wcc_data::default(),
+            },
+        ));
+    }
+
+    let fileid = match context.file_handle_converter.fh_from_nfs(&args.file) {
+        Ok(id) => id,
+        Err(stat) => {
+            return LINK3res::Err((
+                stat,
+                LINK3resfail {
+                    file_attributes: post_op_attr::None,
+                    linkdir_wcc: wcc_data::default(),
+                },
+            ));
+        }
+    };
+    let dirid = match context.file_handle_converter.fh_from_nfs(&args.link.dir) {
+        Ok(id) => id,
+        Err(stat) => {
+            return LINK3res::Err((
+                stat,
+                LINK3resfail {
+                    file_attributes: nfs_option_from_result(context.vfs.getattr(&fileid).await),
+                    linkdir_wcc: wcc_data::default(),
+                },
+            ));
+        }
+    };
+    let before = match get_wcc_attr(&context, &dirid).await {
+        Ok(v) => pre_op_attr::Some(v),
+        Err(stat) => {
+            warn!("Cannot stat link directory {xid} --> {stat}");
+            return LINK3res::Err((
+                stat,
+                LINK3resfail {
+                    file_attributes: nfs_option_from_result(context.vfs.getattr(&fileid).await),
+                    linkdir_wcc: wcc_data::default(),
+                },
+            ));
+        }
+    };
+    let result = context.vfs.link(&fileid, &dirid, &args.link.name).await;
+    let file_attributes = nfs_option_from_result(context.vfs.getattr(&fileid).await);
+    let linkdir_wcc = wcc_data {
+        before,
+        after: nfs_option_from_result(context.vfs.getattr(&dirid).await),
+    };
+    match result {
+        Ok(()) => {
+            debug!("link success {xid}");
+            LINK3res::Ok(LINK3resok {
+                file_attributes,
+                linkdir_wcc,
+            })
+        }
+        Err(stat) => {
+            error!("link error {xid} --> {stat}");
+            LINK3res::Err((
+                stat,
+                LINK3resfail {
+                    file_attributes,
+                    linkdir_wcc,
                 },
             ))
         }

@@ -324,6 +324,20 @@ pub trait NfsFileSystem: NfsReadFileSystem {
         to_filename: &filename3<'a>,
     ) -> impl Future<Output = Result<(), nfsstat3>> + Send;
 
+    /// Creates a hard link to a file in a directory.
+    ///
+    /// If not supported due to a readonly file system this should return
+    /// `Err(nfsstat3::NFS3ERR_ROFS)`.
+    fn link(
+        &self,
+        source: &Self::Handle,
+        directory: &Self::Handle,
+        filename: &filename3<'_>,
+    ) -> impl Future<Output = Result<(), nfsstat3>> + Send {
+        let _ = (source, directory, filename);
+        async { Err(nfsstat3::NFS3ERR_NOTSUPP) }
+    }
+
     /// Makes a symlink with the following attributes.
     /// If not supported due to readonly file system
     /// this should return `Err(nfsstat3::NFS3ERR_ROFS)`

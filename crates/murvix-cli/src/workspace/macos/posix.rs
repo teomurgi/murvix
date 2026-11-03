@@ -184,6 +184,20 @@ pub(super) fn rename(from: &File, name: &OsStr, to: &File, target: &OsStr) -> io
     })
 }
 
+pub(super) fn link(from: &File, name: &OsStr, to: &File, target: &OsStr) -> io::Result<()> {
+    let name = string(name)?;
+    let target = string(target)?;
+    result(unsafe {
+        libc::linkat(
+            from.as_raw_fd(),
+            name.as_ptr(),
+            to.as_raw_fd(),
+            target.as_ptr(),
+            0,
+        )
+    })
+}
+
 pub(super) fn symlink(directory: &File, name: &OsStr, target: &[u8]) -> io::Result<()> {
     let name = string(name)?;
     let target = CString::new(target).map_err(|_| io::Error::from_raw_os_error(libc::EINVAL))?;

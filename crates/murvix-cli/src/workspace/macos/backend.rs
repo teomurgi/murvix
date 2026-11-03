@@ -1003,6 +1003,33 @@ impl NfsFileSystem for Filesystem {
         Ok(())
     }
 
+    async fn link(
+        &self,
+        source: &Self::Handle,
+        directory: &Self::Handle,
+        filename: &filename3<'_>,
+    ) -> Result<(), nfsstat3> {
+        let snapshot = self.snapshot()?;
+        let source = self.resolve(&snapshot, source.as_u64())?;
+        let destination = self.child(&snapshot, directory, filename.0.as_ref())?;
+        if matches!(source.root, RootId::Manifest) || matches!(destination.root, RootId::Manifest) {
+            return Err(nfsstat3::NFS3ERR_ROFS);
+        }
+        if source.root != destination.root {
+            return Err(nfsstat3::NFS3ERR_XDEV);
+        }
+        let root = self.writable(&snapshot, &source)?;
+        self.writable(&snapshot, &destination)?;
+        let (from_parent, from_name) = split(&source.relative)?;
+        let (to_parent, to_name) = split(&destination.relative)?;
+        let from_directory =
+            posix::beneath(&root, &from_parent, libc::O_RDONLY | libc::O_DIRECTORY)
+                .map_err(io_to_nfs)?;
+        let to_directory = posix::beneath(&root, &to_parent, libc::O_RDONLY | libc::O_DIRECTORY)
+            .map_err(io_to_nfs)?;
+        posix::link(&from_directory, from_name, &to_directory, to_name).map_err(io_to_nfs)
+    }
+
     async fn symlink<'a>(
         &self,
         dirid: &Self::Handle,
