@@ -60,6 +60,7 @@ struct Table {
     next: u64,
     by_id: HashMap<u64, Location>,
     by_location: HashMap<Location, u64>,
+    pending_modes: HashMap<Location, u32>,
     manifest_bytes: usize,
 }
 
@@ -71,6 +72,7 @@ impl Table {
         if self.by_id.len() >= MAX_HANDLES {
             self.by_id.clear();
             self.by_location.clear();
+            self.pending_modes.clear();
         }
         let id = self.next;
         self.next = self.next.checked_add(1).unwrap_or(FIRST_DYNAMIC);
@@ -102,6 +104,7 @@ impl Filesystem {
                 next: FIRST_DYNAMIC,
                 by_id: HashMap::new(),
                 by_location: HashMap::new(),
+                pending_modes: HashMap::new(),
                 manifest_bytes: 0,
             }),
         }))
@@ -840,6 +843,9 @@ impl NfsFileSystem for Filesystem {
             .map_err(io_to_nfs)?;
         file.write_at(data, offset)
             .map_err(|_| nfsstat3::NFS3ERR_IO)?;
+        if let Some(mode) = self.table().pending_modes.remove(&location) {
+            posix::chmod(&file, mode).map_err(io_to_nfs)?;
+        }
         // The mount uses sync semantics; always stabilize before replying.
         file.sync_data().map_err(|_| nfsstat3::NFS3ERR_IO)?;
         let snapshot = self.snapshot()?;
@@ -876,10 +882,14 @@ impl NfsFileSystem for Filesystem {
                 io_to_nfs(error)
             }
         })?;
-        if let set_mode3::Some(mode) = attr.mode {
-            posix::chmod(&file, mode & 0o7777).map_err(io_to_nfs)?;
-        }
+        let mode = match attr.mode {
+            set_mode3::Some(mode) => Some(mode & 0o7777),
+            set_mode3::None => None,
+        };
         drop(file);
+        if let Some(mode) = mode {
+            self.table().pending_modes.insert(location.clone(), mode);
+        }
         let snapshot = self.snapshot()?;
         let created = self.child(&snapshot, dirid, filename.0.as_ref())?;
         let attr = self.location_attr(&snapshot, &created)?;
