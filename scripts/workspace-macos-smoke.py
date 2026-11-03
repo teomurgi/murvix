@@ -107,6 +107,7 @@ def agent(config, second):
     objects = repository / ".git/objects"
     descriptor, temporary_object = tempfile.mkstemp(prefix="tmp_obj_", dir=objects)
     os.write(descriptor, b"object")
+    os.fchmod(descriptor, 0o444)
     os.fsync(descriptor)
     os.close(descriptor)
     object_directory = objects / "murvix"
