@@ -377,6 +377,14 @@ fn actual_path(root: &File, relative: &Path) -> Result<PathBuf> {
                     return Err(nfsstat3::NFS3ERR_ACCES);
                 }
             }
+            Err(error) if error.raw_os_error() == Some(libc::ENOTDIR) => {
+                let file = posix::beneath(root, &ancestor, libc::O_RDONLY).map_err(io_to_nfs)?;
+                let mut actual = posix::path(&file).map_err(|_| nfsstat3::NFS3ERR_IO)?;
+                for part in suffix.iter().rev() {
+                    actual.push(part);
+                }
+                return Ok(actual);
+            }
             Err(error) => return Err(io_to_nfs(error)),
         }
     }
