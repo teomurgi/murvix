@@ -4494,6 +4494,7 @@ dependencies = [
  "murvix-protocol",
  "murvix-terminal",
  "nfs3_server",
+ "nfs3_types",
  "ratatui",
  "rustix 1.1.4",
  "serde",

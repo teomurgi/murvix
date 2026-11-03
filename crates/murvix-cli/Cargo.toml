@@ -35,6 +35,7 @@ libc = "0.2"
 [target.'cfg(target_os = "macos")'.dependencies]
 libc = "0.2"
 nfs3_server = { path = "../../vendor/nfs3_server" }
+nfs3_types = "0.5.3"
 tokio = { version = "1", default-features = false, features = ["net", "io-util", "sync", "rt", "macros", "time"] }
 
 [dev-dependencies]

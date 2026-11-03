@@ -9,12 +9,17 @@ mod sandbox;
 
 use std::ffi::OsString;
 use std::io::{self, BufRead, Read, Write};
+#[cfg(target_os = "linux")]
 use std::os::unix::fs::DirBuilderExt;
-use std::path::{Path, PathBuf};
+#[cfg(target_os = "linux")]
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use murvix_client::Client;
-use murvix_protocol::{ClientKind, OperationId, ServerIdentity, SessionId, WorkspaceSnapshot};
+#[cfg(target_os = "linux")]
+use murvix_protocol::OperationId;
+use murvix_protocol::{ClientKind, ServerIdentity, SessionId, WorkspaceSnapshot};
 use serde_json::json;
 
 type Result<T = ()> = std::result::Result<T, Box<dyn std::error::Error>>;

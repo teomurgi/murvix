@@ -57,7 +57,7 @@ pub(super) fn at(directory: &File, name: &OsStr, flags: i32, mode: u32) -> io::R
             directory.as_raw_fd(),
             name.as_ptr(),
             flags | libc::O_CLOEXEC | libc::O_NOFOLLOW | libc::O_NONBLOCK,
-            mode as libc::mode_t,
+            mode as libc::mode_t as libc::c_uint,
         )
     })
 }

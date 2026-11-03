@@ -186,7 +186,7 @@ pub(super) fn launch(binding: Binding, command: &[OsString]) -> Result {
     })();
     // Keep the broker serving until the kernel has released the mount. A failed
     // ordinary unmount gets one explicit forced unmount, never a directory view.
-    let unmount = if mounted {
+    let unmount: Result = if mounted {
         match unmount(&mountpoint, false) {
             Ok(()) => Ok(()),
             Err(first) => unmount(&mountpoint, true)
