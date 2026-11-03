@@ -105,7 +105,9 @@ def agent(config, second):
     repository.mkdir()
     subprocess.run(["/usr/bin/git", "init", str(repository)], check=True)
     objects = repository / ".git/objects"
-    object_directory = objects / "murvix"
+    descriptor, temporary_object = tempfile.mkstemp(prefix="tmp_obj_", dir=objects)
+    os.close(descriptor)
+    Path(temporary_object).unlink()
     object_directory.mkdir()
     source = object_directory / "source"
     source.write_text("object")
