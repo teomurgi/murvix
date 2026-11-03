@@ -466,7 +466,16 @@ fn virtual_dir_attr(fileid: u64) -> fattr3 {
     }
 }
 
-fn virtual_file_attr(fileid: u64, size: u64) -> fattr3 {
+fn virtual_file_attr(fileid: u64, size: u64, revision: &str) -> fattr3 {
+    let revision_hash = revision
+        .bytes()
+        .fold(0xcbf2_9ce4_8422_2325_u64, |hash, byte| {
+            (hash ^ u64::from(byte)).wrapping_mul(0x0000_0100_0000_01b3)
+        });
+    let revision_time = nfstime3 {
+        seconds: (revision_hash >> 32) as u32,
+        nseconds: (revision_hash as u32) % 1_000_000_000,
+    };
     fattr3 {
         type_: ftype3::NF3REG,
         mode: 0o444,
@@ -481,18 +490,9 @@ fn virtual_file_attr(fileid: u64, size: u64) -> fattr3 {
         },
         fsid: 0,
         fileid,
-        atime: nfstime3 {
-            seconds: 0,
-            nseconds: 0,
-        },
-        mtime: nfstime3 {
-            seconds: 0,
-            nseconds: 0,
-        },
-        ctime: nfstime3 {
-            seconds: 0,
-            nseconds: 0,
-        },
+        atime: revision_time,
+        mtime: revision_time,
+        ctime: revision_time,
     }
 }
 
@@ -550,12 +550,12 @@ impl NfsReadFileSystem for Filesystem {
             let size = self.manifest_bytes(&snapshot)?.len() as u64;
             let mut table = self.table();
             table.manifest_bytes = table.manifest_bytes.saturating_add(size as usize);
-            return Ok(virtual_file_attr(MANIFEST, size));
+            return Ok(virtual_file_attr(MANIFEST, size, &snapshot.revision));
         }
         let location = self.resolve(&snapshot, id.as_u64())?;
         if matches!(location.root, RootId::Manifest) {
             let size = self.manifest_bytes(&snapshot)?.len() as u64;
-            return Ok(virtual_file_attr(MANIFEST, size));
+            return Ok(virtual_file_attr(MANIFEST, size, &snapshot.revision));
         }
         self.location_attr(&snapshot, &location)
     }
@@ -668,7 +668,7 @@ impl NfsReadFileSystem for Filesystem {
                     let size = self.manifest_bytes(&snapshot)?.len() as u64;
                     (
                         FileHandleU64::new(MANIFEST),
-                        virtual_file_attr(MANIFEST, size),
+                        virtual_file_attr(MANIFEST, size, &snapshot.revision),
                     )
                 }
                 None => {
@@ -847,14 +847,9 @@ impl NfsFileSystem for Filesystem {
         }
         let root = self.writable(&snapshot, &location)?;
         let file = posix::beneath(&root, &location.relative, libc::O_WRONLY | libc::O_NOFOLLOW)
-            .map_err(|error| {
-                eprintln!("NFS write open {location:?}: {error}");
-                io_to_nfs(error)
-            })?;
-        file.write_at(data, offset).map_err(|error| {
-            eprintln!("NFS write {location:?}: {error}");
-            nfsstat3::NFS3ERR_IO
-        })?;
+            .map_err(io_to_nfs)?;
+        file.write_at(data, offset)
+            .map_err(|_| nfsstat3::NFS3ERR_IO)?;
         if let Some(mode) = self.table().pending_modes.remove(&location) {
             posix::chmod(&file, mode).map_err(io_to_nfs)?;
         }
