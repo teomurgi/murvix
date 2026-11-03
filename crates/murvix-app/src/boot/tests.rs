@@ -21,7 +21,7 @@ pub(crate) fn fake_ssh(
     fs::write(
         &program,
         format!(
-            "#!/bin/sh\nprintf 'MUXY-STDIO/1\\n'\nexec /usr/bin/nc -U '{}'\n",
+            "#!/bin/sh\nprintf 'MURVIX-STDIO/1\\n'\nexec /usr/bin/nc -U '{}'\n",
             socket.display()
         ),
     )?;
