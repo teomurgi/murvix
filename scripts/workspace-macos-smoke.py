@@ -108,6 +108,7 @@ def agent(config, second):
     descriptor, temporary_object = tempfile.mkstemp(prefix="tmp_obj_", dir=objects)
     os.close(descriptor)
     Path(temporary_object).unlink()
+    object_directory = objects / "murvix"
     object_directory.mkdir()
     source = object_directory / "source"
     source.write_text("object")
