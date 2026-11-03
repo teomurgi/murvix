@@ -175,6 +175,13 @@ pub enum RequestBody {
     /// A piece of a file to keep on the server's computer for a session.
     #[n(43)]
     Upload(#[n(0)] crate::UploadChunk),
+    #[n(44)]
+    WorkspaceSnapshot {
+        #[n(0)]
+        expected_server: crate::ServerIdentity,
+        #[n(1)]
+        session: SessionId,
+    },
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, Encode, Decode)]
@@ -288,6 +295,8 @@ pub enum ReplyBody {
     /// An upload chunk arrived; after the last one, the file's absolute path.
     #[n(38)]
     Uploaded(#[n(0)] Option<ServerPath>),
+    #[n(39)]
+    WorkspaceSnapshot(#[n(0)] crate::WorkspaceSnapshot),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Encode, Decode)]

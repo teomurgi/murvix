@@ -51,8 +51,8 @@ pub use project::{
     CATALOG_PAGE_SIZE, CatalogPage, ClientId, DeviceId, MAX_EXTRA_DIRECTORIES,
     MAX_EXTRA_DIRECTORIES_BYTES, MAX_PROJECT_LOGO_BYTES, MAX_PROJECTS, OperationId, PROJECT_COLORS,
     ProjectDescriptor, ProjectId, ProjectIntent, ProjectKind, ProjectMutation, ProjectPatch,
-    ProjectSession, ProjectSessions, ServerIdentity, SessionStatus, is_project_symbol,
-    validate_extra_directories, workspace_roots,
+    ProjectSession, ProjectSessions, ServerIdentity, SessionStatus, WorkspaceRoot,
+    WorkspaceSnapshot, is_project_symbol, validate_extra_directories, workspace_roots,
 };
 
 mod remote;

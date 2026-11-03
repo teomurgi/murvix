@@ -1,0 +1,63 @@
+name: workspace-macos
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workspace-macos-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-unix-nfs:
+    # Running arbitrary PR code with sudo is maintainer-only, matching ci.yml.
+    if: >-
+      github.repository == 'teomurgi/murvix' &&
+      contains(fromJSON('["teomurgi"]'), github.actor) &&
+      contains(fromJSON('["teomurgi"]'), github.triggering_actor) &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: macos-26
+    timeout-minutes: 40
+    env:
+      CARGO_TERM_COLOR: always
+      LIBGHOSTTY_VT_SYS_OPTIMIZE: ReleaseFast
+      MACOSX_DEPLOYMENT_TARGET: '14.0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.0'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: '1.92.0'
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: '0.15.2'
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace-macos-26-native
+      - name: Require native OS, Xcode and administrative mount approval
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(sw_vers -productVersion)" == 26.* ]]
+          xcodebuild -version
+          [[ "$(xcodebuild -version)" == Xcode\ 26* ]]
+          sudo -n -- /usr/bin/true
+          test -x /sbin/mount_nfs
+          test -x /usr/bin/sandbox-exec
+      - name: Compile the native CLI and authoritative server
+        run: cargo build --locked -p murvix-cli -p murvix-server
+      - name: Exercise real sudo Unix-socket mounts and live confinement
+        # This is intentionally a real runtime gate, not compile-only coverage.
+        # No continue-on-error, platform fallback, or unavailable-mount skip.
+        run: python3 scripts/workspace-macos-smoke.py target/debug/murvix

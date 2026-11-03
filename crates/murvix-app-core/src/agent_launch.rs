@@ -14,15 +14,17 @@ pub enum Agent {
     OhMyPi,
     Pi,
     OpenCode,
+    Hermes,
 }
 
-pub const AGENTS: [Agent; 6] = [
+pub const AGENTS: [Agent; 7] = [
     Agent::Claude,
     Agent::Codex,
     Agent::Copilot,
     Agent::OhMyPi,
     Agent::Pi,
     Agent::OpenCode,
+    Agent::Hermes,
 ];
 
 impl Agent {
@@ -34,6 +36,7 @@ impl Agent {
             "omp" => Self::OhMyPi,
             "pi" => Self::Pi,
             "opencode" => Self::OpenCode,
+            "hermes" => Self::Hermes,
             _ => return None,
         })
     }
@@ -46,6 +49,7 @@ impl Agent {
             AgentProvider::OhMyPi => Self::OhMyPi,
             AgentProvider::Pi => Self::Pi,
             AgentProvider::OpenCode => Self::OpenCode,
+            AgentProvider::Hermes => Self::Hermes,
             _ => return None,
         })
     }
@@ -58,6 +62,7 @@ impl Agent {
             Self::OhMyPi => "omp",
             Self::Pi => "pi",
             Self::OpenCode => "opencode",
+            Self::Hermes => "hermes",
         }
     }
 
@@ -69,17 +74,8 @@ impl Agent {
             Self::OhMyPi => AgentProvider::OhMyPi,
             Self::Pi => AgentProvider::Pi,
             Self::OpenCode => AgentProvider::OpenCode,
+            Self::Hermes => AgentProvider::Hermes,
         }
-    }
-
-    /// Whether the native tool accepts repeatable `--add-dir` workspace roots.
-    /// Tools without that flag launch in the project directory; their agents
-    /// discover extra roots through the installed skill (`murvix project here`).
-    pub fn supports_add_dir(self) -> bool {
-        matches!(
-            self,
-            Self::Claude | Self::Codex | Self::Copilot | Self::OhMyPi
-        )
     }
 }
 

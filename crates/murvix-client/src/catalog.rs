@@ -19,6 +19,24 @@ pub(crate) fn git_timeout(action: &murvix_protocol::GitAction) -> std::time::Dur
 }
 
 impl Client {
+    /// Reads authoritative current membership for a live session on this server.
+    pub fn workspace_snapshot(
+        &self,
+        expected_server: murvix_protocol::ServerIdentity,
+        session: SessionId,
+    ) -> Result<murvix_protocol::WorkspaceSnapshot, ClientError> {
+        match self.request(RequestBody::WorkspaceSnapshot {
+            expected_server,
+            session,
+        })? {
+            ReplyBody::WorkspaceSnapshot(snapshot)
+                if snapshot.server == expected_server && snapshot.session == session =>
+            {
+                Ok(snapshot)
+            }
+            body => Err(ClientError::UnexpectedReply(Box::new(body))),
+        }
+    }
     pub fn exec(
         &self,
         request: murvix_protocol::ExecRequest,

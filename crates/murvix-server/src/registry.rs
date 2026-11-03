@@ -147,6 +147,19 @@ impl Registry {
         self.catalog.page(after, revision)
     }
 
+    pub fn workspace_snapshot(
+        &self,
+        expected_server: murvix_protocol::ServerIdentity,
+        session: SessionId,
+    ) -> Result<murvix_protocol::WorkspaceSnapshot, ServerError> {
+        let _operation = self.session_operation();
+        let handle = self
+            .handle(session)
+            .ok_or_else(|| ServerError::unknown_session(session))?;
+        self.catalog
+            .workspace_snapshot(expected_server, session, handle.info().project)
+    }
+
     pub fn list_project_sessions(
         &self,
         project: murvix_protocol::ProjectId,

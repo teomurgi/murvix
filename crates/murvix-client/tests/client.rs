@@ -35,6 +35,99 @@ const QUIET: Duration = Duration::from_millis(150);
 const SIZE: Size = Size { cols: 80, rows: 24 };
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(1);
 
+#[test]
+fn live_workspace_snapshot_tracks_only_ordered_membership() -> TestResult {
+    use murvix_protocol::{
+        OperationId, ProjectIntent, ProjectMutation, ProjectPatch, ServerIdentity, ServerPath,
+    };
+    use std::os::unix::ffi::OsStringExt;
+    let fixture = Fixture::new()?;
+    let connection = fixture.connect()?;
+    let client = &connection.client;
+    let session = fixture.create(client)?;
+    let server = client.catalog()?.server;
+    let initial = client.workspace_snapshot(server, session.id)?;
+    assert_eq!(initial.project, session.project);
+    assert_eq!(initial.roots.len(), 1);
+    assert!(initial.roots[0].primary);
+    let patch = |patch| -> TestResult {
+        client.mutate_project(ProjectIntent {
+            operation: OperationId::new(),
+            mutation: ProjectMutation::Patch {
+                project: session.project,
+                patch,
+            },
+        })?;
+        Ok(())
+    };
+    let raw = fixture
+        .directory
+        .join(std::ffi::OsString::from_vec(b"extra-\xff".to_vec()));
+    fs::create_dir(&raw)?;
+    let extra = ServerPath(raw.as_os_str().as_bytes().to_vec());
+    let missing = ServerPath(
+        fixture
+            .directory
+            .join("missing")
+            .as_os_str()
+            .as_bytes()
+            .to_vec(),
+    );
+    fs::create_dir(fixture.directory.join("missing"))?;
+    patch(ProjectPatch::ExtraDirectories(vec![
+        extra.clone(),
+        missing.clone(),
+    ]))?;
+    fs::remove_dir(fixture.directory.join("missing"))?;
+    let added = client.workspace_snapshot(server, session.id)?;
+    assert_ne!(added.revision, initial.revision);
+    assert_eq!(added.roots[0].key, initial.roots[0].key);
+    assert_eq!(added.roots[1].path, extra);
+    assert!(added.roots[1].error.is_none());
+    assert_eq!(added.roots[2].path, missing);
+    assert!(added.roots[2].error.is_some());
+    patch(ProjectPatch::Name("workspace renamed".into()))?;
+    fs::write(raw.join("unrelated-file"), b"content")?;
+    let unchanged = client.workspace_snapshot(server, session.id)?;
+    assert_eq!(unchanged.revision, added.revision);
+    fs::create_dir(fixture.directory.join("missing"))?;
+    let recovered = client.workspace_snapshot(server, session.id)?;
+    assert_eq!(recovered.revision, added.revision);
+    assert!(recovered.roots[2].error.is_none());
+    patch(ProjectPatch::ExtraDirectories(vec![
+        missing.clone(),
+        extra.clone(),
+    ]))?;
+    let reordered = client.workspace_snapshot(server, session.id)?;
+    assert_ne!(reordered.revision, added.revision);
+    assert_eq!(reordered.roots[1].key, added.roots[2].key);
+    assert_eq!(reordered.roots[2].key, added.roots[1].key);
+    let available = client.workspace_snapshot(server, session.id)?;
+    assert_eq!(available.revision, reordered.revision);
+    assert!(available.roots[1].error.is_none());
+    patch(ProjectPatch::ExtraDirectories(vec![extra]))?;
+    let removed = client.workspace_snapshot(server, session.id)?;
+    assert_eq!(removed.roots.len(), 2);
+    assert_ne!(removed.revision, reordered.revision);
+    assert_eq!(removed.roots[1].key, added.roots[1].key);
+    assert!(
+        client
+            .workspace_snapshot(ServerIdentity::new(), session.id)
+            .is_err()
+    );
+    let foreign = Fixture::new()?;
+    let foreign_connection = foreign.connect()?;
+    assert!(
+        foreign_connection
+            .client
+            .workspace_snapshot(server, session.id)
+            .is_err()
+    );
+    fixture.registry.end(session.id)?;
+    assert!(client.workspace_snapshot(server, session.id).is_err());
+    Ok(())
+}
+
 struct Fixture {
     registry: Arc<Registry>,
     subscribers: Arc<Mutex<Vec<Sender<ServerEvent>>>>,

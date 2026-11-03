@@ -15,7 +15,6 @@ use serde_json::{Value, json};
 
 use crate::target::Target;
 use args::{Action, Invocation, Server};
-pub(crate) use projects::current as current_project;
 pub(crate) use projects::folder_project;
 
 type Result<T = ()> = std::result::Result<T, Box<dyn std::error::Error>>;

@@ -796,6 +796,28 @@ fn activity_samples(session: SessionId) -> Vec<Message> {
 fn files_samples() -> Vec<Message> {
     vec![
         Message::Request {
+            id: RequestId(11),
+            body: RequestBody::WorkspaceSnapshot {
+                expected_server: crate::ServerIdentity::from_u128(1),
+                session: SessionId::from(NonZeroU64::MIN),
+            },
+        },
+        Message::Reply {
+            id: RequestId(11),
+            body: ReplyBody::WorkspaceSnapshot(crate::WorkspaceSnapshot {
+                server: crate::ServerIdentity::from_u128(1),
+                session: SessionId::from(NonZeroU64::MIN),
+                project: crate::ProjectId::from_u128(2),
+                revision: "membership".into(),
+                roots: vec![crate::WorkspaceRoot {
+                    key: "root".into(),
+                    primary: true,
+                    path: ServerPath(b"/workspace-\xff".to_vec()),
+                    error: Some("unavailable".into()),
+                }],
+            }),
+        },
+        Message::Request {
             id: RequestId(9),
             body: RequestBody::ListFolders(ServerPath(b"/home/dev".to_vec())),
         },

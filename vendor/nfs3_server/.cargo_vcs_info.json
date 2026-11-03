@@ -1,0 +1,6 @@
+{
+  "git": {
+    "sha1": "8179e9d66d655242a4aadd2153a9ef8ba8b1c083"
+  },
+  "path_in_vcs": "crates/nfs3_server"
+}

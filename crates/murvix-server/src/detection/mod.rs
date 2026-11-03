@@ -316,6 +316,7 @@ fn alias(value: &str) -> Option<AgentProvider> {
         "xal" | "xal-dev" => AgentProvider::Xal,
         "agy" | "antigravity" | "antigravity-cli" => AgentProvider::Antigravity,
         "omp" | "oh-my-pi" => AgentProvider::OhMyPi,
+        "hermes" => AgentProvider::Hermes,
         _ => return None,
     })
 }

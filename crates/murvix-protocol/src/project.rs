@@ -193,15 +193,39 @@ impl ProjectDescriptor {
 pub const MAX_EXTRA_DIRECTORIES: usize = 16;
 pub const MAX_EXTRA_DIRECTORIES_BYTES: usize = 16 * 1024;
 
-/// The directories in a project's scope, agent-agnostic: the project's own
-/// directory first, then its extra roots. This is the workspace every agent
-/// running in the project's terminals sees, however that agent reads its
-/// environment; empty extras mean the workspace is just `directory`.
+/// Ordered project workspace membership: primary first, then extra roots.
+/// This metadata does not itself expose or confine filesystem access.
 pub fn workspace_roots(descriptor: &ProjectDescriptor) -> Vec<ServerPath> {
     let mut roots = Vec::with_capacity(descriptor.extra_directories.len() + 1);
     roots.push(descriptor.directory.clone());
     roots.extend(descriptor.extra_directories.iter().cloned());
     roots
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Encode, Decode)]
+pub struct WorkspaceSnapshot {
+    #[n(0)]
+    pub server: ServerIdentity,
+    #[n(1)]
+    pub session: SessionId,
+    #[n(2)]
+    pub project: ProjectId,
+    #[n(3)]
+    pub revision: String,
+    #[n(4)]
+    pub roots: Vec<WorkspaceRoot>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Encode, Decode)]
+pub struct WorkspaceRoot {
+    #[n(0)]
+    pub key: String,
+    #[n(1)]
+    pub primary: bool,
+    #[n(2)]
+    pub path: ServerPath,
+    #[n(3)]
+    pub error: Option<String>,
 }
 
 pub fn validate_extra_directories(

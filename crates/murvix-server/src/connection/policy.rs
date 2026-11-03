@@ -32,6 +32,7 @@ pub(super) fn permit(device: bool, body: &RequestBody) -> Result<(), ServerError
         | RequestBody::CancelCreation(_)
         | RequestBody::ListSessions
         | RequestBody::ReadCatalog { .. }
+        | RequestBody::WorkspaceSnapshot { .. }
         | RequestBody::MutateProject(_)
         | RequestBody::ListProjectSessions { .. }
         | RequestBody::CreateSession { .. }

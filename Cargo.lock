@@ -2395,6 +2395,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "fuser"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b82b6597d216503555ead6b358f341ef748869bf5c6fbae6a0cb9dd231baecfd"
+dependencies = [
+ "bitflags 2.13.1",
+ "libc",
+ "log",
+ "memchr",
+ "nix 0.31.3",
+ "num_enum",
+ "page_size",
+ "parking_lot",
+ "pkg-config",
+ "ref-cast",
+ "smallvec",
+ "zerocopy",
+]
+
+[[package]]
 name = "futf"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4417,7 +4437,7 @@ dependencies = [
 
 [[package]]
 name = "murvix-app"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "async-channel 2.5.0",
  "ctor",
@@ -4440,7 +4460,7 @@ dependencies = [
 
 [[package]]
 name = "murvix-app-core"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "icu_locale_core",
  "icu_plurals",
@@ -4463,25 +4483,29 @@ dependencies = [
 
 [[package]]
 name = "murvix-cli"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "crossterm",
+ "fuser",
+ "libc",
  "murvix-app-core",
  "murvix-client",
  "murvix-core",
  "murvix-protocol",
  "murvix-terminal",
+ "nfs3_server",
  "ratatui",
  "rustix 1.1.4",
  "serde",
  "serde_json",
  "signal-hook 0.4.4",
  "tempfile",
+ "tokio",
 ]
 
 [[package]]
 name = "murvix-client"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "libc",
  "murvix-core",
@@ -4493,7 +4517,7 @@ dependencies = [
 
 [[package]]
 name = "murvix-core"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "libproc",
  "serde",
@@ -4503,7 +4527,7 @@ dependencies = [
 
 [[package]]
 name = "murvix-protocol"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "minicbor",
  "postcard",
@@ -4518,7 +4542,7 @@ dependencies = [
 
 [[package]]
 name = "murvix-server"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "getrandom 0.3.4",
  "libproc",
@@ -4541,7 +4565,7 @@ dependencies = [
 
 [[package]]
 name = "murvix-terminal"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "image",
  "libghostty-vt",
@@ -4551,7 +4575,7 @@ dependencies = [
 
 [[package]]
 name = "murvix-ui"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "ashpd 0.11.1",
  "async-channel 2.5.0",
@@ -4646,6 +4670,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
+name = "nfs3_macros"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c65db184648a6ca6b3512baea5c372e0496f0af93473231b745563200926ca6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.4",
+]
+
+[[package]]
+name = "nfs3_server"
+version = "0.11.1"
+dependencies = [
+ "anyhow",
+ "nfs3_types",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "nfs3_types"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "252b9bcc45b1f8fa853c7358243e6cdc24473b3eb877b65da87e7daf75003bf9"
+dependencies = [
+ "nfs3_macros",
+]
+
+[[package]]
 name = "nix"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4680,6 +4734,7 @@ dependencies = [
  "cfg-if",
  "cfg_aliases 0.2.2",
  "libc",
+ "memoffset",
 ]
 
 [[package]]
@@ -5283,6 +5338,16 @@ checksum = "9aa2b01e1d916879f73a53d01d1d6cee68adbb31d6d9177a8cfce093cced1d50"
 dependencies = [
  "futures-core",
  "pin-project-lite",
+]
+
+[[package]]
+name = "page_size"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30d5b2194ed13191c1999ae0704b7839fb18384fa22e49b57eeaa97d79ce40da"
+dependencies = [
+ "libc",
+ "winapi",
 ]
 
 [[package]]
@@ -8015,7 +8080,19 @@ dependencies = [
  "mio",
  "pin-project-lite",
  "socket2",
+ "tokio-macros",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "2.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.4",
 ]
 
 [[package]]

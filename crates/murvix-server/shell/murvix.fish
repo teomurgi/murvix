@@ -45,32 +45,18 @@ end
 __murvix_setup
 functions --erase __murvix_setup
 
-# Workspace-aware agent launchers. Inside a Murvix terminal, bare
-# `omp`/`claude`/`codex`/`copilot` resolve the live workspace once at launch
-# (like `murvix agent <tool>`) instead of seeing only the shell's cwd.
-# Outside a Murvix terminal, with wrappers disabled
-# (`MUXY_WORKSPACE_WRAPPERS=0`), or when the server is unreachable, the plain
-# tool runs unchanged. `command <tool>` always bypasses the wrapper.
+# Integrated terminals use the agent-neutral native workspace filesystem.
+# `command <tool>` and MUXY_WORKSPACE_WRAPPERS=0 explicitly bypass confinement.
+# An attempted managed launch never falls back to an unconfined process.
 function _murvix_with_workspace
     set -l tool $argv[1]; set -e argv[1]
     if test "$MUXY_WORKSPACE_WRAPPERS" = 0; or test -z "$MUXY_SERVER_ID"; or test -z "$MUXY_SESSION_ID"; or not command -v murvix >/dev/null 2>&1
         command $tool $argv
         return
     end
-    set -l roots (command murvix project here 2>/dev/null)
-    if test $status -eq 0 -a -n "$roots"
-        set -l extra
-        for root in $roots
-            if test -n "$root" -a -d "$root"
-                set -a extra --add-dir="$root"
-            end
-        end
-        command $tool $extra $argv
-    else
-        command $tool $argv
-    end
+    command murvix agent "$tool" -- $argv
 end
-for _murvix_tool in omp claude codex copilot
+for _murvix_tool in omp claude codex copilot hermes pi opencode
     eval "function $_murvix_tool; _murvix_with_workspace $_murvix_tool \$argv; end"
 end
 functions --erase _murvix_tool 2>/dev/null; set --erase _murvix_tool

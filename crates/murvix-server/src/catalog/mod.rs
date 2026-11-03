@@ -204,6 +204,97 @@ impl Catalog {
         self.lock().server
     }
 
+    pub(crate) fn workspace_snapshot(
+        &self,
+        expected_server: ServerIdentity,
+        session: SessionId,
+        project: ProjectId,
+    ) -> Result<murvix_protocol::WorkspaceSnapshot, ServerError> {
+        use ring::digest::{Context, SHA256};
+        use std::fmt::Write;
+
+        fn hex(bytes: &[u8]) -> String {
+            let mut text = String::with_capacity(bytes.len() * 2);
+            for byte in bytes {
+                let _ = write!(&mut text, "{byte:02x}");
+            }
+            text
+        }
+
+        let state = self.lock();
+        if state.server != expected_server {
+            return Err(ServerError::new(
+                ErrorCode::BadRequest,
+                "workspace server identity mismatch",
+            ));
+        }
+        let membership = state
+            .sessions
+            .get(&session)
+            .filter(|membership| {
+                membership.info.project == project
+                    && membership.status == SessionStatus::Live
+                    && !state.discarding.contains(&session)
+            })
+            .ok_or_else(|| ServerError::unknown_session(session))?;
+        let descriptor = state
+            .projects
+            .get(&membership.info.project)
+            .filter(|_| !state.deleting.contains(&project))
+            .ok_or_else(|| {
+                ServerError::new(ErrorCode::UnknownProject, "workspace project unavailable")
+            })?;
+        let server = state.server.to_string();
+        let project_text = project.to_string();
+        let mut seen = BTreeMap::new();
+        let mut revision = Context::new(&SHA256);
+        revision.update(b"murvix-workspace-membership-v1");
+        revision.update(server.as_bytes());
+        revision.update(project_text.as_bytes());
+        let mut roots = Vec::with_capacity(descriptor.extra_directories.len() + 1);
+        for (index, path) in std::iter::once(&descriptor.directory)
+            .chain(descriptor.extra_directories.iter())
+            .enumerate()
+        {
+            let mut digest = Context::new(&SHA256);
+            digest.update(b"murvix-workspace-root-v1");
+            digest.update(server.as_bytes());
+            digest.update(project_text.as_bytes());
+            digest.update(&path.0);
+            let key = hex(digest.finish().as_ref());
+            if seen
+                .insert(key.clone(), path)
+                .is_some_and(|previous| previous != path)
+            {
+                return Err(ServerError::new(
+                    ErrorCode::BadRequest,
+                    "workspace root key collision",
+                ));
+            }
+            revision.update(&(path.0.len() as u64).to_be_bytes());
+            revision.update(&path.0);
+            let directory = Path::new(std::ffi::OsStr::from_bytes(&path.0));
+            let error = match fs::metadata(directory) {
+                Ok(metadata) if metadata.is_dir() => None,
+                Ok(_) => Some("workspace root is not a directory".to_owned()),
+                Err(error) => Some(error.to_string()),
+            };
+            roots.push(murvix_protocol::WorkspaceRoot {
+                key,
+                primary: index == 0,
+                path: path.clone(),
+                error,
+            });
+        }
+        Ok(murvix_protocol::WorkspaceSnapshot {
+            server: state.server,
+            session,
+            project,
+            revision: hex(revision.finish().as_ref()),
+            roots,
+        })
+    }
+
     pub(crate) fn memory() -> Self {
         Self::from_state(
             State::fresh(&std::env::home_dir().unwrap_or_else(|| PathBuf::from("/"))),

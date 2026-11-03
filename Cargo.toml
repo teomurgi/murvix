@@ -11,6 +11,7 @@ members = [
     "crates/murvix-app",
     "crates/murvix-ui",
 ]
+exclude = ["vendor/nfs3_server"]
 
 # Current boundary policy, not a permanent crate list. Structural changes update
 # this table and the affected crate-level documentation together.
@@ -31,7 +32,7 @@ murvix-client = ["murvix-server"]
 murvix-cli = ["murvix-terminal"]
 
 [workspace.package]
-version = "0.7.1"
+version = "0.8.0"
 edition = "2024"
 rust-version = "1.92"
 license = "MIT"

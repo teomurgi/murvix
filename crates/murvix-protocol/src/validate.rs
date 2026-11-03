@@ -210,6 +210,7 @@ fn validate_request(body: &RequestBody) -> Result<(), ErrorCode> {
         | RequestBody::ReadActivity
         | RequestBody::IdentifyClient(_)
         | RequestBody::ReadCatalog { .. }
+        | RequestBody::WorkspaceSnapshot { .. }
         | RequestBody::ListProjectSessions { .. }
         | RequestBody::CloseSession { .. }
         | RequestBody::CancelCreation(_)
@@ -321,6 +322,7 @@ fn validate_reply(body: &ReplyBody) -> Result<(), ErrorCode> {
         | ReplyBody::InputWritten
         | ReplyBody::ScreenCleared
         | ReplyBody::Git(_)
+        | ReplyBody::WorkspaceSnapshot(_)
         | ReplyBody::ProjectMutated { .. }
         | ReplyBody::SessionReferencesSynced
         | ReplyBody::ClientIdentified(_)

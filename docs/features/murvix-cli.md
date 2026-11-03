@@ -87,13 +87,12 @@ murvix --help          # all commands; murvix <command> --help for details
 | --- | --- |
 | `murvix` | Opens the [terminal UI](terminal-ui.md). |
 | `murvix <folder>` | Opens the folder as a project in the desktop app on macOS or Linux. Over SSH, without a desktop session, or if the app cannot launch, opens it in the terminal UI. Use `./NAME` for a folder named like a command. |
-| `murvix server start\|status\|stop` | Starts, inspects, or stops the server. `stop` refuses while terminals run; add `--force` to end them. |
-| `murvix project list\|add\|rename\|set-color\|set-icon\|workspace\|clear-workspace\|here\|delete` | Manages projects. Deleting ends its terminals and deletes child projects but keeps files on disk. `workspace` sets the extra roots advertised to agents alongside the project directory; `here` prints the calling terminal's roots. JSON lists carry `workspace`/`extra_directories` text plus `workspace_bytes`/`extra_directory_bytes` byte arrays. |
-| `murvix session list\|create\|send\|send-keys\|read-screen\|history\|search\|wait\|end\|discard` | Creates and controls terminal sessions; see below. |
+| `murvix agent <omp\|claude\|codex\|copilot\|hermes\|pi\|opencode> [-- <native arguments...>]` | Launches an installed agent inside the live workspace filesystem: `primary` is writable and added roots are read-only through the mount and their original paths, with native permissions unchanged. See [AI agents](ai-agents.md#start-an-agent-in-the-live-workspace-filesystem). |
+| `murvix workspace run -- PROGRAM [ARGS...]` | Runs any native program in the live workspace filesystem with `workspace.json` membership and `MURVIX_WORKSPACE_ROOT` / `MURVIX_PRIMARY_ROOT` set. |
+| `murvix workspace snapshot --json` | Prints authoritative live workspace membership and stable root keys for the calling terminal. |
 | `murvix worktree list\|create\|checkout-pr\|register\|remove` | Manages Git worktree projects. Setup/teardown hooks run only with `--hooks`; removal needs `--yes` and refuses uncommitted changes without `--force`. |
 | `murvix settings get\|set` | Reads or changes [server settings](server.md#settings). |
 | `murvix activity list\|ack` | Reads or clears [AI agent](ai-agents.md) activity. |
-| `murvix agent <omp\|claude\|codex\|copilot> [-- <native arguments...>]` | Launches an installed agent with the calling terminal's live workspace roots through native options, without changing its permission policies. See [AI agents](ai-agents.md#start-an-agent-with-the-workspace). |
 | `murvix browser open\|list\|read\|click\|…` | Drives browser tabs in the desktop app on this computer. See [Browser control](#browser-control). |
 | `murvix exec <project> -- <program> [args]` | Runs a program in the project folder, without a shell. |
 | `murvix git`, `murvix files` | Run raw server Git and file actions as JSON. Advanced; the JSON shape follows the protocol and may change. |

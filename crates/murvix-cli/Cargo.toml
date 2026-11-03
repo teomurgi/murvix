@@ -25,10 +25,17 @@ serde_json.workspace = true
 serde = { version = "1.0", features = ["derive"] }
 ratatui = { version = "=0.30.2", default-features = false, features = ["crossterm", "underline-color"] }
 signal-hook = "0.4"
-rustix = { version = "1.1.4", features = ["termios"] }
+rustix = { version = "1.1.4", features = ["termios", "fs", "mount", "thread", "process"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 crossterm = { version = "0.29", features = ["use-dev-tty"] }
+fuser = { version = "0.18.0", default-features = false }
+libc = "0.2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2"
+nfs3_server = { path = "../../vendor/nfs3_server" }
+tokio = { version = "1", default-features = false, features = ["net", "io-util", "sync", "rt", "macros", "time"] }
 
 [dev-dependencies]
 murvix-terminal = { path = "../murvix-terminal" }

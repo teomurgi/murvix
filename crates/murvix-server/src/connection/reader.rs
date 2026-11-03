@@ -382,6 +382,10 @@ fn ordered_request(
         | RequestBody::ListProjectSessions { .. } => project_request(body, registry, outbox)?,
         RequestBody::Git(request) => ReplyBody::Git(registry.git(&request)?),
         RequestBody::Files(request) => ReplyBody::Files(registry.files(&request)?),
+        RequestBody::WorkspaceSnapshot {
+            expected_server,
+            session,
+        } => ReplyBody::WorkspaceSnapshot(registry.workspace_snapshot(expected_server, session)?),
         RequestBody::ListFolders(directory) => {
             ReplyBody::Folders(crate::files::folders(&directory)?)
         }

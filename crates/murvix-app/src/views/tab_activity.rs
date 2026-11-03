@@ -655,7 +655,7 @@ pub(super) fn provider_icon(provider: AgentProvider, size: Pixels, model: &AppMo
         AgentProvider::Xal => "xal",
         AgentProvider::Antigravity => "antigravity",
         AgentProvider::OhMyPi => "omp",
-        AgentProvider::Unrecognized(_) => {
+        AgentProvider::Hermes | AgentProvider::Unrecognized(_) => {
             return svg()
                 .path("icons/terminal.svg")
                 .size(size)

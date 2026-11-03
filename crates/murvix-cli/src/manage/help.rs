@@ -15,6 +15,7 @@ Usage: murvix [--host DESTINATION] [COMMAND]
   files         Run a server file action using JSON
   exec          Execute a program in a server project
   agent         Launch a native agent with this terminal's live workspace
+  workspace     Run any program in the live, OS-enforced workspace filesystem
   mobile        Enable access, pair phones and revoke devices
   browser       Drive browser tabs in the desktop app on this computer
   install-skills
@@ -190,16 +191,31 @@ For shell syntax, explicitly use /bin/sh -c '...'. Timeout defaults to 30000ms
 complete result. A failed, timed-out, cancelled or truncated run exits nonzero.";
 
 pub(crate) const AGENT: &str =
-    "Usage: murvix agent <omp|claude|codex|copilot|pi|opencode> [-- <native arguments...>]
+    "Usage: murvix agent <omp|claude|codex|copilot|hermes|pi|opencode> [-- <native arguments...>]
 
-Launches the native tool with this terminal's current project directory and
-extra workspace roots. omp, claude, codex and copilot receive every root
-through their --add-dir options; pi has no multi-root flag so it starts in the
-project directory; opencode receives the project directory via --dir. Arguments
-are passed directly, without shell evaluation. Native permissions and approval
-policies still apply. Requires a live Murvix terminal on this computer; --host
-is not supported. Plain native commands are unchanged. Other agents can discover
-live roots with murvix project here, but have no supported native workspace launcher.";
+Launches the native program in the live workspace filesystem, without agent
+plugins or tool extensions. The primary root is writable; added roots are
+read-only. Root membership refreshes through ordinary filesystem operations.
+Arguments are passed directly, without shell evaluation or permission overrides.
+Requires a live local Murvix terminal and supported OS confinement. Native tool
+permissions still apply. Plain native commands and --host behavior are unchanged.
+The isolated agent home is persistent per project; authenticate there once.
+For another program, use murvix workspace run -- PROGRAM [ARGS...].";
+
+pub(crate) const WORKSPACE: &str = "Usage: murvix workspace <action>
+  run -- PROGRAM [ARGS...]  Run any native program in the live workspace
+  snapshot --json          Read authoritative membership and stable root keys
+
+The workspace directory contains primary (writable) and keyed added roots
+(read-only), plus private .state for the isolated agent home and temporary files.
+Adding a folder changes the next filesystem listing, not a model's saved context.
+Removal invalidates future namespace operations; an already-started operation
+may finish. Original host paths are not writable inside the managed process.
+Native approvals remain in force. No agent-specific extensions are installed.
+Offline or stale terminal bindings fail explicitly, with no cwd/env-root fallback.
+Linux requires FUSE and supported kernel confinement; macOS requires macOS 26+
+and the enabled Murvix filesystem app extension. Plain external processes are
+not retrofitted. --host is unsupported; launch on the project's own computer.";
 
 pub(crate) fn topic(group: &str) -> Option<&'static str> {
     Some(match group {
@@ -213,6 +229,7 @@ pub(crate) fn topic(group: &str) -> Option<&'static str> {
         "files" => FILES,
         "exec" => EXEC,
         "agent" => AGENT,
+        "workspace" => WORKSPACE,
         "mobile" => MOBILE,
         "install-skills" => INSTALL_SKILLS,
         "browser" => BROWSER,

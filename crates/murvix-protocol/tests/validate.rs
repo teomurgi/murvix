@@ -281,6 +281,14 @@ fn samples_cover_every_message_variant_once_and_use_the_right_channel() {
                 body: RequestBody::StopServer,
                 ..
             } => ("StopServer", ChannelKind::Control),
+            Message::Request {
+                body: RequestBody::WorkspaceSnapshot { .. },
+                ..
+            } => ("WorkspaceSnapshot", ChannelKind::Control),
+            Message::Reply {
+                body: ReplyBody::WorkspaceSnapshot(_),
+                ..
+            } => ("WorkspaceSnapshotReply", ChannelKind::Control),
             Message::Reply {
                 body: ReplyBody::ServerSettings(_),
                 ..
@@ -500,6 +508,8 @@ fn samples_cover_every_message_variant_once_and_use_the_right_channel() {
             "ClearScreen",
             "ScreenCleared",
             "StopServer",
+            "WorkspaceSnapshot",
+            "WorkspaceSnapshotReply",
             "StopServerIfIdle",
             "ServerBusy",
             "ServerSettings",

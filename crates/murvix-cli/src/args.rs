@@ -17,6 +17,7 @@ pub(crate) enum Command {
     Interactive,
     Manage(Box<crate::manage::args::Invocation>),
     Agent(murvix_app_core::agent_launch::Agent, Vec<OsString>),
+    Workspace(crate::workspace::Invocation),
     Mobile(Mobile),
     /// Joins stdin and stdout to the server, for clients on other computers.
     Stdio(Start),
@@ -60,6 +61,7 @@ pub(crate) fn parse(arguments: &[OsString]) -> io::Result<(Option<SshTarget>, Co
                     | Command::Open(_)
                     | Command::Browser(_)
                     | Command::Agent(..)
+                    | Command::Workspace(_)
                     | Command::InstallSkills(_),
                     [word, ..],
                 ) => Err(invalid(&format!(
@@ -87,6 +89,12 @@ fn command(arguments: &[OsString]) -> io::Result<Command> {
             Ok(Command::Usage(help::AGENT))
         }
         [command, rest @ ..] if command == "agent" => agent(rest),
+        [command, flag] if command == "workspace" && (flag == "--help" || flag == "-h") => {
+            Ok(Command::Usage(help::WORKSPACE))
+        }
+        [command, rest @ ..] if command == "workspace" => {
+            crate::workspace::parse(rest).map(Command::Workspace)
+        }
         [command, .., flag] if command == "mobile" && (flag == "--help" || flag == "-h") => {
             Ok(Command::Usage(help::MOBILE))
         }
@@ -121,7 +129,7 @@ fn agent(arguments: &[OsString]) -> io::Result<Command> {
     let agent = tool
         .to_str()
         .and_then(murvix_app_core::agent_launch::Agent::from_command)
-        .ok_or_else(|| invalid("unsupported workspace-aware agent; use omp, claude, codex, copilot, pi or opencode; other agents can discover live roots with murvix project here"))?;
+        .ok_or_else(|| invalid("unknown named agent; use omp, claude, codex, copilot, hermes, pi or opencode; any other program can use murvix workspace run -- PROGRAM"))?;
     let arguments = match rest {
         [separator, arguments @ ..] if separator == "--" => arguments,
         _ => rest,
