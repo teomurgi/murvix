@@ -106,16 +106,15 @@ def agent(config, second):
     subprocess.run(["/usr/bin/git", "init", str(repository)], check=True)
     objects = repository / ".git/objects"
     descriptor, temporary_object = tempfile.mkstemp(prefix="tmp_obj_", dir=objects)
+    os.write(descriptor, b"object")
+    os.fsync(descriptor)
     os.close(descriptor)
-    Path(temporary_object).unlink()
     object_directory = objects / "murvix"
     object_directory.mkdir()
-    source = object_directory / "source"
-    source.write_text("object")
     linked = object_directory / "linked"
-    os.link(source, linked)
+    os.link(temporary_object, linked)
+    Path(temporary_object).unlink()
     linked.rename(object_directory / "renamed")
-    source.unlink()
     (object_directory / "renamed").unlink()
     object_directory.rmdir()
     (repository / "tracked").write_text("git data")
