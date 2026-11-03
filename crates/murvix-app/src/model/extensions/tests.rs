@@ -821,6 +821,10 @@ fn project_and_agent_lists_use_main_shapes(cx: &mut TestAppContext) {
     let project = state
         .add_project(ServerId::local(), std::env::temp_dir())
         .expect("project");
+    let extra = tempfile::tempdir().expect("workspace folder");
+    state
+        .set_project_extra_directories(project, vec![extra.path().to_path_buf()])
+        .expect("set workspace folder");
     let (view, cx, _package, _requests) = enabled(
         cx,
         "lister",
@@ -847,6 +851,7 @@ fn project_and_agent_lists_use_main_shapes(cx: &mut TestAppContext) {
         "iconColor",
         "icon",
         "logo",
+        "workspaceFolders",
         "worktreesEnabled",
     ] {
         assert!(
@@ -857,6 +862,10 @@ fn project_and_agent_lists_use_main_shapes(cx: &mut TestAppContext) {
     assert_eq!(
         home["worktreesEnabled"], false,
         "the home project has no worktrees"
+    );
+    assert_eq!(
+        projects["value"][1]["workspaceFolders"],
+        json!([extra.path().display().to_string()])
     );
     let agents = script_call(&view, cx, "lister", 1, "agents.list", json!({}));
     assert_eq!(agents["value"], json!([]));

@@ -57,10 +57,7 @@ remove it, or right-click the project and use its **Workspace** menu to remove
 folders or clear the list. Removing a workspace folder does not delete it from
 disk.
 
-Extra folders extend the context available to agents; files, search, commands,
-and Git still target the primary project folder. Worktrees keep their own
-single checkout folder. Home does not show workspace-folder controls; remote
-projects show their extra folders without a local folder-picker action.
+Extra folders extend the context available to agents; search, commands, and Git still target the primary project folder. The Files extension lists added folders for the selected workspace and can open them externally. Worktrees keep their own single checkout folder. Home does not show workspace-folder controls; remote projects show their extra folders without a local folder-picker action.
 
 The [terminal UI](terminal-ui.md#workspace-folders) provides the same selected
 project card, with `Ctrl-B a` to add an absolute server path and `Ctrl-B W` to

@@ -1,6 +1,6 @@
 {
   "name": "files",
-  "version": "1.21.7",
+  "version": "1.22.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/copy-build-assets.mjs",
@@ -68,6 +68,7 @@
       "files:read",
       "files:write",
       "panels:write",
+      "projects:read",
       "tabs:write",
       "commands:exec",
       "commands:run-script",
@@ -75,6 +76,7 @@
     ],
     "events": [
       "file.changed",
+      "projects.changed",
       "worktree.switched",
       "project.switched",
       "tab.created",
