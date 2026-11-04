@@ -30,10 +30,46 @@ fn client() -> Result<reqwest::blocking::Client> {
         .map_err(|error| error.to_string())
 }
 
+fn trusted_archive_url(url: &reqwest::Url) -> bool {
+    url.scheme() == "https"
+        && matches!(
+            url.host_str(),
+            Some(
+                "github.com"
+                    | "objects.githubusercontent.com"
+                    | "release-assets.githubusercontent.com"
+            )
+        )
+        && url.port_or_known_default() == Some(443)
+        && url.username().is_empty()
+        && url.password().is_none()
+}
+
+fn archive_client() -> Result<reqwest::blocking::Client> {
+    reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(120))
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() >= 10 || !trusted_archive_url(attempt.url()) {
+                attempt.error("untrusted or excessive marketplace redirect")
+            } else {
+                attempt.follow()
+            }
+        }))
+        .user_agent("Murvix/2 Extensions")
+        .build()
+        .map_err(|error| error.to_string())
+}
+
 fn bytes(response: reqwest::blocking::Response, limit: u64) -> Result<Vec<u8>> {
     let response = response
         .error_for_status()
         .map_err(|error| error.to_string())?;
+    if !response.status().is_success() {
+        return Err(format!(
+            "unexpected marketplace HTTP status: {}",
+            response.status()
+        ));
+    }
     if response.content_length().is_some_and(|size| size > limit) {
         return Err(tr!("marketplace response is too large").into());
     }
@@ -194,15 +230,7 @@ pub(crate) fn download(details: &Value, directory: &Path) -> Result<tempfile::Te
             .ok_or_else(|| tr!("missing archive URL").to_string())?,
     )
     .map_err(|error| error.to_string())?;
-    if url.scheme() != "https"
-        || !matches!(
-            url.host_str(),
-            Some("github.com" | "objects.githubusercontent.com")
-        )
-        || url.port_or_known_default() != Some(443)
-        || !url.username().is_empty()
-        || url.password().is_some()
-    {
+    if !trusted_archive_url(&url) {
         return Err(tr!("untrusted marketplace download URL").into());
     }
     let size = details["size"]
@@ -214,7 +242,7 @@ pub(crate) fn download(details: &Value, directory: &Path) -> Result<tempfile::Te
         .filter(|hash| hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit()))
         .ok_or_else(|| tr!("invalid archive checksum").to_string())?;
     let data = bytes(
-        client()?
+        archive_client()?
             .get(url)
             .send()
             .map_err(|error| error.to_string())?,
@@ -436,6 +464,31 @@ mod tests {
             "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
         );
         assert!(sha256(&root.path().join("missing")).is_err());
+    }
+
+    #[test]
+    fn archive_redirects_only_allow_trusted_https_hosts() {
+        for url in [
+            "https://github.com/teomurgi/murvix/releases/download/v1/files.zip",
+            "https://release-assets.githubusercontent.com/asset?signature=abc",
+            "https://objects.githubusercontent.com/asset",
+        ] {
+            assert!(
+                trusted_archive_url(&reqwest::Url::parse(url).unwrap()),
+                "{url}"
+            );
+        }
+        for url in [
+            "http://release-assets.githubusercontent.com/asset",
+            "https://release-assets.githubusercontent.com.evil.example/asset",
+            "https://user@github.com/asset",
+            "https://github.com:444/asset",
+        ] {
+            assert!(
+                !trusted_archive_url(&reqwest::Url::parse(url).unwrap()),
+                "{url}"
+            );
+        }
     }
 
     #[test]

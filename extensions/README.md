@@ -29,6 +29,8 @@ The release job rebuilds, verifies each archive's size/sha256 against
 `manifest.json`, and `scripts/publish-release.sh` uploads the zips alongside
 the app artifacts. The app constructs each `download_url` from the tag, so the
 manifest carries no per-release URLs.
+The installer follows GitHub release redirects only to trusted HTTPS GitHub
+asset hosts, then verifies the archive size and SHA-256 before extraction.
 
 ## Deliberately unrenamed
 
