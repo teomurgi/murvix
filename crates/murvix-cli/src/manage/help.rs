@@ -190,16 +190,18 @@ For shell syntax, explicitly use /bin/sh -c '...'. Timeout defaults to 30000ms
 complete result. A failed, timed-out, cancelled or truncated run exits nonzero.";
 
 pub(crate) const AGENT: &str =
-    "Usage: murvix agent <omp|claude|codex|copilot|pi|opencode> [-- <native arguments...>]
+    "Usage: murvix agent <hermes|omp|claude|codex|copilot|pi|opencode> [-- <native arguments...>]
 
 Launches the native tool with this terminal's current project directory and
 extra workspace roots. omp, claude, codex and copilot receive every root
-through their --add-dir options; pi has no multi-root flag so it starts in the
-project directory; opencode receives the project directory via --dir. Arguments
-are passed directly, without shell evaluation. Native permissions and approval
-policies still apply. Requires a live Murvix terminal on this computer; --host
-is not supported. Plain native commands are unchanged. Other agents can discover
-live roots with murvix project here, but have no supported native workspace launcher.";
+through their --add-dir options; Hermes receives the primary directory through
+--in; pi starts in the project directory; opencode receives it through run --dir.
+Hermes, pi and opencode discover extra roots through the installed Murvix skill.
+Arguments are passed directly, without shell evaluation. Native permissions and
+approval policies still apply. Requires a live Murvix terminal on this computer;
+--host is not supported. Plain native commands are unchanged. Other agents can
+discover live roots with murvix project here, but have no supported native
+workspace launcher.";
 
 pub(crate) fn topic(group: &str) -> Option<&'static str> {
     Some(match group {
