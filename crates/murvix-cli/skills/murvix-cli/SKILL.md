@@ -1,6 +1,6 @@
 ---
 name: murvix-cli
-description: How to drive Murvix 2 from a shell — start terminals, read output, manage projects, worktrees, and workspace folders. Use when asked to list workspace folders, work with extra roots, or drive terminals, sessions, projects, or the desktop browser from a Murvix terminal.
+description: How to drive Murvix 2 from a shell — start terminals, read output, manage projects, worktrees, and workspace folders. At the start of work in a Murvix terminal, load the live workspace roots and treat every folder as part of the task context; also use this when asked to list workspace folders or drive terminals, sessions, projects, worktrees, or the desktop browser.
 ---
 # Murvix CLI
 
@@ -27,28 +27,35 @@ Murvix sets `MUXY_SESSION_ID` and `MUXY_SERVER_ID` in every terminal. Session
 commands then default to your own terminal, and `session create` to your
 project, so most commands need no IDs.
 
-Read the live workspace with `murvix project here --json`: the project directory
-first, then its added folders, as text and exact byte arrays. This works for any
-agent and reflects added or removed folders even in an existing terminal.
-Run this command yourself whenever asked to list workspace folders or work with
-more than the current directory; do not answer from the shell's current
-directory or from `MUXY_WORKSPACE_*` alone. The command identifies your terminal
-through its server and session, not cwd, and rejects stale or foreign identities.
+Before doing task work in a Murvix terminal, run `murvix project here --json` and
+use every returned workspace root as part of the task context, not just the
+terminal's current directory. This is required even when the request names only
+the primary project folder: related source, tests, documentation, or instructions
+may live in an added folder. Read the root-level `AGENTS.md` in every workspace
+folder that has one before planning or editing. Before working in a nested
+folder, also read any `AGENTS.md` between that folder and its workspace root.
+Follow each file for the files under its directory. Read or edit those folders
+directly when relevant. The result lists the project directory first, then its
+added folders, and reflects folders added or removed after this terminal
+started. Do not rely on cwd or on `MUXY_WORKSPACE_*` alone. The command identifies
+your terminal through its server and session, not cwd, and rejects stale or
+foreign identities.
 
 `MUXY_WORKSPACE_COUNT` and `MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on are
 older terminal-start snapshots; prefer the live command. Files, search, exec,
 and Git still target the primary project folder.
 
-To start a new workspace-aware agent, use `murvix agent omp`, `murvix agent claude`,
-`murvix agent codex`, `murvix agent copilot`, `murvix agent pi`, or
-`murvix agent opencode`. Native arguments follow `--`.
+To start a new workspace-aware agent, use `murvix agent hermes`,
+`murvix agent omp`, `murvix agent claude`, `murvix agent codex`,
+`murvix agent copilot`, `murvix agent pi`, or `murvix agent opencode`. Native
+arguments follow `--`.
 omp, claude, codex and copilot receive current roots through each tool's native
-`--add-dir` options; pi has no multi-root flag so it starts in the project
-directory; opencode receives the project directory via `run --dir`.
-Extra roots reach pi and opencode through this skill: run `murvix project here`.
-The launcher never bypasses native permissions. Plain tool commands and
-already-running agents are unchanged; use the tool's native folder commands or
-launch again after changes.
+`--add-dir` options; Hermes starts in the primary directory with `--in`; pi
+starts in the project directory; opencode receives it through `run --dir`.
+Hermes, pi and opencode discover extra roots through this skill: run
+`murvix project here --json` before task work. The launcher never bypasses
+native permissions. Plain tool commands and already-running agents are
+unchanged; use the tool's native folder commands or launch again after changes.
 
 ## Start a terminal and capture its ID
 

@@ -93,7 +93,7 @@ murvix --help          # all commands; murvix <command> --help for details
 | `murvix worktree list\|create\|checkout-pr\|register\|remove` | Manages Git worktree projects. Setup/teardown hooks run only with `--hooks`; removal needs `--yes` and refuses uncommitted changes without `--force`. |
 | `murvix settings get\|set` | Reads or changes [server settings](server.md#settings). |
 | `murvix activity list\|ack` | Reads or clears [AI agent](ai-agents.md) activity. |
-| `murvix agent <omp\|claude\|codex\|copilot> [-- <native arguments...>]` | Launches an installed agent with the calling terminal's live workspace roots through native options, without changing its permission policies. See [AI agents](ai-agents.md#start-an-agent-with-the-workspace). |
+| `murvix agent <hermes|omp|claude|codex|copilot|pi|opencode> [-- <native arguments...>]` | Launches an installed agent with the calling terminal's live workspace. Claude, Codex, Copilot, and Oh My Pi receive roots through native `--add-dir`; Hermes starts in the primary folder with `--in`; Pi and OpenCode also start in the primary folder. Hermes, Pi, and OpenCode use the installed Murvix skill to discover extra roots. See [AI agents](ai-agents.md#start-an-agent-with-the-workspace). |
 | `murvix browser open\|list\|read\|click\|…` | Drives browser tabs in the desktop app on this computer. See [Browser control](#browser-control). |
 | `murvix exec <project> -- <program> [args]` | Runs a program in the project folder, without a shell. |
 | `murvix git`, `murvix files` | Run raw server Git and file actions as JSON. Advanced; the JSON shape follows the protocol and may change. |

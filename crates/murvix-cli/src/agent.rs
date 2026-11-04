@@ -1,7 +1,6 @@
 //! Local native launches use argv directly; no shell parsing or permission overrides.
-//! pi launches in the project directory (no native multi-root flag); opencode
-//! gets the project directory via `--dir`. Extra workspace roots reach both
-//! through the installed murvix-cli skill (`murvix project here`).
+//! `Pi`, `Hermes`, and `OpenCode` lack a native multi-root launcher: they start in the
+//! primary directory and discover extra roots through the installed Murvix skill.
 
 use std::ffi::OsString;
 use std::os::unix::ffi::OsStrExt;
@@ -44,6 +43,14 @@ pub(crate) fn run(agent: Agent, arguments: &[OsString]) -> Result<(), Box<dyn st
         if let Some(directory) = roots.first() {
             command
                 .arg("--dir")
+                .arg(std::ffi::OsStr::from_bytes(&directory.0));
+        }
+    } else if agent == Agent::Hermes {
+        // Hermes accepts one working directory via its global --in option.
+        // Extra roots arrive via the installed skill.
+        if let Some(directory) = roots.first() {
+            command
+                .arg("--in")
                 .arg(std::ffi::OsStr::from_bytes(&directory.0));
         }
     }

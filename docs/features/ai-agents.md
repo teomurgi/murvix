@@ -56,13 +56,21 @@ Inside an existing Murvix terminal, use the shared launcher:
 | Claude Code | `murvix agent claude` |
 | Codex | `murvix agent codex` |
 | Copilot | `murvix agent copilot` |
+| Hermes Agent | `murvix agent hermes` |
 | Oh My Pi | `murvix agent omp` |
+| Pi | `murvix agent pi` |
+| OpenCode | `murvix agent opencode` |
 
 Pass native arguments after `--`, for example
 `murvix agent codex -- resume SESSION_ID`. The launcher reads the live project
 from the calling terminal's server and session, not its current directory or
-old environment variables. It includes the primary folder even after `cd`.
-Install and authenticate each tool separately.
+old environment variables. Claude, Codex, Copilot, and Oh My Pi receive all
+roots through native `--add-dir` options. Hermes starts in the primary folder
+with `--in`; Pi starts in the primary folder; OpenCode starts there with
+`run --dir`. Hermes, Pi, and OpenCode have no native multi-root option, so the
+installed Murvix skill directs them to query `murvix project here --json` and
+read every workspace root's `AGENTS.md` before task work. The skill must be
+installed and loaded by the agent. Install and authenticate each tool separately.
 
 Native trust, approval, and sandbox policies still apply. Additional folders
 can grant file access and load tool-specific configuration; Murvix does not

@@ -93,8 +93,11 @@ The project workspace is also advertised through `MUXY_WORKSPACE_COUNT` and
 `MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on. These are terminal-start
 snapshots. `murvix project here` instead queries the calling terminal's live
 project through its server and session identity, so existing terminals see
-added and removed roots. `murvix agent` uses that same lookup before launching
-supported agents with native additional-directory options.
+added and removed roots. `murvix agent` uses that lookup before launching
+supported agents: some receive every root through native additional-directory
+options; Hermes starts in the primary directory with `--in`, while Pi and
+OpenCode also start in the primary directory. Those three rely on the installed
+Murvix skill to discover extra roots.
 
 ## Networking
 
