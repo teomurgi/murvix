@@ -82,6 +82,8 @@ pub struct Appearance {
     pub worktree_recent: Vec<crate::ProjectId>,
     pub project_recent: Vec<crate::ProjectId>,
     pub hidden_worktrees: std::collections::BTreeSet<crate::ProjectId>,
+    pub collapsed_project_servers: std::collections::BTreeSet<crate::ServerId>,
+    pub project_server_order: Vec<crate::ServerId>,
     pub tab_focused_expanded: std::collections::BTreeMap<crate::ProjectId, bool>,
     #[serde(rename = "tab_focused_focus")]
     pub sidebar_focus: bool,
@@ -152,6 +154,8 @@ impl Default for Appearance {
             worktree_recent: Vec::new(),
             project_recent: Vec::new(),
             hidden_worktrees: std::collections::BTreeSet::new(),
+            collapsed_project_servers: std::collections::BTreeSet::new(),
+            project_server_order: Vec::new(),
             tab_focused_expanded: std::collections::BTreeMap::new(),
             sidebar_focus: false,
             sidebar_project_order: ProjectOrder::default(),
@@ -198,6 +202,7 @@ impl Appearance {
             for (key, value) in current {
                 if key != "tab_focused_expanded"
                     && key != "hidden_worktrees"
+                    && key != "collapsed_project_servers"
                     && previous_values.get(key) != Some(value)
                 {
                     changes.insert(key.clone(), value.clone());
@@ -220,6 +225,22 @@ impl Appearance {
         target.insert(
             "hidden_worktrees".into(),
             toml::Value::try_from(&saved.hidden_worktrees)?,
+        );
+        for server in self
+            .collapsed_project_servers
+            .difference(&previous.collapsed_project_servers)
+        {
+            saved.collapsed_project_servers.insert(*server);
+        }
+        for server in previous
+            .collapsed_project_servers
+            .difference(&self.collapsed_project_servers)
+        {
+            saved.collapsed_project_servers.remove(server);
+        }
+        target.insert(
+            "collapsed_project_servers".into(),
+            toml::Value::try_from(&saved.collapsed_project_servers)?,
         );
         for (project, expanded) in &self.tab_focused_expanded {
             if previous.tab_focused_expanded.get(project) != Some(expanded) {
