@@ -85,6 +85,13 @@ fn environment(
     environment_from(env::vars_os().collect(), identity, workspace)
 }
 
+/// CI providers set `CI` for their own build steps; a desktop app launched
+/// from a terminal (or an env leaking through `launchd`) can carry it into
+/// every spawned pty. Interactive shells are never CI workers, and guests
+/// such as Claude Code treat a bare `CI` with no known provider as "no
+/// color", so drop it here alongside the Muxy bookkeeping variables.
+const STRIPPED_ENV: [&str; 2] = ["CI", "CI_NAME"];
+
 fn environment_from(
     mut env: Vec<(OsString, OsString)>,
     identity: (murvix_protocol::ServerIdentity, murvix_protocol::SessionId),
@@ -94,6 +101,9 @@ fn environment_from(
         name != "MUXY_SERVER_ID"
             && name != "MUXY_SESSION_ID"
             && !name.as_encoded_bytes().starts_with(b"MUXY_WORKSPACE_")
+            && !STRIPPED_ENV
+                .iter()
+                .any(|stripped| name.as_encoded_bytes() == stripped.as_bytes())
     });
     env.push(("MUXY_SERVER_ID".into(), identity.0.to_string().into()));
     env.push((
@@ -177,5 +187,26 @@ mod tests {
         }
         assert_eq!(read.len(), 2);
         assert_eq!(read[1].as_encoded_bytes(), b"/srv/\xff:we\nird");
+    }
+
+    #[test]
+    fn ci_marker_is_stripped_but_provider_markers_survive() {
+        let identity = (
+            ServerIdentity::new(),
+            SessionId::new(7).expect("nonzero session"),
+        );
+        let base = vec![
+            (OsString::from("CI"), OsString::from("true")),
+            (OsString::from("CI_NAME"), OsString::from("codeship")),
+            (OsString::from("GITHUB_ACTIONS"), OsString::from("true")),
+            (OsString::from("PATH"), OsString::from("/bin")),
+        ];
+        let env = environment_from(base, identity, &[]);
+        // A bare CI flag makes color detection bail to monochrome; provider
+        // markers are specific enough to keep passing through.
+        assert!(get(&env, "CI").is_none());
+        assert!(get(&env, "CI_NAME").is_none());
+        assert_eq!(get(&env, "GITHUB_ACTIONS"), Some("true".into()));
+        assert_eq!(get(&env, "PATH"), Some("/bin".into()));
     }
 }
