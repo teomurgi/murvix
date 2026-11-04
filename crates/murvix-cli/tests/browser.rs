@@ -24,8 +24,8 @@ fn browser(profile: &Path, args: &[&str]) -> Result<Output> {
     Ok(Command::new(support::binary())
         .arg("browser")
         .args(args)
-        .env("MUXY_DIR", profile)
-        .env_remove("MUXY_CLI_TIMEOUT")
+        .env("MURVIX_DIR", profile)
+        .env_remove("MURVIX_CLI_TIMEOUT")
         .output()?)
 }
 

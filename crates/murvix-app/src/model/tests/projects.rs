@@ -229,19 +229,19 @@ fn one_x_projects_join_the_running_app_and_keep_what_is_there(cx: &mut TestAppCo
 }
 
 #[gpui::test]
-#[ignore = "requires a built server and a fresh MUXY_DIR under /tmp/murvix-catalog-"]
+#[ignore = "requires a built server and a fresh MURVIX_DIR under /tmp/murvix-catalog-"]
 fn server_first_legacy_migration_walkthrough(cx: &mut TestAppContext) {
     migration_walkthrough(cx, true).expect("server-first migration");
 }
 
 #[gpui::test]
-#[ignore = "requires a built server and a fresh MUXY_DIR under /tmp/murvix-catalog-"]
+#[ignore = "requires a built server and a fresh MURVIX_DIR under /tmp/murvix-catalog-"]
 fn desktop_first_legacy_migration_walkthrough(cx: &mut TestAppContext) {
     migration_walkthrough(cx, false).expect("desktop-first migration");
 }
 
 fn migration_walkthrough(cx: &mut TestAppContext, server_first: bool) -> Result {
-    let directory = PathBuf::from(std::env::var("MUXY_DIR")?);
+    let directory = PathBuf::from(std::env::var("MURVIX_DIR")?);
     assert!(
         directory
             .to_string_lossy()
@@ -551,13 +551,13 @@ fn removal_save_failure_keeps_projects_and_never_discards(cx: &mut TestAppContex
 }
 
 #[gpui::test]
-#[ignore = "requires a built murvix CLI and a fresh MUXY_DIR under /tmp/murvix-phase24-"]
+#[ignore = "requires a built murvix CLI and a fresh MURVIX_DIR under /tmp/murvix-phase24-"]
 fn projects_live_walkthrough(cx: &mut TestAppContext) {
     run_projects_live_walkthrough(cx).expect("phase 24 walkthrough");
 }
 
 fn run_projects_live_walkthrough(cx: &mut TestAppContext) -> Result {
-    let directory = PathBuf::from(std::env::var("MUXY_DIR")?);
+    let directory = PathBuf::from(std::env::var("MURVIX_DIR")?);
     assert!(
         directory
             .to_string_lossy()

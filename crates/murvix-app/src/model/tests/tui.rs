@@ -2,13 +2,13 @@ use super::*;
 use murvix_protocol::ChannelId;
 
 #[gpui::test]
-#[ignore = "requires MUXY_TEST_TUI and a fresh MUXY_DIR under /tmp/murvix-tui-desktop-"]
+#[ignore = "requires MURVIX_TEST_TUI and a fresh MURVIX_DIR under /tmp/murvix-tui-desktop-"]
 fn nested_tui_and_desktop_share_a_session_with_independent_layouts(cx: &mut TestAppContext) {
     walkthrough(cx).expect("desktop/TUI coexistence");
 }
 
 fn walkthrough(cx: &mut TestAppContext) -> Result {
-    let directory = PathBuf::from(std::env::var("MUXY_DIR")?);
+    let directory = PathBuf::from(std::env::var("MURVIX_DIR")?);
     // /tmp is a symlink on macOS; compare the final component so the guard
     // holds wherever the smoke script's temp dir resolves.
     let name = std::fs::canonicalize(&directory)
@@ -18,7 +18,7 @@ fn walkthrough(cx: &mut TestAppContext) -> Result {
         .to_string_lossy()
         .into_owned();
     assert!(name.starts_with("murvix-tui-desktop-"));
-    let executable = PathBuf::from(std::env::var("MUXY_TEST_TUI")?).canonicalize()?;
+    let executable = PathBuf::from(std::env::var("MURVIX_TEST_TUI")?).canonicalize()?;
     let boot = Boot::load()?;
     cx.update(|cx| crate::views::workspace::bind_keys(&boot.settings.keymap, cx));
     let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
@@ -213,7 +213,7 @@ fn shared_closes(
     wait_live(cx, view)?;
     probe.send_input(channel, b"\x021")?;
     wait(cx, view, |_, _| {
-        let directory = std::env::var("MUXY_DIR").expect("isolated profile");
+        let directory = std::env::var("MURVIX_DIR").expect("isolated profile");
         let Ok(bytes) = std::fs::read(std::path::Path::new(&directory).join("tui-state.json"))
         else {
             return false;
@@ -226,7 +226,7 @@ fn shared_closes(
     probe.send_input(channel, b"\x02x")?;
     wait_text(cx, view, "Ctrl-B ? help")?;
     wait(cx, view, |_, _| {
-        let directory = std::env::var("MUXY_DIR").expect("isolated profile");
+        let directory = std::env::var("MURVIX_DIR").expect("isolated profile");
         let Ok(bytes) = std::fs::read(std::path::Path::new(&directory).join("tui-state.json"))
         else {
             return false;

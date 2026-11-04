@@ -46,8 +46,8 @@ export MACOSX_DEPLOYMENT_TARGET=14.0
 export LIBGHOSTTY_VT_SYS_OPTIMIZE=ReleaseFast
 export CARGO_TARGET_DIR="$ROOT/target"
 export CARGO_PROFILE_RELEASE_SPLIT_DEBUGINFO=packed
-MUXY_ZIG="$(command -v zig)"
-export MUXY_ZIG
+MURVIX_ZIG="$(command -v zig)"
+export MURVIX_ZIG
 export PATH="$ROOT/scripts/zig:$PATH"
 OUTPUT_DIR="$CARGO_TARGET_DIR/packages/$VERSION/$ARCH"
 if [[ -e "$OUTPUT_DIR" ]]; then

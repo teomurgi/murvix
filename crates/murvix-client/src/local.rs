@@ -18,11 +18,11 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 pub fn server_executable() -> io::Result<PathBuf> {
-    if let Some(path) = std::env::var_os("MUXY_SERVER_BIN") {
+    if let Some(path) = std::env::var_os("MURVIX_SERVER_BIN") {
         if path.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "MUXY_SERVER_BIN must not be empty",
+                "MURVIX_SERVER_BIN must not be empty",
             ));
         }
         return Ok(path.into());

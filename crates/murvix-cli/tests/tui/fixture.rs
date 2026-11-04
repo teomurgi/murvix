@@ -36,12 +36,15 @@ impl Fixture {
     pub(super) fn environment(&self) -> Vec<(OsString, OsString)> {
         vec![
             (
-                "MUXY_SERVER_BIN".into(),
+                "MURVIX_SERVER_BIN".into(),
                 super::support::binary()
                     .with_file_name("murvix-server")
                     .into(),
             ),
-            ("MUXY_DIR".into(), self.directory.path().as_os_str().into()),
+            (
+                "MURVIX_DIR".into(),
+                self.directory.path().as_os_str().into(),
+            ),
             (
                 "HOME".into(),
                 self.directory.path().join("home").into_os_string(),
@@ -118,10 +121,13 @@ impl<'a> Tui<'a> {
                 .iter()
                 .map(|(key, value)| ((*key).into(), (*value).into())),
         );
-        env.push(("MUXY_TEST_TUI_BIN".into(), super::support::binary().into()));
+        env.push((
+            "MURVIX_TEST_TUI_BIN".into(),
+            super::support::binary().into(),
+        ));
         let mut args = vec![
             "-c".into(),
-            "stty -g > \"$MUXY_DIR/termios-$$\"; tty > \"$MUXY_DIR/tty-$$\"; exec \"$MUXY_TEST_TUI_BIN\" \"$@\"".into(),
+            "stty -g > \"$MURVIX_DIR/termios-$$\"; tty > \"$MURVIX_DIR/tty-$$\"; exec \"$MURVIX_TEST_TUI_BIN\" \"$@\"".into(),
             "sh".into(),
         ];
         args.extend(arguments.iter().map(Into::into));

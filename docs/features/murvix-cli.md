@@ -176,7 +176,7 @@ with `1`, including when a program run with `murvix exec` fails.
 
 ## Profiles
 
-`MUXY_DIR` points the CLI, and the local server it starts, at another profile
+`MURVIX_DIR` points the CLI, and the local server it starts, at another profile
 folder. Use it to run a separate, throwaway local server. With `--host`, it
 selects local TUI layout storage, not the remote server's profile. See
 [Server](server.md#files).

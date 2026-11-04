@@ -105,8 +105,8 @@ project's server:
 - Murvix shows the commands and runs them only if you turn them on in the dialog.
 - Setup runs your own commands first, then the project's. Teardown runs the
   project's first.
-- Commands run in the worktree with `MUXY_PROJECT_PATH`, `MUXY_WORKTREE_ID`,
-  `MUXY_WORKTREE_PATH`, `MUXY_WORKTREE_NAME`, and `MUXY_WORKTREE_BRANCH`. They
+- Commands run in the worktree with `MURVIX_PROJECT_PATH`, `MURVIX_WORKTREE_ID`,
+  `MURVIX_WORKTREE_PATH`, `MURVIX_WORKTREE_NAME`, and `MURVIX_WORKTREE_BRANCH`. They
   share a five-minute limit.
 - A failed setup keeps the new worktree. A failed teardown stops the removal.
 

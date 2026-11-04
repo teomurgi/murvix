@@ -1,7 +1,7 @@
 # Older fish versions permit return only inside a function.
 function __murvix_setup
     status is-interactive; or return
-    if test "$MUXY_SHELL_INTEGRATION" != 1; or set -q __murvix_installed
+    if test "$MURVIX_SHELL_INTEGRATION" != 1; or set -q __murvix_installed
         return
     end
     set -g __murvix_installed 1
@@ -49,11 +49,11 @@ functions --erase __murvix_setup
 # `omp`/`claude`/`codex`/`copilot` resolve the live workspace once at launch
 # (like `murvix agent <tool>`) instead of seeing only the shell's cwd.
 # Outside a Murvix terminal, with wrappers disabled
-# (`MUXY_WORKSPACE_WRAPPERS=0`), or when the server is unreachable, the plain
+# (`MURVIX_WORKSPACE_WRAPPERS=0`), or when the server is unreachable, the plain
 # tool runs unchanged. `command <tool>` always bypasses the wrapper.
 function _murvix_with_workspace
     set -l tool $argv[1]; set -e argv[1]
-    if test "$MUXY_WORKSPACE_WRAPPERS" = 0; or test -z "$MUXY_SERVER_ID"; or test -z "$MUXY_SESSION_ID"; or not command -v murvix >/dev/null 2>&1
+    if test "$MURVIX_WORKSPACE_WRAPPERS" = 0; or test -z "$MURVIX_SERVER_ID"; or test -z "$MURVIX_SESSION_ID"; or not command -v murvix >/dev/null 2>&1
         command $tool $argv
         return
     end

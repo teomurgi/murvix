@@ -29,7 +29,7 @@ status/stop, project here and agent, which never start it. --host uses the serve
 on another computer over SSH (user@host, an ssh_config alias or
 ssh://user@host:port); Murvix must be installed there, and directories are absolute
 paths on that computer.
-MUXY_DIR selects the local profile, which also keeps the terminal UI layouts
+MURVIX_DIR selects the local profile, which also keeps the terminal UI layouts
 for other computers. No desktop app is required, except by browser commands.
 Tabs and panes belong to UI clients.
 Project selectors accept an exact ID, unique name or directory path.
@@ -89,7 +89,7 @@ Tabs open in the current project, or the one named by --project and
 Use the tab ID that open or list prints. Page actions print their result as
 JSON. Waits give up after --timeout-ms or ms (default 5000, 10000 for
 wait-for-navigation; maximum 60000).
-MUXY_CLI_TIMEOUT sets how many seconds the app has to answer (default 10).
+MURVIX_CLI_TIMEOUT sets how many seconds the app has to answer (default 10).
 Text list columns: tab-id, title, url, profile, active (tab-separated).";
 pub(crate) const INSTALL_SKILLS: &str = "Usage: murvix install-skills [--dir DIR]...
 Installs the murvix-cli skill, which teaches AI coding agents to use this command,

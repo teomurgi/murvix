@@ -7,7 +7,10 @@ use murvix_protocol::{Run, SavedScreen};
 
 use super::{Record, SCREEN_LIMIT};
 
-const MAGIC: &[u8; 8] = b"MUXYSAV3";
+const MAGIC: &[u8; 8] = b"MURVIXS1";
+/// Magics written by previous releases: still readable, never written.
+const PREVIOUS_MAGIC: &[u8; 8] = b"MUXYSAV3";
+const LEGACY_SCREEN_MAGIC: &[u8; 8] = b"MUXYSAV2";
 const HEADER_LEN: u64 = 32;
 
 #[derive(Debug)]
@@ -33,7 +36,7 @@ impl StoredRecord {
         let mut file = BufReader::new(File::open(path)?);
         let mut magic = [0; 8];
         file.read_exact(&mut magic)?;
-        if &magic != MAGIC && &magic != b"MUXYSAV2" {
+        if &magic != MAGIC && &magic != PREVIOUS_MAGIC && &magic != LEGACY_SCREEN_MAGIC {
             return super::read_record(path, legacy_budget).map(Self::Legacy);
         }
         let screen_len = read_u64(&mut file)?;
@@ -50,7 +53,7 @@ impl StoredRecord {
         }
         let mut bytes = vec![0; usize::try_from(screen_len).map_err(io::Error::other)?];
         file.read_exact(&mut bytes)?;
-        let screen = if &magic == b"MUXYSAV2" {
+        let screen = if &magic == LEGACY_SCREEN_MAGIC {
             postcard::from_bytes::<super::legacy::Screen>(&bytes).map(Into::into)
         } else {
             postcard::from_bytes::<SavedScreen>(&bytes)
@@ -59,7 +62,7 @@ impl StoredRecord {
         super::validate_screen(&screen)?;
         let mut record = IndexedRecord {
             file,
-            legacy: &magic == b"MUXYSAV2",
+            legacy: &magic == LEGACY_SCREEN_MAGIC,
             screen,
             total: usize::try_from(total).map_err(io::Error::other)?,
             generation,

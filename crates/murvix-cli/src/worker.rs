@@ -1032,7 +1032,7 @@ fn send_input(shared: &Mutex<Shared>, writer: &InputWriter, input: Input) -> Res
 }
 
 pub(crate) fn hosting_session(server: ServerIdentity) -> Option<SessionId> {
-    let inherited: ServerIdentity = std::env::var("MUXY_SERVER_ID").ok()?.parse().ok()?;
+    let inherited: ServerIdentity = std::env::var("MURVIX_SERVER_ID").ok()?.parse().ok()?;
     (inherited == server).then_some(())?;
-    SessionId::new(std::env::var("MUXY_SESSION_ID").ok()?.parse().ok()?)
+    SessionId::new(std::env::var("MURVIX_SESSION_ID").ok()?.parse().ok()?)
 }

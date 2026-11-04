@@ -66,7 +66,7 @@ impl ShellIntegration {
     pub(crate) fn configure(&self, request: &mut SpawnRequest, enabled: bool) {
         set_env(
             request,
-            "MUXY_SHELL_INTEGRATION",
+            "MURVIX_SHELL_INTEGRATION",
             if enabled { "1" } else { "0" }.into(),
         );
         if !enabled {
@@ -74,7 +74,7 @@ impl ShellIntegration {
         }
         set_env(
             request,
-            "MUXY_SHELL_INTEGRATION_DIR",
+            "MURVIX_SHELL_INTEGRATION_DIR",
             self.directory.as_os_str().to_owned(),
         );
         match request.program.file_name().and_then(|name| name.to_str()) {
@@ -82,12 +82,12 @@ impl ShellIntegration {
                 let original = get_env(request, "ZDOTDIR").cloned();
                 set_env(
                     request,
-                    "MUXY_ZDOTDIR_SET",
+                    "MURVIX_ZDOTDIR_SET",
                     if original.is_some() { "1" } else { "0" }.into(),
                 );
                 set_env(
                     request,
-                    "MUXY_ORIGINAL_ZDOTDIR",
+                    "MURVIX_ORIGINAL_ZDOTDIR",
                     original.unwrap_or_default(),
                 );
                 set_env(

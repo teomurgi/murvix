@@ -347,8 +347,8 @@ impl AppModel {
         if !self.webviews.initialized {
             self.webviews.initialized = true;
             if cfg!(debug_assertions)
-                && std::env::var("MUXY_WEBVIEW_DEMO").is_ok_and(|value| value == "1")
-                && std::env::var_os("MUXY_DIR").is_some()
+                && std::env::var("MURVIX_WEBVIEW_DEMO").is_ok_and(|value| value == "1")
+                && std::env::var_os("MURVIX_DIR").is_some()
             {
                 self.webviews.registered.insert(
                     ("foundation".into(), "demo".into()),

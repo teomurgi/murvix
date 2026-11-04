@@ -88,8 +88,8 @@ non-UTF-8 bytes. A terminal from another server or an ended session is rejected,
 without falling back to stale roots. On another computer, run the launcher
 inside that computer's Murvix terminal; `murvix --host … agent …` is not supported.
 
-For compatibility, terminals also inherit `MUXY_WORKSPACE_COUNT` and
-`MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on, with the project directory at
+For compatibility, terminals also inherit `MURVIX_WORKSPACE_COUNT` and
+`MURVIX_WORKSPACE_0`, `MURVIX_WORKSPACE_1`, and so on, with the project directory at
 index 0. These environment variables are snapshots from terminal creation;
 use `project here` for live membership.
 

@@ -23,7 +23,7 @@ Don't use it for work a plain command can do in your own terminal.
 
 ## Inside a Murvix terminal
 
-Murvix sets `MUXY_SESSION_ID` and `MUXY_SERVER_ID` in every terminal. Session
+Murvix sets `MURVIX_SESSION_ID` and `MURVIX_SERVER_ID` in every terminal. Session
 commands then default to your own terminal, and `session create` to your
 project, so most commands need no IDs.
 
@@ -37,11 +37,11 @@ folder, also read any `AGENTS.md` between that folder and its workspace root.
 Follow each file for the files under its directory. Read or edit those folders
 directly when relevant. The result lists the project directory first, then its
 added folders, and reflects folders added or removed after this terminal
-started. Do not rely on cwd or on `MUXY_WORKSPACE_*` alone. The command identifies
+started. Do not rely on cwd or on `MURVIX_WORKSPACE_*` alone. The command identifies
 your terminal through its server and session, not cwd, and rejects stale or
 foreign identities.
 
-`MUXY_WORKSPACE_COUNT` and `MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on are
+`MURVIX_WORKSPACE_COUNT` and `MURVIX_WORKSPACE_0`, `MURVIX_WORKSPACE_1`, and so on are
 older terminal-start snapshots; prefer the live command. Files, search, exec,
 and Git still target the primary project folder.
 

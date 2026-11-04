@@ -50,7 +50,7 @@ impl Machine {
             &program,
             format!(
                 "#!/bin/sh\n\
-                 printf 'MUXY-STDIO/1\\n'\n\
+                 printf 'MURVIX-STDIO/1\\n'\n\
                  exec /usr/bin/nc -U '{}'\n",
                 self.socket.display()
             ),

@@ -15,7 +15,7 @@ use serde_json::Value;
 use args::Output;
 pub(crate) use args::{Invocation, parse};
 
-/// How long the app has to answer, unless `MUXY_CLI_TIMEOUT` says otherwise.
+/// How long the app has to answer, unless `MURVIX_CLI_TIMEOUT` says otherwise.
 const REPLY_TIME: Duration = Duration::from_secs(10);
 /// How long a desktop app that `open` started has to begin listening.
 const APP_START_TIME: Duration = Duration::from_secs(20);
@@ -59,7 +59,7 @@ fn call_once_listening(
 }
 
 fn reply_time() -> Result<Duration, Box<dyn Error>> {
-    let Some(seconds) = std::env::var_os("MUXY_CLI_TIMEOUT").filter(|value| !value.is_empty())
+    let Some(seconds) = std::env::var_os("MURVIX_CLI_TIMEOUT").filter(|value| !value.is_empty())
     else {
         return Ok(REPLY_TIME);
     };
@@ -68,7 +68,7 @@ fn reply_time() -> Result<Duration, Box<dyn Error>> {
         .and_then(|seconds| seconds.parse().ok())
         .filter(|seconds| *seconds > 0)
         .map(Duration::from_secs)
-        .ok_or_else(|| "MUXY_CLI_TIMEOUT must be a whole number of seconds".into())
+        .ok_or_else(|| "MURVIX_CLI_TIMEOUT must be a whole number of seconds".into())
 }
 
 fn print(output: Output, reply: Value) -> Result<(), Box<dyn Error>> {

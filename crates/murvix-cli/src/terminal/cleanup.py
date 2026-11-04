@@ -14,7 +14,7 @@ report = b"\x1b[<0;5;5M\x1b[<0;5;5m"
 pid, master = pty.fork()
 if pid == 0:
     os.kill(os.getpid(), signal.SIGSTOP)
-    os.environ["MUXY_TEST_HOST_CLEANUP"] = scenario
+    os.environ["MURVIX_TEST_HOST_CLEANUP"] = scenario
     os.execv(sys.argv[1], [sys.argv[1], "--exact",
              "terminal::tests::cleanup_handles_hangup_and_pending_mouse_reports", "--nocapture"])
 exited = False

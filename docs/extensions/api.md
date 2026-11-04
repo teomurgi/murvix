@@ -71,7 +71,7 @@ const count = await murvix.exec({ shell: "ls | wc -l" });
 ```
 
 - Runs on the project's server, in the project folder, with your login `PATH`
-  and `MUXY_EXTENSION_ID` set.
+  and `MURVIX_EXTENSION_ID` set.
 - Options: `cwd`, `env`, `stdin`, `timeoutMs` (default 30 s, up to 300 s).
 - Output is capped at 4 MiB per stream.
 - `execAsync(...)` returns `{ id, result, cancel }` right away, so a page or

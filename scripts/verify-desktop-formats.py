@@ -31,8 +31,8 @@ def wait_for(check, message, timeout=30, process=None):
 
 
 def environment(home):
-    env = {key: value for key, value in os.environ.items() if not key.startswith("MUXY_")}
-    env.update(HOME=str(home), XDG_DATA_HOME=str(home / "data"), MUXY_DIR=str(home / "profile"),
+    env = {key: value for key, value in os.environ.items() if not key.startswith("MURVIX_")}
+    env.update(HOME=str(home), XDG_DATA_HOME=str(home / "data"), MURVIX_DIR=str(home / "profile"),
                SHELL="/bin/sh", PATH="/usr/bin:/bin")
     return env
 
@@ -110,7 +110,7 @@ def appimage(archive, version, desktop, fuse):
             wait_for(shell_env.exists, "Packaged terminal did not run its command")
             assert shell_env.stat().st_mode & 0o777 == 0o640, "AppImage changed the terminal's inherited umask"
             inherited = shell_env.read_text().splitlines()
-            assert not any(line.startswith(("MUXY_APPIMAGE_", "WEBKIT_EXEC_PATH=", "WEBKIT_INJECTED_BUNDLE_PATH=",
+            assert not any(line.startswith(("MURVIX_APPIMAGE_", "WEBKIT_EXEC_PATH=", "WEBKIT_INJECTED_BUNDLE_PATH=",
                                             "GIO_EXTRA_MODULES=", "LD_LIBRARY_PATH=")) for line in inherited), inherited
             if gui is not None:
                 wait_for(lambda: (home / "profile/app.sock").exists(),
@@ -154,8 +154,8 @@ def appimage(archive, version, desktop, fuse):
 
 
 def deb(archive, version, user):
-    if os.getuid() != 0 or os.environ.get("MUXY_DISPOSABLE_PACKAGE_TEST") != "1":
-        raise ValueError("Debian lifecycle checks require root and MUXY_DISPOSABLE_PACKAGE_TEST=1 in a disposable guest")
+    if os.getuid() != 0 or os.environ.get("MURVIX_DISPOSABLE_PACKAGE_TEST") != "1":
+        raise ValueError("Debian lifecycle checks require root and MURVIX_DISPOSABLE_PACKAGE_TEST=1 in a disposable guest")
     _, identifier, suffix = identity(version)
     package = "murvix-desktop" + suffix
     status = subprocess.run(["dpkg-query", "-W", "-f=${db:Status-Status}", package], capture_output=True, text=True)

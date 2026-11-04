@@ -273,10 +273,10 @@ fn cache_inputs(
         }
         inputs.file(&zig)?;
         let real_zig =
-            env::var_os("MUXY_ZIG").ok_or_else(|| io::Error::other("MUXY_ZIG is unset"))?;
+            env::var_os("MURVIX_ZIG").ok_or_else(|| io::Error::other("MURVIX_ZIG is unset"))?;
         let real_zig = find_executable(&real_zig)?;
         if !is_native_executable(&real_zig)? {
-            return Err(io::Error::other("unrecognized MUXY_ZIG wrapper"));
+            return Err(io::Error::other("unrecognized MURVIX_ZIG wrapper"));
         }
         println!("cargo:rerun-if-changed={}", real_zig.display());
     }
@@ -375,7 +375,7 @@ fn cache_inputs(
         "C_INCLUDE_PATH",
         "CPLUS_INCLUDE_PATH",
         "LIBRARY_PATH",
-        "MUXY_ZIG",
+        "MURVIX_ZIG",
         "MACOSX_DEPLOYMENT_TARGET",
         "ZIG_LIB_DIR",
         "ZIG_LIBC",

@@ -75,12 +75,12 @@ class LinuxPackageTests(unittest.TestCase):
             shutil.copyfile(ROOT / "scripts/install-desktop-linux.py", appdir / "install.py")
             (appdir / "version").write_text((ROOT / "VERSION").read_text().strip() + "\n")
             (appdir / "bundle-id").write_text("a" * 64 + "\n")
-            (bins / "murvix-app").write_text('#!/bin/sh\nHERE=$(dirname "$0")\nexec "${MUXY_SERVER_BIN:-$HERE/murvix-server}" "$@"\n')
+            (bins / "murvix-app").write_text('#!/bin/sh\nHERE=$(dirname "$0")\nexec "${MURVIX_SERVER_BIN:-$HERE/murvix-server}" "$@"\n')
             (bins / "murvix-server").write_text('#!/bin/sh\nprintf "%s\\n" "$0"\nprintf "umask=%s\\n" "$(umask)"\nenv\n')
             (bins / "murvix").write_text('#!/bin/sh\nprintf "%s\\n" "$0"\nprintf "umask=%s\\n" "$(umask)"\n')
             for path in [appdir / "AppRun", *bins.iterdir()]:
                 path.chmod(0o755)
-            env = {key: value for key, value in os.environ.items() if not key.startswith("MUXY_")}
+            env = {key: value for key, value in os.environ.items() if not key.startswith("MURVIX_")}
             env.update(HOME=str(home), XDG_DATA_HOME=str(home / "data"), WEBKIT_EXEC_PATH="user setting",
                        GIO_EXTRA_MODULES="", APPDIR=str(appdir), APPIMAGE="temporary.AppImage")
             def launch(_):
@@ -89,10 +89,10 @@ class LinuxPackageTests(unittest.TestCase):
                 results = list(workers.map(launch, range(4)))
             durable = home / "data/murvix-appimage" / ("a" * 64)
             custom = subprocess.check_output([str(appdir / "AppRun")], text=True, timeout=20,
-                                            env={**env, "MUXY_SERVER_BIN": str(bins / "murvix-server")})
-            self.assertIn(f"MUXY_SERVER_BIN={bins / 'murvix-server'}", custom.splitlines())
+                                            env={**env, "MURVIX_SERVER_BIN": str(bins / "murvix-server")})
+            self.assertIn(f"MURVIX_SERVER_BIN={bins / 'murvix-server'}", custom.splitlines())
             self.assertIn("WEBKIT_EXEC_PATH=user setting", custom.splitlines())
-            self.assertFalse(any(line.startswith("MUXY_APPIMAGE_") for line in custom.splitlines()))
+            self.assertFalse(any(line.startswith("MURVIX_APPIMAGE_") for line in custom.splitlines()))
             shutil.rmtree(appdir)
             for result in results:
                 lines = result.splitlines()
@@ -100,8 +100,8 @@ class LinuxPackageTests(unittest.TestCase):
                 self.assertEqual(int(lines[1].removeprefix("umask="), 8), 0o027)
                 self.assertIn("WEBKIT_EXEC_PATH=user setting", lines)
                 self.assertIn("GIO_EXTRA_MODULES=", lines)
-                self.assertFalse(any(line.startswith(("MUXY_APPIMAGE_", "WEBKIT_INJECTED_BUNDLE_PATH=",
-                                                      "MUXY_SERVER_BIN=", "APPDIR=", "APPIMAGE=")) for line in lines))
+                self.assertFalse(any(line.startswith(("MURVIX_APPIMAGE_", "WEBKIT_INJECTED_BUNDLE_PATH=",
+                                                      "MURVIX_SERVER_BIN=", "APPDIR=", "APPIMAGE=")) for line in lines))
             self.assertTrue((durable / "usr/bin/murvix").is_file())
             self.assertEqual(len(list((home / "data/murvix-appimage").glob(".stage-*"))), 0)
             cli = subprocess.check_output([str(durable / "AppRun"), "--cli"], env=env, text=True, umask=0o022)

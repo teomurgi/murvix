@@ -91,9 +91,9 @@ cp "$VERIFY_DOWNLOADS/${URL##*/}" "$OUTPUT"
         profile = work / 'profile'
         home = work / 'home'
         home.mkdir()
-        env = {k: v for k, v in os.environ.items() if not k.startswith('MUXY_')}
+        env = {k: v for k, v in os.environ.items() if not k.startswith('MURVIX_')}
         env.update(PATH=f'{tools}:/usr/bin:/bin:/usr/sbin:/sbin', HOME=str(home), SHELL='/bin/sh',
-                   MUXY_DIR=str(profile), VERIFY_DOWNLOADS=str(downloads),
+                   MURVIX_DIR=str(profile), VERIFY_DOWNLOADS=str(downloads),
                    VERIFY_URL=f'https://github.com/teomurgi/murvix/releases/download/v{args.version}')
         assert not shutil.which('cargo', path=env['PATH'])
         assert not shutil.which('zig', path=env['PATH'])

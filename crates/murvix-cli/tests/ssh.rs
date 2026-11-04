@@ -210,7 +210,7 @@ fn the_bridge_alone_starts_the_server_announces_itself_and_ends_with_stdin() -> 
     let remote = FakeRemote::new()?;
     let output = remote.murvix(&["stdio"]).stdin(Stdio::null()).output()?;
     assert!(output.status.success(), "{output:?}");
-    assert_eq!(output.stdout, b"MUXY-STDIO/1\n");
+    assert_eq!(output.stdout, b"MURVIX-STDIO/1\n");
     assert!(output.stderr.is_empty(), "{output:?}");
     assert!(remote.socket().exists());
     Ok(())
@@ -222,10 +222,10 @@ fn host_command(remote: &FakeRemote, local: &Path, args: &[&str]) -> Command {
     command
         .args(["--host", "box"])
         .args(args)
-        .env("MUXY_SSH", remote.ssh())
-        .env("MUXY_DIR", local)
-        .env_remove("MUXY_SERVER_BIN")
-        .env_remove("MUXY_PANE_ID")
+        .env("MURVIX_SSH", remote.ssh())
+        .env("MURVIX_DIR", local)
+        .env_remove("MURVIX_SERVER_BIN")
+        .env_remove("MURVIX_PANE_ID")
         .stdin(Stdio::null());
     command
 }

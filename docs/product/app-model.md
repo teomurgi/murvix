@@ -84,8 +84,8 @@ Optional setup and teardown commands come from the source project's
 Review and enable commands when creating or removing a worktree; `murvix worktree`
 runs them only with `--hooks`. Setup runs per-machine commands first; teardown
 runs project commands first. Commands run in the worktree, with
-`MUXY_PROJECT_PATH` and `MUXY_WORKTREE_ID`, `MUXY_WORKTREE_PATH`,
-`MUXY_WORKTREE_NAME`, and `MUXY_WORKTREE_BRANCH` available.
+`MURVIX_PROJECT_PATH` and `MURVIX_WORKTREE_ID`, `MURVIX_WORKTREE_PATH`,
+`MURVIX_WORKTREE_NAME`, and `MURVIX_WORKTREE_BRANCH` available.
 A setup failure keeps the new worktree; a teardown failure stops removal.
 
 ## When things go away
@@ -131,7 +131,7 @@ stop.
   `.murvix` backup, or `settings.json`. Unsupported options are listed before import.
   A 1.x import adds to what is already there: existing projects and tabs are
   kept. A profile with no projects yet imports the installed 1.x automatically,
-  once, including its extensions. Profiles chosen with `MUXY_DIR` are left
+  once, including its extensions. Profiles chosen with `MURVIX_DIR` are left
   alone.
   Config files open in the system editor. Backups exclude live terminal sessions,
   paired-device credentials, extension packages, and project files. They keep

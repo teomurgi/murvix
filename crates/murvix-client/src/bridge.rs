@@ -19,7 +19,7 @@ use crate::client::DEFAULT_TIMEOUT;
 use crate::{Client, ClientError, RemoteReason, local};
 
 /// Starts the ready line; the bridge version and a newline follow.
-const READY: &[u8] = b"MUXY-STDIO/";
+const READY: &[u8] = b"MURVIX-STDIO/";
 const VERSION: &[u8] = b"1";
 /// The most a remote shell may print before the ready line.
 const MAX_NOISE: usize = 64 * 1024;
@@ -358,14 +358,14 @@ mod tests {
 
     #[test]
     fn the_ready_line_is_found_after_any_noise_and_keeps_later_bytes() {
-        assert_eq!(scan(&[b"MUXY-STDIO/1\n"]), Ok(vec![]));
+        assert_eq!(scan(&[b"MURVIX-STDIO/1\n"]), Ok(vec![]));
         assert_eq!(
-            scan(&[b"Welcome!\nlast login\n", b"MUXY-STDIO/1\nhello"]),
+            scan(&[b"Welcome!\nlast login\n", b"MURVIX-STDIO/1\nhello"]),
             Ok(b"hello".to_vec())
         );
-        assert_eq!(scan(&[b"no newline", b"MUXY-STDIO/1\n"]), Ok(vec![]));
+        assert_eq!(scan(&[b"no newline", b"MURVIX-STDIO/1\n"]), Ok(vec![]));
         assert_eq!(
-            scan(&[b"noise MUXY-", b"ST", b"DIO/", b"1", b"\nrest"]),
+            scan(&[b"noise MURVIX-", b"ST", b"DIO/", b"1", b"\nrest"]),
             Ok(b"rest".to_vec())
         );
     }

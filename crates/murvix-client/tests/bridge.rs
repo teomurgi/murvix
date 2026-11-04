@@ -37,7 +37,7 @@ fn bridge(printed: &'static [u8]) -> TestResult<UnixStream> {
     });
     thread::spawn(move || -> std::io::Result<()> {
         remote.write_all(printed)?;
-        remote.write_all(b"MUXY-STDIO/1\n")?;
+        remote.write_all(b"MURVIX-STDIO/1\n")?;
         relay(Box::new(bridge), remote.try_clone()?, remote)
     });
     Ok(client)
@@ -76,7 +76,7 @@ fn a_bridge_behind_shell_noise_carries_the_protocol() -> TestResult {
 fn a_bridge_of_another_version_is_incompatible_rather_than_a_hang() -> TestResult {
     let (client, mut remote) = UnixStream::pair()?;
     remote.set_read_timeout(Some(TIMEOUT))?;
-    remote.write_all(b"MUXY-STDIO/2\n")?;
+    remote.write_all(b"MURVIX-STDIO/2\n")?;
     let reason = remote_error(connect(client, BridgeExit::default()))?;
     assert_eq!(reason, RemoteReason::Incompatible);
     assert_eq!(remote.read(&mut [0; 64])?, 0);

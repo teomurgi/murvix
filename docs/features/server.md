@@ -82,15 +82,15 @@ Bash is opt-in. Add this to the file your Bash profile loads for interactive
 shells:
 
 ```bash
-if [[ ${MUXY_SHELL_INTEGRATION:-0} == 1 ]]; then
-    source "$MUXY_SHELL_INTEGRATION_DIR/murvix.bash"
+if [[ ${MURVIX_SHELL_INTEGRATION:-0} == 1 ]]; then
+    source "$MURVIX_SHELL_INTEGRATION_DIR/murvix.bash"
 fi
 ```
 
 Every terminal gets `TERM=xterm-256color`, `COLORTERM=truecolor`,
-`TERM_PROGRAM=murvix`, `MUXY_SERVER_ID`, and `MUXY_SESSION_ID`.
-The project workspace is also advertised through `MUXY_WORKSPACE_COUNT` and
-`MUXY_WORKSPACE_0`, `MUXY_WORKSPACE_1`, and so on. These are terminal-start
+`TERM_PROGRAM=murvix`, `MURVIX_SERVER_ID`, and `MURVIX_SESSION_ID`.
+The project workspace is also advertised through `MURVIX_WORKSPACE_COUNT` and
+`MURVIX_WORKSPACE_0`, `MURVIX_WORKSPACE_1`, and so on. These are terminal-start
 snapshots. `murvix project here` instead queries the calling terminal's live
 project through its server and session identity, so existing terminals see
 added and removed roots. `murvix agent` uses that lookup before launching
@@ -132,6 +132,6 @@ Everything lives in one profile folder:
 | `remote.json` | Network-access settings, server TLS identity/private key, and paired-device token hashes; keep private |
 | `shell-integration/` | Generated shell startup hooks |
 
-Set `MUXY_DIR` to use a different profile folder. Debug builds default to
-`Murvix Dev` (`murvix-dev` on Linux); an explicit `MUXY_DIR` overrides that
+Set `MURVIX_DIR` to use a different profile folder. Debug builds default to
+`Murvix Dev` (`murvix-dev` on Linux); an explicit `MURVIX_DIR` overrides that
 separation. CLI and desktop clients must use the same profile to share its server.
