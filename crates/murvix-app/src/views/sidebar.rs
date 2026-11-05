@@ -17,7 +17,7 @@ use gpui::{
     StyledImage, Window, div, px,
 };
 use murvix_app_core::{
-    Project, ProjectId, ProjectStatus,
+    Project, ProjectId, ProjectStatus, ServerId,
     settings::{AppLayout, ProjectOrder, SidebarCollapsedStyle},
 };
 
@@ -32,6 +32,11 @@ use murvix_ui::theme::{contrasting_foreground, parse_hex};
 use murvix_ui::tr;
 
 use crate::model::AppModel;
+
+pub(crate) struct ProjectServerGroup<'a> {
+    pub(crate) server: ServerId,
+    pub(crate) projects: Vec<&'a Project>,
+}
 
 pub(crate) fn register_commands(
     registry: &mut murvix_ui::command_palette::Registry<super::command_palette::Handler>,
@@ -288,32 +293,98 @@ impl AppModel {
         tr!("All Projects")
     }
 
-    /// Top-level projects the sidebar filter lists, in sidebar order.
-    pub(crate) fn listed_parents(&self) -> Vec<&Project> {
-        let mut parents: Vec<_> = self
-            .state
-            .projects()
-            .iter()
-            .filter(|project| {
-                project.parent_id.is_none()
-                    && self.state.is_listed(project)
-                    && self.project_listed(project)
-            })
-            .collect();
-        let server = |project: &Project| {
-            self.settings
-                .servers
-                .iter()
-                .position(|entry| entry.id == project.server_id)
-                .map_or(0, |index| index + 1)
-        };
-        self.sort_projects(&mut parents);
-        if self.state.remote_servers_selected()
-            || self.appearance.sidebar_project_order != ProjectOrder::Manual
-        {
-            parents.sort_by_cached_key(|project| server(project));
+    /// Top-level projects, grouped by the machine that owns them.
+    pub(crate) fn sidebar_project_groups(&self) -> Vec<ProjectServerGroup<'_>> {
+        let mut groups: Vec<ProjectServerGroup<'_>> = Vec::new();
+        for project in self.state.projects().iter().filter(|project| {
+            project.parent_id.is_none()
+                && self.state.is_listed(project)
+                && self.project_listed(project)
+        }) {
+            if let Some(group) = groups
+                .iter_mut()
+                .find(|group| group.server == project.server_id)
+            {
+                group.projects.push(project);
+            } else {
+                groups.push(ProjectServerGroup {
+                    server: project.server_id,
+                    projects: vec![project],
+                });
+            }
         }
-        parents
+        for group in &mut groups {
+            self.sort_projects(&mut group.projects);
+        }
+        let custom_order = &self.appearance.project_server_order;
+        groups.sort_by_key(|group| {
+            if group.server.is_local() {
+                return 0;
+            }
+            custom_order
+                .iter()
+                .position(|server| *server == group.server)
+                .map_or_else(
+                    || {
+                        custom_order
+                            .len()
+                            .saturating_add(
+                                self.settings
+                                    .servers
+                                    .iter()
+                                    .position(|entry| entry.id == group.server)
+                                    .unwrap_or(usize::MAX),
+                            )
+                            .saturating_add(1)
+                    },
+                    |index| index + 1,
+                )
+        });
+        groups
+    }
+
+    pub(crate) fn sidebar_visible_project_groups(&self) -> Vec<ProjectServerGroup<'_>> {
+        let active = self.state.current_project();
+        let focused = active.parent_id.unwrap_or(active.id);
+        self.sidebar_project_groups()
+            .into_iter()
+            .filter_map(|mut group| {
+                group
+                    .projects
+                    .retain(|project| !self.appearance.sidebar_focus || project.id == focused);
+                (!group.projects.is_empty()).then_some(group)
+            })
+            .collect()
+    }
+
+    /// Top-level projects the sidebar filter lists, in their machine and
+    /// project order.
+    pub(crate) fn listed_parents(&self) -> Vec<&Project> {
+        self.sidebar_project_groups()
+            .into_iter()
+            .flat_map(|group| group.projects)
+            .collect()
+    }
+
+    pub(crate) fn project_server_expanded(&self, server: ServerId) -> bool {
+        !self.appearance.collapsed_project_servers.contains(&server)
+    }
+
+    pub(crate) fn toggle_project_server_group(&mut self, server: ServerId, cx: &mut Context<Self>) {
+        if !self.appearance.collapsed_project_servers.remove(&server) {
+            self.appearance.collapsed_project_servers.insert(server);
+        }
+        self.save_appearance(cx);
+        cx.notify();
+    }
+
+    pub(super) fn project_server_label(&self, server: ServerId) -> String {
+        if server.is_local() {
+            tr!("Local").to_string()
+        } else {
+            self.server_name(server)
+                .map_or_else(|| tr!("Remote").to_string(), str::to_owned)
+        }
     }
 
     pub(crate) fn sort_projects(&self, projects: &mut [&Project]) {
@@ -354,11 +425,9 @@ impl AppModel {
     }
 
     pub(crate) fn sidebar_projects(&self) -> Vec<&Project> {
-        let active = self.state.current_project();
-        let focused = active.parent_id.unwrap_or(active.id);
-        self.listed_parents()
+        self.sidebar_visible_project_groups()
             .into_iter()
-            .filter(|project| !self.appearance.sidebar_focus || project.id == focused)
+            .flat_map(|group| group.projects)
             .flat_map(|parent| {
                 let children = if self.appearance.layout != AppLayout::ProjectFocused
                     && self.worktrees_visible(parent.id)
@@ -559,6 +628,27 @@ impl DraggedProject {
     }
 }
 
+struct DraggedServer {
+    server: ServerId,
+    last_target: Cell<Option<ServerId>>,
+}
+
+impl DraggedServer {
+    fn move_to(&self, target: ServerId, model: &mut AppModel, cx: &mut Context<AppModel>) {
+        if model.overlay.is_some()
+            || model.close_prompt.is_some()
+            || model.appearance.sidebar_project_order != ProjectOrder::Manual
+            || target.is_local()
+            || target == self.server
+        {
+            return;
+        }
+        if self.last_target.replace(Some(target)) != Some(target) {
+            model.move_project_group(self.server, target, cx);
+        }
+    }
+}
+
 #[derive(Default)]
 struct ProjectRows(Vec<(ProjectId, Bounds<Pixels>)>);
 
@@ -570,51 +660,176 @@ impl ProjectRows {
     }
 }
 
+pub(super) fn project_server_header(
+    server: ServerId,
+    model: &AppModel,
+    cx: &mut Context<AppModel>,
+) -> AnyElement {
+    let m = model.metrics;
+    let theme = &model.theme;
+    let expanded = model.project_server_expanded(server);
+    let label = model.project_server_label(server);
+    let selector = format!("project-server-{label}");
+    let draggable =
+        !server.is_local() && model.appearance.sidebar_project_order == ProjectOrder::Manual;
+    div()
+        .id(SharedString::from(format!("project-server-{server}")))
+        .debug_selector(move || selector.clone())
+        .flex()
+        .flex_none()
+        .items_center()
+        .gap(m.spacing2())
+        .px(m.spacing2())
+        .h(m.control_small())
+        .rounded(m.radius_md())
+        .cursor_pointer()
+        .text_size(m.font_caption())
+        .font_weight(FontWeight::SEMIBOLD)
+        .text_color(theme.fg_muted)
+        .hover(|style| style.bg(theme.hover).text_color(theme.fg))
+        .on_click(cx.listener(move |model, _, _, cx| {
+            model.toggle_project_server_group(server, cx);
+        }))
+        .when(draggable, |header| {
+            header
+                .on_drag(
+                    DraggedServer {
+                        server,
+                        last_target: Cell::new(None),
+                    },
+                    |_, _, _, cx| cx.new(|_| Empty),
+                )
+                .on_drag_move(cx.listener(
+                    move |model, event: &DragMoveEvent<DraggedServer>, window, cx| {
+                        if event.event.pressed_button != Some(gpui::MouseButton::Left) {
+                            cx.stop_active_drag(window);
+                            return;
+                        }
+                        if let Some(drag) = event.dragged_item().downcast_ref::<DraggedServer>() {
+                            drag.move_to(server, model, cx);
+                        }
+                    },
+                ))
+                .on_drop(cx.listener(move |model, drag: &DraggedServer, _, cx| {
+                    drag.move_to(server, model, cx);
+                }))
+        })
+        .child(IconGlyph::new(
+            if expanded {
+                Icon::ChevronDown
+            } else {
+                Icon::ChevronRight
+            },
+            m.icon_xs(),
+            theme.fg_muted,
+        ))
+        .child(IconGlyph::new(
+            Icon::Network,
+            m.font_caption(),
+            theme.fg_muted,
+        ))
+        .child(div().truncate().child(label))
+        .into_any_element()
+}
+
+fn machine_project_group(
+    group: &ProjectServerGroup<'_>,
+    first_index: usize,
+    shortcuts: &[ProjectId],
+    model: &AppModel,
+    cx: &mut Context<AppModel>,
+) -> AnyElement {
+    let mut section = div()
+        .flex()
+        .flex_col()
+        .gap(model.metrics.spacing1())
+        .child(project_server_header(group.server, model, cx));
+    if model.project_server_expanded(group.server) {
+        let targets = Rc::new(RefCell::new(ProjectRows::default()));
+        let moving = targets.clone();
+        let measured = targets.clone();
+        let ids: Vec<_> = group
+            .projects
+            .iter()
+            .map(|project| {
+                (!project.home && project.status() == ProjectStatus::Available)
+                    .then_some(project.id)
+            })
+            .collect();
+        section = section.child(
+            div()
+                .flex()
+                .flex_col()
+                .gap(model.metrics.spacing3())
+                .on_drag_move(cx.listener(
+                    move |model, event: &DragMoveEvent<DraggedProject>, window, cx| {
+                        if event.event.pressed_button != Some(gpui::MouseButton::Left) {
+                            cx.stop_active_drag(window);
+                            return;
+                        }
+                        let target = event
+                            .bounds
+                            .contains(&event.event.position)
+                            .then(|| moving.borrow().at(event.event.position))
+                            .flatten();
+                        if let Some(drag) = event.dragged_item().downcast_ref::<DraggedProject>() {
+                            drag.move_to(target, model, cx);
+                        }
+                    },
+                ))
+                .on_drop(
+                    cx.listener(move |model, drag: &DraggedProject, window, cx| {
+                        drag.move_to(targets.borrow().at(window.mouse_position()), model, cx);
+                    }),
+                )
+                .children(group.projects.iter().enumerate().map(|(index, project)| {
+                    let shortcut = shortcuts.iter().take(9).position(|id| *id == project.id);
+                    worktrees::group(project, first_index + index, shortcut, model, cx)
+                }))
+                .on_children_prepainted(move |bounds, _, _| {
+                    measured.borrow_mut().0 = ids
+                        .iter()
+                        .zip(bounds)
+                        .filter_map(|(id, bounds)| id.map(|id| (id, bounds)))
+                        .collect();
+                }),
+        );
+    }
+    section.into_any_element()
+}
+
 fn project_list(model: &AppModel, cx: &mut Context<AppModel>) -> AnyElement {
     let m = model.metrics;
     let wide = model.appearance.sidebar_expanded;
-    let targets = Rc::new(RefCell::new(ProjectRows::default()));
-    let measured = targets.clone();
-    let moving = targets.clone();
-    let projects = model.sidebar_projects();
+    let groups = model.sidebar_visible_project_groups();
     let shortcuts = model.navigation_projects();
-    let ids: Vec<_> = projects
-        .iter()
-        .map(|project| {
-            (!project.home
-                && project.parent_id.is_none()
-                && project.status() == ProjectStatus::Available)
-                .then_some(project.id)
-        })
-        .collect();
+    let rows: Vec<_> = if wide {
+        let mut first_index = 0;
+        groups
+            .iter()
+            .map(|group| {
+                let row = machine_project_group(group, first_index, &shortcuts, model, cx);
+                first_index += group.projects.len();
+                row
+            })
+            .collect()
+    } else {
+        groups
+            .iter()
+            .flat_map(|group| group.projects.iter())
+            .enumerate()
+            .map(|(index, project)| {
+                let shortcut = shortcuts.iter().take(9).position(|id| *id == project.id);
+                worktrees::group(project, index, shortcut, model, cx)
+            })
+            .collect()
+    };
     div()
         .id("projects-scroll")
         .debug_selector(|| "projects-scroll".into())
         .flex_1()
         .min_h(px(0.0))
         .overflow_y_scroll()
-        .on_drag_move(cx.listener(
-            move |model, event: &DragMoveEvent<DraggedProject>, window, cx| {
-                if event.event.pressed_button != Some(gpui::MouseButton::Left) {
-                    cx.stop_active_drag(window);
-                    return;
-                }
-                let target = event
-                    .bounds
-                    .contains(&event.event.position)
-                    .then(|| moving.borrow().at(event.event.position))
-                    .flatten();
-                let drag = event.dragged_item().downcast_ref::<DraggedProject>();
-                if let Some(drag) = drag {
-                    drag.move_to(target, model, cx);
-                }
-            },
-        ))
-        .on_drop(
-            cx.listener(move |model, drag: &DraggedProject, window, cx| {
-                drag.move_to(targets.borrow().at(window.mouse_position()), model, cx);
-            }),
-        )
         .child(
             div()
                 .flex()
@@ -624,19 +839,9 @@ fn project_list(model: &AppModel, cx: &mut Context<AppModel>) -> AnyElement {
                 .pt(if wide { m.spacing5() } else { m.spacing2() })
                 .pb(m.spacing3())
                 .when(!wide, Styled::items_center)
-                .children(projects.iter().enumerate().map(|(index, project)| {
-                    let shortcut = shortcuts.iter().take(9).position(|id| *id == project.id);
-                    worktrees::group(project, index, shortcut, model, cx)
-                }))
+                .children(rows)
                 .when(!model.appearance.sidebar_focus, |list| {
                     list.child(add_project_button(model, cx))
-                })
-                .on_children_prepainted(move |bounds, _, _| {
-                    measured.borrow_mut().0 = ids
-                        .iter()
-                        .zip(bounds)
-                        .filter_map(|(id, bounds)| id.map(|id| (id, bounds)))
-                        .collect();
                 }),
         )
         .into_any_element()

@@ -977,6 +977,34 @@ impl AppModel {
         }
     }
 
+    pub(crate) fn move_project_group(
+        &mut self,
+        server: ServerId,
+        target: ServerId,
+        cx: &mut Context<Self>,
+    ) {
+        if server.is_local() || target.is_local() || server == target {
+            return;
+        }
+        let mut order: Vec<_> = self
+            .sidebar_project_groups()
+            .into_iter()
+            .map(|group| group.server)
+            .filter(|server| !server.is_local())
+            .collect();
+        let (Some(from), Some(to)) = (
+            order.iter().position(|candidate| *candidate == server),
+            order.iter().position(|candidate| *candidate == target),
+        ) else {
+            return;
+        };
+        let server = order.remove(from);
+        order.insert(to, server);
+        self.appearance.project_server_order = order;
+        self.save_appearance(cx);
+        cx.notify();
+    }
+
     pub(crate) fn remove_project_confirmed(&mut self, project: ProjectId, cx: &mut Context<Self>) {
         let Some(server) = self.state.project_server(project) else {
             return;
