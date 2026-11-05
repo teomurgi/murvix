@@ -79,7 +79,7 @@ murvix --help          # all commands; murvix <command> --help for details
 - `--host <destination>` selects the server on another computer. It must come
   first: `murvix --host devbox project list`. It supports the terminal UI,
   management commands, and mobile-access management, not folder-opening,
-  browser, skill-installation, or local agent-launch commands. See [Remote servers](remote-servers.md).
+  browser, tab, pane, skill-installation, or local agent-launch commands. See [Remote servers](remote-servers.md).
 
 ## Commands
 
@@ -95,10 +95,12 @@ murvix --help          # all commands; murvix <command> --help for details
 | `murvix activity list\|ack` | Reads or clears [AI agent](ai-agents.md) activity. |
 | `murvix agent <hermes|omp|claude|codex|copilot|pi|opencode> [-- <native arguments...>]` | Launches an installed agent with the calling terminal's live workspace. Claude, Codex, Copilot, and Oh My Pi receive roots through native `--add-dir`; Hermes starts in the primary folder with `--in`; Pi and OpenCode also start in the primary folder. Hermes, Pi, and OpenCode use the installed Murvix skill to discover extra roots. See [AI agents](ai-agents.md#start-an-agent-with-the-workspace). |
 | `murvix browser open\|list\|read\|click\|…` | Drives browser tabs in the desktop app on this computer. See [Browser control](#browser-control). |
+| `murvix tab list\|new\|open\|switch\|next\|previous\|close` | Lists, opens, shows, and closes terminal tabs in the desktop app on this computer. Needs the app running; never takes `--host`. |
+| `murvix pane list\|split\|focus\|close\|send\|send-keys\|read\|rename` | Lists, splits, focuses, closes, and drives terminal panes in the desktop app on this computer. `split` prints the new pane ID; `send` types text and `send-keys` presses one key. Needs the app running; never takes `--host`. |
 | `murvix exec <project> -- <program> [args]` | Runs a program in the project folder, without a shell. |
 | `murvix git`, `murvix files` | Run raw server Git and file actions as JSON. Advanced; the JSON shape follows the protocol and may change. |
 | `murvix mobile` | Manages the server's network listener, pairing codes, and paired devices. Phone apps are not shipped in this repository; see [Mobile](mobile.md). |
-| `murvix install-skills` | Installs the Murvix CLI skill for the AI agents found in your home folder. `--dir <path>` adds another skills folder. |
+| `murvix install-skills` | Installs the Murvix CLI skill for the AI agents found in your home folder. Existing copies refresh automatically when Murvix installs or repairs its bundled CLI, including after app updates. `--dir <path>` adds another skills folder. |
 | `murvix stdio` | Joins stdin and stdout to the server. Used by `--host` over SSH; you don't run it yourself. |
 
 `project add` creates a distinct project even if the directory is already

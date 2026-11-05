@@ -114,7 +114,7 @@ murvix --host devbox session create /srv/my-app
 ```
 
 `murvix --host devbox /srv/my-app` is not supported: the folder-opening shortcut
-is local-only. Browser and skill-installation commands are local-only too.
+is local-only. Browser, tab, pane, and skill-installation commands are local-only too.
 The CLI's `MURVIX_DIR` is not forwarded to the remote server; that server uses
 its remote profile. SSH does not require enabling Mobile access or exposing
 port `7419`.

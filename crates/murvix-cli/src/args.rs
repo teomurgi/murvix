@@ -23,6 +23,8 @@ pub(crate) enum Command {
     Open(PathBuf),
     /// Drives a browser tab in the desktop app on this computer.
     Browser(Box<crate::browser::Invocation>),
+    /// Changes terminal tabs or panes in the desktop app on this computer.
+    Layout(Box<crate::layout::Invocation>),
     /// Installs the agent skill into agent folders and these folders.
     InstallSkills(Vec<PathBuf>),
 }
@@ -59,6 +61,7 @@ pub(crate) fn parse(arguments: &[OsString]) -> io::Result<(Option<SshTarget>, Co
                     | Command::Stdio(_)
                     | Command::Open(_)
                     | Command::Browser(_)
+                    | Command::Layout(_)
                     | Command::Agent(..)
                     | Command::InstallSkills(_),
                     [word, ..],
@@ -101,6 +104,8 @@ fn command(arguments: &[OsString]) -> io::Result<Command> {
             install_skills(rest).map(Command::InstallSkills)
         }
         [command, rest @ ..] if command == "browser" => crate::browser::parse(rest),
+        [command, rest @ ..] if command == "tab" => crate::layout::tab::parse(rest),
+        [command, rest @ ..] if command == "pane" => crate::layout::pane::parse(rest),
         [command] if command == "help" => Ok(Command::Help),
         [command, topic] if command == "help" => topic
             .to_str()

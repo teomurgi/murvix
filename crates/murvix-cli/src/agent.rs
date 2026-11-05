@@ -23,6 +23,23 @@ pub(crate) fn run(agent: Agent, arguments: &[OsString]) -> Result<(), Box<dyn st
     })();
     client.disconnect();
     let project = project?;
+    if !agent.supports_add_dir() {
+        let message = match crate::skills::status(std::env::home_dir().as_deref()) {
+            crate::skills::SkillStatus::Current => None,
+            crate::skills::SkillStatus::Stale => {
+                Some("the installed murvix-cli skill is out of date")
+            }
+            crate::skills::SkillStatus::Missing => Some("the murvix-cli skill is not installed"),
+        };
+        if let Some(reason) = message {
+            use std::io::Write as _;
+            let _ = writeln!(
+                std::io::stderr(),
+                "murvix: {reason}; run `murvix install-skills` so {} agents discover every workspace folder",
+                agent.command()
+            );
+        }
+    }
     let roots = murvix_protocol::workspace_roots(&project);
     // Native global options precede subcommands. Claude's --add-dir is
     // variadic, so its explicit = values follow original options/prompts,

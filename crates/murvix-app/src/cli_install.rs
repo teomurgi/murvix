@@ -16,17 +16,81 @@ use murvix_ui::tr;
 /// The installer links the `murvix` that was installed with the running app.
 pub(crate) const CAPABILITY: Capability = Capability::Supported;
 
+/// Runs the bundled CLI's `install-skills`, keeping the skill text in one
+/// place (the CLI binary). Returns the installed files.
+pub(crate) fn install_skills() -> io::Result<Vec<PathBuf>> {
+    let home = home()?;
+    install_skills_at(
+        &murvix_core::executable::current_path()?.with_file_name("murvix"),
+        &home,
+    )
+}
+
+/// Refreshes skills only when a supported agent is configured. A user who has
+/// no supported agents can still install Murvix without an integration error.
+pub(crate) fn install_skills_if_present() -> io::Result<Vec<PathBuf>> {
+    let home = home()?;
+    install_skills_if_present_at(
+        &murvix_core::executable::current_path()?.with_file_name("murvix"),
+        &home,
+    )
+}
+
+fn install_skills_if_present_at(tool: &Path, home: &Path) -> io::Result<Vec<PathBuf>> {
+    if has_agent_home(home) {
+        install_skills_at(tool, home)
+    } else {
+        Ok(Vec::new())
+    }
+}
+
+fn has_agent_home(home: &Path) -> bool {
+    [
+        ".claude",
+        ".codex",
+        ".agents",
+        ".omp",
+        ".pi",
+        ".config/opencode",
+    ]
+    .into_iter()
+    .any(|agent| home.join(agent).is_dir())
+}
+
+fn install_skills_at(tool: &Path, home: &Path) -> io::Result<Vec<PathBuf>> {
+    let output = std::process::Command::new(tool)
+        .arg("install-skills")
+        .env("HOME", home)
+        .output()?;
+    if !output.status.success() {
+        return Err(io::Error::other(
+            String::from_utf8_lossy(&output.stderr).into_owned(),
+        ));
+    }
+    let text = String::from_utf8(output.stdout).map_err(io::Error::other)?;
+    Ok(text
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(PathBuf::from)
+        .collect())
+}
 impl AppModel {
     pub(crate) fn install_command_line(&mut self, cx: &mut Context<Self>) {
         if !self.require(Feature::CommandLineTool, cx) {
             return;
         }
         let window = self.window;
+        let skills = self.installation.preferences.skills;
         cx.spawn(async move |model, cx| {
             let (installed, title, message) = cx
                 .background_executor()
-                .spawn(async {
-                    let result = install();
+                .spawn(async move {
+                    let result = install().and_then(|path| {
+                        if skills {
+                            install_skills_if_present()?;
+                        }
+                        Ok(path)
+                    });
                     let installed = result.is_ok();
                     let (title, mut message) = installation_message(result);
                     if installed {
@@ -437,6 +501,33 @@ mod tests {
         install_link_inner(&moved, &destination, true)?;
         assert!(install_link(&moved, &destination).is_err());
         assert_eq!(fs::read_link(&destination)?, moved);
+        Ok(())
+    }
+
+    #[test]
+    fn automatic_skill_installation_skips_unknown_homes_and_refreshes_known_agents()
+    -> io::Result<()> {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = tempfile::tempdir()?;
+        let home = root.path().join("home");
+        fs::create_dir(&home)?;
+        let tool = root.path().join("murvix");
+        fs::write(
+            &tool,
+            "#!/bin/sh\n[ \"$1\" = install-skills ] || exit 64\nprintf '%s\\n' \"$HOME/.omp/agent/skills/murvix-cli/SKILL.md\"\n",
+        )?;
+        fs::set_permissions(&tool, fs::Permissions::from_mode(0o700))?;
+
+        assert!(!has_agent_home(&home));
+        assert_eq!(
+            install_skills_if_present_at(&tool, &home)?,
+            Vec::<PathBuf>::new()
+        );
+
+        fs::create_dir(home.join(".omp"))?;
+        let expected = home.join(".omp/agent/skills/murvix-cli/SKILL.md");
+        assert_eq!(install_skills_if_present_at(&tool, &home)?, [expected]);
         Ok(())
     }
 

@@ -325,13 +325,18 @@ impl AppModel {
         cx.spawn_in(window, async move |model, cx| {
             while let Ok(incoming) = requests.recv().await {
                 let verb = incoming.request.verb.clone();
-                if !verb.starts_with("browser.") {
+                let layout = verb.starts_with("tab.") || verb.starts_with("pane.");
+                if !layout && !verb.starts_with("browser.") {
                     incoming.reply(Err(format!("unknown command {verb}")));
                     continue;
                 }
                 let args = incoming.request.args.clone();
                 let Ok(reply) = model.update_in(cx, |model, window, cx| {
-                    model.browser_call(&verb, &args, window, cx)
+                    if layout {
+                        model.layout_call(&verb, &args, cx)
+                    } else {
+                        model.browser_call(&verb, &args, window, cx)
+                    }
                 }) else {
                     incoming.reply(Err("Murvix is closing".into()));
                     break;

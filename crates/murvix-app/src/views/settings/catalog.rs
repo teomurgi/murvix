@@ -39,6 +39,15 @@ pub(super) const SETTINGS: &[Setting] = &[
         section: tr_key!("Installation & Updates"),
     },
     Setting {
+        id: "installation-skills",
+        label: tr_key!("Install agent skill for Hermes, Pi, and OpenCode"),
+        description: tr_key!(
+            "Write the bundled murvix-cli skill into each agent folder found in your home folder."
+        ),
+        category: Category::Installation,
+        section: tr_key!("Installation & Updates"),
+    },
+    Setting {
         id: "installation-login-enable",
         label: tr_key!("Start Murvix at login"),
         description: tr_key!(

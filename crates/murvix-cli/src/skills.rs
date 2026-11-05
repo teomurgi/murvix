@@ -28,23 +28,53 @@ fn native_skill_dirs(home: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
+/// Where the skill would be installed for `home`, without creating anything.
+fn home_roots(home: &Path) -> Vec<PathBuf> {
+    let agent_skills: Vec<PathBuf> = AGENTS
+        .iter()
+        .map(|agent| home.join(agent))
+        .filter(|agent| agent.is_dir())
+        .map(|agent| agent.join("skills"))
+        .collect();
+    let mut roots = agent_skills;
+    roots.extend(native_skill_dirs(home));
+    roots
+}
+
+/// Whether the bundled skill is installed and current.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum SkillStatus {
+    /// At least one installed copy matches the bundled skill.
+    Current,
+    /// Copies exist, but none matches the bundled skill.
+    Stale,
+    /// No copy exists where agents look.
+    Missing,
+}
+
+/// Checks installed copies against the bundled skill; never writes.
+pub(crate) fn status(home: Option<&Path>) -> SkillStatus {
+    let mut found = false;
+    if let Some(home) = home {
+        for root in home_roots(home) {
+            match fs::read_to_string(root.join("murvix-cli/SKILL.md")) {
+                Ok(existing) if existing == SKILL => return SkillStatus::Current,
+                Ok(_) => found = true,
+                Err(_) => {}
+            }
+        }
+    }
+    if found {
+        SkillStatus::Stale
+    } else {
+        SkillStatus::Missing
+    }
+}
+
 /// Writes the skill into omp's native skills, every agent folder in `home`,
 /// and each of `directories`, replacing an older copy.
 pub(crate) fn install(home: Option<&Path>, directories: &[PathBuf]) -> io::Result<Vec<PathBuf>> {
-    let mut roots: Vec<PathBuf> = home
-        .into_iter()
-        .flat_map(|home: &Path| {
-            let agent_skills: Vec<PathBuf> = AGENTS
-                .iter()
-                .map(|agent| home.join(agent))
-                .filter(|agent| agent.is_dir())
-                .map(|agent| agent.join("skills"))
-                .collect();
-            let mut roots = agent_skills;
-            roots.extend(native_skill_dirs(home));
-            roots
-        })
-        .collect();
+    let mut roots: Vec<PathBuf> = home.into_iter().flat_map(home_roots).collect();
     for directory in directories {
         roots.push(std::path::absolute(directory)?);
     }
@@ -106,6 +136,22 @@ mod tests {
         assert!(
             matches!(install(None, &[]), Err(error) if error.kind() == io::ErrorKind::NotFound)
         );
+        Ok(())
+    }
+
+    #[test]
+    fn status_reports_missing_stale_and_current() -> io::Result<()> {
+        let home = tempfile::tempdir()?;
+        assert_eq!(status(Some(home.path())), SkillStatus::Missing);
+        assert_eq!(status(None), SkillStatus::Missing);
+        fs::create_dir(home.path().join(".claude"))?;
+        assert_eq!(status(Some(home.path())), SkillStatus::Missing);
+        let file = home.path().join(".claude/skills/murvix-cli/SKILL.md");
+        fs::create_dir_all(file.parent().expect("skill folder"))?;
+        fs::write(&file, "outdated")?;
+        assert_eq!(status(Some(home.path())), SkillStatus::Stale);
+        install(Some(home.path()), &[])?;
+        assert_eq!(status(Some(home.path())), SkillStatus::Current);
         Ok(())
     }
 

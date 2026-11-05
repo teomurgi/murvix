@@ -32,6 +32,11 @@ pub(super) fn rows(pane: &SettingsView, cx: &mut Context<SettingsView>) -> Vec<A
             Action::ConfigureShell,
         ),
         (
+            "installation-skills",
+            tr_key!("Install agent skill for Hermes, Pi, and OpenCode"),
+            Action::InstallSkills,
+        ),
+        (
             "installation-login-enable",
             tr_key!("Start Murvix at login"),
             Action::Login(true),

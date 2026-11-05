@@ -86,6 +86,10 @@ On first launch, review the setup choices before applying them:
   `~/.local/bin/murvix` directly.
 - **Start at login:** optional and off by default. This uses macOS's app login
   service, not a separate server daemon; macOS may require Login Items approval.
+- **Agent skill:** on by default. Installs the bundled `murvix-cli` skill into
+  each agent folder found in your home folder and refreshes it when Murvix
+  installs or repairs its bundled CLI, including after app updates. Failures are
+  reported, not silent.
 - **Automatic update downloads:** off by default and enabled only by explicit
   choice. Packaged builds require a published update feed.
 
@@ -236,9 +240,19 @@ shell's startup file to keep them on `PATH`.
 ### Check it
 
 Run `murvix --version` and `murvix-server --version`, then `murvix` to open the
-[terminal UI](../features/terminal-ui.md). Updating them never restarts a
-running [server](../features/server.md#lifetime); stop it to switch to the new
-version.
+[terminal UI](../features/terminal-ui.md). Murvix refreshes the bundled agent
+skill in existing agent folders when it installs or repairs its CLI, including
+after app updates. After installing a new agent, add its copy with:
+
+```bash
+murvix install-skills
+```
+
+It writes the bundled skill into each agent folder found in your home folder
+(`~/.claude`, `~/.codex`, `~/.agents`, `~/.omp`, `~/.pi`,
+`~/.config/opencode`). With another skills folder, add `--dir PATH`. Updating
+skills never restarts a running [server](../features/server.md#lifetime); stop
+it to switch to the new version.
 
 ## Importing from Murvix 1.x
 
@@ -263,6 +277,10 @@ Some 1.x features work differently or are not available. See
    `Cmd+Shift+D` / `Ctrl+Shift+Alt+D` splits down.
 4. **Quit freely.** Terminals keep running in the background. Reopen Murvix to
    reconnect to them.
+5. **Teach your agents the workspace.** Murvix installs the bundled skill
+   automatically. After installing a new agent, run `murvix install-skills` so
+   Hermes, Pi, and OpenCode discover every workspace folder. See [AI
+   agents](../features/ai-agents.md#start-an-agent-with-the-workspace).
 
 ## Next
 

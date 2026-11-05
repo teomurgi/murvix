@@ -43,6 +43,10 @@ Use **Refresh integration status** after moving the app or changing your shell.
   **Do not start at login** unregisters it. **Open Login Items Settings** lets
   you approve a pending request or review a revoked permission. Murvix reports
   macOS's actual status and does not silently restore revoked approval.
+- **Install agent skill for Hermes, Pi, and OpenCode** writes the bundled
+  `murvix-cli` skill into each agent folder found in your home folder. Existing
+  copies refresh automatically when Murvix installs or repairs its CLI,
+  including after app updates; run it after installing a new agent.
 - **Automatically download updates** is **off by default**. Turn it on explicitly
   to allow background downloads; **Check for Updates…** remains available for a
   manual check. Downloads and installation are separate from restarting the app
@@ -66,7 +70,7 @@ section opens its file.
 | `terminal.toml` | Terminal preferences and key bindings |
 | `themes/` | Your own themes |
 | `server.toml` | Server settings |
-| `installation.json` | This profile's setup completion, CLI/shell choices, and automatic-download consent; login approval remains in macOS |
+| `installation.json` | This profile's setup completion, CLI/shell/skill choices, and automatic-download consent; login approval remains in macOS |
 
 - Restart the app after editing `settings.toml` by hand. If the file has an
   error or an unknown key, the app won't open; see
