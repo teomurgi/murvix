@@ -30,8 +30,15 @@ can't be removed. `Cmd+N` opens a tab in Home.
   - **Project Focused** (default): projects, with worktrees under them.
   - **Tab Focused**: projects with their tabs listed in the sidebar.
   - **Agents Focused**: only tabs running an [AI agent](ai-agents.md).
-- Sort by **Manual Order** and drag to reorder, **Name (A–Z)**,
-  **Name (Z–A)**, **Recently Active**, or **Date Added**.
+- The expanded sidebar separates projects by machine. **Local** contains every
+  local project; each remote machine with listed projects has its own
+  collapsible group.
+  With **Manual Order**, drag projects within their machine or drag remote
+  machine headers to reorder their groups. Other sort choices order projects
+  within each machine.
+- Sort project groups by **Manual Order** and drag to reorder, or sort the
+  projects inside each group by **Name (A–Z)**, **Name (Z–A)**, **Recently
+  Active**, or **Date Added**.
 - `Ctrl+1`–`Ctrl+9` jumps to a project. Hold a modifier to see the numbers.
 - The filter in the sidebar header shows **All Projects**, **Focus Current
   Project**, or **Remote Servers** when a remote server has connected.

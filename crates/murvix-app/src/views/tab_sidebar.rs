@@ -149,8 +149,20 @@ pub(super) fn contents(
         .flex_col()
         .pt(model.metrics.spacing5())
         .pb(model.metrics.spacing3());
-    for project in model.sidebar_projects() {
-        rows = rows.child(project_group(project, &numbers, targets.clone(), model, cx));
+    for group in model.sidebar_visible_project_groups() {
+        rows = rows.child(super::sidebar::project_server_header(
+            group.server,
+            model,
+            cx,
+        ));
+        if model.project_server_expanded(group.server) {
+            rows = rows.children(
+                group
+                    .projects
+                    .into_iter()
+                    .map(|project| project_group(project, &numbers, targets.clone(), model, cx)),
+            );
+        }
     }
     if !model.appearance.sidebar_focus {
         rows = rows.child(add_project_button(model, cx));

@@ -240,3 +240,92 @@ fn project_sort_date_added_keeps_undated_projects_stable_ahead_of_new_projects(
         );
     });
 }
+
+#[gpui::test]
+fn machine_groups_keep_projects_together_and_persist_collapse(cx: &mut TestAppContext) {
+    let mut state = AppState::bootstrap().expect("state");
+    let local = state.home().id;
+    let first = ServerId::new();
+    let second = ServerId::new();
+    let [first_home, first_project, second_home, second_project] =
+        std::array::from_fn(|_| ProjectId::new());
+    state
+        .apply_catalog(
+            first,
+            &servers::page(2, first_home, &[(first_project, "First project")]),
+        )
+        .expect("first server");
+    state
+        .apply_catalog(
+            second,
+            &servers::page(3, second_home, &[(second_project, "Second project")]),
+        )
+        .expect("second server");
+    let (mut boot, _requests, _remotes) = remote_boot(
+        state,
+        vec![
+            servers::entry(first, "First"),
+            servers::entry(second, "Second"),
+        ],
+    );
+    boot.settings.appearance.sidebar_expanded = true;
+    let (view, cx) = cx.add_window_view(|window, cx| AppModel::new(boot, window, cx));
+    view.update(cx, |model, cx| {
+        acknowledge_catalog(model, cx);
+        let groups = model.sidebar_project_groups();
+        assert_eq!(groups.len(), 3);
+        assert_eq!(groups[0].server, ServerId::local());
+        assert_eq!(
+            groups[0]
+                .projects
+                .iter()
+                .map(|project| project.id)
+                .collect::<Vec<_>>(),
+            [local]
+        );
+        assert_eq!(
+            groups[1]
+                .projects
+                .iter()
+                .map(|project| project.id)
+                .collect::<Vec<_>>(),
+            [first_project]
+        );
+    });
+
+    assert!(
+        cx.debug_bounds("project-server-First").is_some(),
+        "remote group header"
+    );
+    assert!(cx.debug_bounds("project-row-1").is_some(), "remote project");
+    click("project-server-First", cx);
+    view.read_with(cx, |model, _| {
+        assert!(!model.project_server_expanded(first));
+        assert!(
+            Settings::load(&model.path.with_file_name("settings.toml"))
+                .expect("saved machine group")
+                .appearance
+                .collapsed_project_servers
+                .contains(&first)
+        );
+    });
+
+    view.update(cx, |model, cx| {
+        model.move_project_group(first, second, cx);
+        assert_eq!(
+            model
+                .sidebar_project_groups()
+                .iter()
+                .map(|group| group.server)
+                .collect::<Vec<_>>(),
+            [ServerId::local(), second, first]
+        );
+        assert_eq!(
+            Settings::load(&model.path.with_file_name("settings.toml"))
+                .expect("saved machine order")
+                .appearance
+                .project_server_order,
+            [second, first]
+        );
+    });
+}
