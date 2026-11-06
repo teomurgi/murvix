@@ -273,13 +273,14 @@ impl AppModel {
         )
     }
 
-    pub(super) fn tabs_call(
+    pub(in crate::model) fn tabs_call(
         &mut self,
-        call: &Call,
+        verb: &str,
+        args: &Value,
         cx: &mut Context<Self>,
     ) -> Result<Value, String> {
         let project = self.state.current_project();
-        match call.verb.as_str() {
+        match verb {
             "tabs.list" => Ok(Value::Array(
                 project
                     .tabs
@@ -305,7 +306,7 @@ impl AppModel {
                     .collect(),
             )),
             "tabs.switch" => {
-                let identifier = call.args["identifier"].as_str().unwrap_or("");
+                let identifier = args["identifier"].as_str().unwrap_or("");
                 let owns = |tab: &&murvix_app_core::Tab| {
                     tab.id.to_string() == identifier
                         || tab
@@ -344,11 +345,11 @@ impl AppModel {
                 Ok(json!(self.active_tab().map(|tab| tab.to_string())))
             }
             "tabs.next" | "tabs.previous" => {
-                self.cycle_tab(call.verb == "tabs.next", cx);
+                self.cycle_tab(verb == "tabs.next", cx);
                 Ok(Value::Null)
             }
-            "tabs.open" => self.extension_open_tab(&call.args, cx),
-            _ => Err(format!("unsupported extension API: {}", call.verb)),
+            "tabs.open" => self.extension_open_tab(args, cx),
+            _ => Err(format!("unsupported extension API: {verb}")),
         }
     }
 
@@ -516,12 +517,13 @@ impl AppModel {
             .ok_or_else(|| "invalid pane ID".into())
     }
 
-    pub(super) fn panes_call(
+    pub(in crate::model) fn panes_call(
         &mut self,
-        call: &Call,
+        verb: &str,
+        args: &Value,
         cx: &mut Context<Self>,
     ) -> Result<Value, String> {
-        if call.verb == "panes.list" {
+        if verb == "panes.list" {
             let active = self.active_pane();
             return Ok(Value::Array(
                 self.state
@@ -547,25 +549,25 @@ impl AppModel {
                     .collect(),
             ));
         }
-        let (pane, tab) = self.terminal_pane(&call.args)?;
+        let (pane, tab) = self.terminal_pane(args)?;
         let not_ready = || format!("pane surface not ready {pane} (waited 0.0s)");
-        match call.verb.as_str() {
+        match verb {
             "panes.send" | "panes.sendKeys" => {
-                let bytes = if call.verb == "panes.send" {
-                    call.args["text"]
+                let bytes = if verb == "panes.send" {
+                    args["text"]
                         .as_str()
                         .ok_or("missing argument 'text'")?
                         .as_bytes()
                         .to_vec()
                 } else {
-                    key_bytes(call.args["key"].as_str().unwrap_or(""))?.to_vec()
+                    key_bytes(args["key"].as_str().unwrap_or(""))?.to_vec()
                 };
                 let (server, channel) = self.attachment(pane, cx).ok_or_else(not_ready)?;
                 self.send(server, crate::boot::Work::Input(channel, bytes), cx);
                 Ok(Value::Null)
             }
             "panes.readScreen" => {
-                let lines = usize::try_from(call.args["lines"].as_u64().unwrap_or(50))
+                let lines = usize::try_from(args["lines"].as_u64().unwrap_or(50))
                     .unwrap_or(500)
                     .clamp(1, 500);
                 let text = self
@@ -590,9 +592,7 @@ impl AppModel {
                 Ok(Value::Null)
             }
             "panes.rename" => {
-                let title = call.args["title"]
-                    .as_str()
-                    .ok_or("missing argument 'title'")?;
+                let title = args["title"].as_str().ok_or("missing argument 'title'")?;
                 let title = Some(title.trim().to_owned()).filter(|title| !title.is_empty());
                 let previous = self.state.clone();
                 if self.state.set_tab_title(tab, title).is_err() || !self.save(cx) {
@@ -602,7 +602,7 @@ impl AppModel {
                 cx.notify();
                 Ok(Value::Null)
             }
-            _ => Err(format!("unsupported extension API: {}", call.verb)),
+            _ => Err(format!("unsupported extension API: {verb}")),
         }
     }
 

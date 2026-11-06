@@ -17,9 +17,9 @@ Usage: murvix [--host DESTINATION] [COMMAND]
   agent         Launch a native agent with this terminal's live workspace
   mobile        Enable access, pair phones and revoke devices
   browser       Drive browser tabs in the desktop app on this computer
+  tab           List, open, switch and close terminal tabs in the desktop app
+  pane          List, split, focus, close and drive terminal panes in the app
   install-skills
-                Install the murvix-cli skill for AI coding agents
-  stdio         Connect stdin/stdout to the server; used over SSH
   --help | --version | --build-info
 
 Run murvix <command> --help or murvix help <command> for usage. Management
@@ -30,8 +30,10 @@ on another computer over SSH (user@host, an ssh_config alias or
 ssh://user@host:port); Murvix must be installed there, and directories are absolute
 paths on that computer.
 MURVIX_DIR selects the local profile, which also keeps the terminal UI layouts
-for other computers. No desktop app is required, except by browser commands.
-Tabs and panes belong to UI clients.
+for other computers. No desktop app is required, except by browser, tab and
+pane commands.
+Tabs and panes belong to UI clients; the desktop app owns the tab and pane
+commands, while session commands own server terminals.
 Project selectors accept an exact ID, unique name or directory path.
 Inside a Murvix terminal, session commands default to that terminal.
 Use ./NAME to open a folder named like a command.
@@ -91,12 +93,45 @@ JSON. Waits give up after --timeout-ms or ms (default 5000, 10000 for
 wait-for-navigation; maximum 60000).
 MURVIX_CLI_TIMEOUT sets how many seconds the app has to answer (default 10).
 Text list columns: tab-id, title, url, profile, active (tab-separated).";
+pub(crate) const TAB: &str = "Usage: murvix tab <action>
+  list                        Print tabs: index, id, kind, title, active
+  new                         Open a tab and print its ID
+  open [--directory DIR] [--command COMMAND]
+                              Open a terminal tab and print its ID
+  switch <tab>                Show a tab by index, ID, or pane ID
+  next|previous               Show the next or previous tab
+  close [tab]                 Close a tab by index or ID; the active tab if omitted
+
+Tab commands change the Murvix desktop app on this computer, not the server,
+so they don't take --host and need the app running. Closing a tab uses the
+app's close confirmation for running processes. Text list columns: index, id,
+kind, title, active (tab-separated).";
+pub(crate) const PANE: &str = "Usage: murvix pane <action>
+  list                        Print panes: id, title, directory, focused
+  split [pane] [--direction left|right|up|down]
+                              Split a pane (the active one if omitted) and print the new pane ID
+  focus [pane]                Focus a pane; the active pane if omitted
+  close [pane]                Close a pane; the active pane if omitted
+  send [pane] TEXT            Type text into a pane without pressing Return
+  send-keys [pane] KEY        Press one key: Enter, Tab, Escape, Backspace, Ctrl+C, Ctrl+D, Ctrl+Z
+  read [pane] [--lines N]     Print the pane's last visible rows (default 50)
+  rename [pane] TITLE         Rename the pane's tab
+
+Pane commands change the Murvix desktop app on this computer, not the server,
+so they don't take --host and need the app running. Closing a pane uses the
+app's close confirmation for running processes. Only close panes you created:
+a pane the user is looking at closes in their app too. Read the screen first
+if you are unsure what is running. Text list columns: id, title, directory,
+focused (tab-separated).";
 pub(crate) const INSTALL_SKILLS: &str = "Usage: murvix install-skills [--dir DIR]...
 Installs the murvix-cli skill, which teaches AI coding agents to use this command,
 into each agent folder that exists: ~/.claude/skills, ~/.codex/skills,
 ~/.agents/skills, ~/.omp/agent/skills, ~/.pi/agent/skills and
 ~/.config/opencode/skills. --dir adds another skills folder; repeat it for
-more. An installed copy, including the Murvix 1.x skill, is replaced.";
+more. An installed copy, including the Murvix 1.x skill, is replaced.
+Murvix refreshes existing agent folders when it installs or repairs its bundled
+CLI, including after app updates. Run this after installing a new agent.
+Hermes, Pi, and OpenCode need the skill to discover every workspace folder.";
 pub(crate) const SERVER: &str = "Usage: murvix server start|status|stop [--json]
   stop [--force]  Stop only if idle; --force ends all running terminals.";
 pub(crate) const PROJECT: &str = "Usage: murvix project <action> [--json]
@@ -218,6 +253,8 @@ pub(crate) fn topic(group: &str) -> Option<&'static str> {
         "mobile" => MOBILE,
         "install-skills" => INSTALL_SKILLS,
         "browser" => BROWSER,
+        "tab" => TAB,
+        "pane" => PANE,
         _ => return None,
     })
 }

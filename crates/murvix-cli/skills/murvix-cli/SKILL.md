@@ -117,15 +117,42 @@ murvix session send-keys "$WEB" Enter
 You are typing into a live terminal. Read the screen first if you are unsure
 what is running.
 
-## End terminals you started
-
-```bash
-murvix session list --project MyProject     # id, project-id, status, attached, directory
-murvix session end "$WEB" --yes
-```
-
 Only end terminals you created. A terminal the user is looking at closes in
 their app too.
+
+## Tabs and panes in the desktop app
+
+`murvix tab` and `murvix pane` change terminal layout in the desktop app on
+this computer, like `murvix browser`. They need the app running and never
+take `--host`. Server `session` commands own background terminals; these own
+what the user sees.
+
+```bash
+murvix tab list                    # index, id, kind, title, active
+murvix tab new                     # open a tab, prints its ID
+murvix tab open --command "npm test"
+murvix tab switch 1                # index, ID, or pane ID; empty verbs below use the active tab/pane
+murvix pane list                   # id, title, directory, focused
+PAN=$(murvix pane split --direction right)   # prints the new pane ID; left|right|up|down
+murvix pane send "$PAN" "npm test"
+murvix pane send-keys "$PAN" Enter
+murvix pane read "$PAN" --lines 40
+murvix pane focus "$PAN"
+murvix pane rename "$PAN" Work
+```
+
+- Capture the IDs that `new`, `open`, and `split` print; never guess one.
+- `tab open --directory` must stay inside the project; `--command` is typed
+  into the new terminal like `session create --`.
+- `pane send` types text without pressing Return; `send-keys` presses one key
+  (Enter, Tab, Escape, Backspace, Ctrl+C, Ctrl+D, Ctrl+Z).
+- Only close tabs and panes you created; a visible one closes in the user's
+  app too. The app's running-process confirmation applies:
+
+```bash
+murvix tab close 2
+murvix pane close "$PAN"
+```
 
 ## Projects and worktrees
 
@@ -179,4 +206,7 @@ are then absolute paths on that computer.
 
 Folder-opening commands, `browser`, and `install-skills` do not support
 `--host`.
-`install-skills --dir DIR` always installs into a local directory.
+`install-skills --dir DIR` always installs into a local directory. Murvix
+refreshes existing agent folders when it installs or repairs its bundled CLI,
+including after app updates. Run `murvix install-skills` after installing a new
+agent.

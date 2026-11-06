@@ -55,8 +55,8 @@ impl AppModel {
                 self.extension_storage(call, cx);
                 return;
             }
-            verb if verb.starts_with("tabs.") => self.tabs_call(&call, cx),
-            verb if verb.starts_with("panes.") => self.panes_call(&call, cx),
+            verb if verb.starts_with("tabs.") => self.tabs_call(verb, &call.args, cx),
+            verb if verb.starts_with("panes.") => self.panes_call(verb, &call.args, cx),
             "projects.create" => {
                 self.create_extension_project(call, cx);
                 return;

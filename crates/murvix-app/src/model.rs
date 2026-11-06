@@ -11,6 +11,7 @@ mod diagnostics;
 pub(crate) mod extensions;
 pub(crate) mod git;
 mod language;
+mod layout;
 mod links;
 mod mobile;
 mod preferences;
@@ -2779,6 +2780,7 @@ mod tests {
     mod detach;
     mod find;
     mod git;
+    mod layout;
     mod layout_drag;
     mod links;
     mod preferences;

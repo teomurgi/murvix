@@ -740,12 +740,14 @@
 "Install a Linux build there by hand, from scripts/build-linux-dev.sh." = "Install a Linux build there by hand, from scripts/build-linux-dev.sh.";
 "Install a matching build there by hand, from scripts/build-linux-dev.sh." = "Install a matching build there by hand, from scripts/build-linux-dev.sh.";
 "Install a supported AI provider CLI or choose one in Settings → AI." = "Install a supported AI provider CLI or choose one in Settings → AI.";
+"Install agent skill for Hermes, Pi, and OpenCode" = "Install agent skill for Hermes, Pi, and OpenCode";
 "Install and open %@.app before installing its command line tool." = "Install and open %@.app before installing its command line tool.";
 "Install failed: %@" = "Install failed: %@";
 "Install murvix-server & Test Connection" = "Install murvix-server & Test Connection";
 "Install murvix-server on %@?" = "Install murvix-server on %@?";
 "Install or repair bundled CLI link" = "Install or repair bundled CLI link";
 "Install the Silero speech detection model at %@ to use offline dictation." = "Install the Silero speech detection model at %@ to use offline dictation.";
+"Install the agent skill so Hermes, Pi, and OpenCode see every workspace folder — recommended" = "Install the agent skill so Hermes, Pi, and OpenCode see every workspace folder — recommended";
 "Install whisper-cli 1.9.5 or later to use offline dictation." = "Install whisper-cli 1.9.5 or later to use offline dictation.";
 "Install whisper-cli and parec, then choose a multilingual GGML model file. Leave blank to use ggml-base.bin in your user data folder under murvix/voice. That folder must also contain ggml-silero-v6.2.0.bin for speech detection. Audio stays on this computer and is transcribed after you finish." = "Install whisper-cli and parec, then choose a multilingual GGML model file. Leave blank to use ggml-base.bin in your user data folder under murvix/voice. That folder must also contain ggml-silero-v6.2.0.bin for speech detection. Audio stays on this computer and is transcribed after you finish.";
 "Installation & Updates" = "Installation & Updates";
@@ -1603,6 +1605,7 @@
 "Worktree created, but setup failed" = "Worktree created, but setup failed";
 "Worktrees" = "Worktrees";
 "Worktrees go in <folder>/<project>/<name>. Leave both location settings empty to use ~/.murvix/worktrees." = "Worktrees go in <folder>/<project>/<name>. Leave both location settings empty to use ~/.murvix/worktrees.";
+"Write the bundled murvix-cli skill into each agent folder found in your home folder." = "Write the bundled murvix-cli skill into each agent folder found in your home folder.";
 "Writing PR" = "Writing PR";
 "Writing message" = "Writing message";
 "X11 returned an empty keyboard map." = "X11 returned an empty keyboard map.";

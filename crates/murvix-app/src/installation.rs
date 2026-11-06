@@ -14,10 +14,12 @@ use murvix_ui::{controls, tr};
 use crate::model::AppModel;
 
 #[derive(Clone)]
+#[allow(clippy::struct_excessive_bools)]
 pub(crate) struct Preferences {
     pub(crate) automatic_downloads: bool,
     pub(crate) cli_enabled: bool,
     pub(crate) shell: bool,
+    pub(crate) skills: bool,
 }
 
 #[derive(Clone)]
@@ -46,6 +48,7 @@ impl State {
                 automatic_downloads: false,
                 cli_enabled: true,
                 shell: true,
+                skills: true,
             },
             onboarding: Onboarding {
                 visible: false,
@@ -65,6 +68,7 @@ impl State {
                     state.onboarding.completed = value["completed"].as_bool().unwrap_or(false);
                     state.preferences.cli_enabled = value["cli_enabled"].as_bool().unwrap_or(false);
                     state.preferences.shell = value["shell"].as_bool().unwrap_or(false);
+                    state.preferences.skills = value["skills"].as_bool().unwrap_or(true);
                     state.preferences.automatic_downloads =
                         value["automatic_downloads"].as_bool().unwrap_or(false);
                 }
@@ -101,6 +105,7 @@ impl State {
                 "completed": self.onboarding.completed,
                 "cli_enabled": self.preferences.cli_enabled,
                 "shell": self.preferences.shell,
+                "skills": self.preferences.skills,
                 "automatic_downloads": self.preferences.automatic_downloads,
             }),
         )?;
@@ -116,6 +121,7 @@ pub(crate) enum Action {
     Refresh,
     RepairCli,
     ConfigureShell,
+    InstallSkills,
     Login(bool),
     LoginSettings,
     AutomaticDownloads(bool),
@@ -137,7 +143,9 @@ impl AppModel {
         if cfg!(test) {
             return;
         }
-        if self.installation.onboarding.completed && self.installation.preferences.cli_enabled {
+        if self.installation.onboarding.completed {
+            // Owned CLI links are repaired without opting a user back into the
+            // command line; this also refreshes skills after every app update.
             self.installation_action_inner(Action::RepairCli, true, cx);
         } else {
             self.installation_action(Action::Refresh, cx);
@@ -208,40 +216,62 @@ impl AppModel {
         };
         let login_status = crate::login::status();
         cx.spawn(async move |model, cx| {
-            let result =
-                cx.background_executor()
-                    .spawn(async move {
-                        let result = native.and_then(|()| match action {
-                            Action::RepairCli if owned_only => crate::cli_install::repair_owned()
-                                .map_err(|error| error.to_string()),
-                            Action::RepairCli => crate::cli_install::install()
-                                .map(|_| {
-                                    next.preferences.cli_enabled = true;
-                                })
-                                .map_err(|error| error.to_string()),
-                            Action::ConfigureShell => crate::cli_install::configure_shell()
-                                .map(|()| {
-                                    next.preferences.shell = true;
-                                })
-                                .map_err(|error| error.to_string()),
-                            _ => Ok(()),
-                        });
-                        if result.is_ok()
-                            && matches!(action, Action::RepairCli | Action::ConfigureShell)
-                            && !owned_only
-                        {
-                            next.save(&path).map_err(|error| error.to_string())?;
-                        }
-                        next.health = crate::cli_install::integration_status()
-                            .unwrap_or_else(|error| error.to_string());
-                        next.shell_disclosure = crate::cli_install::shell_disclosure();
-                        next.login_status = login_status;
-                        next.installed_version = crate::updater::installed_app_version().ok();
-                        next.problem = result.err();
-                        next.busy = false;
-                        Ok::<_, String>(next)
-                    })
-                    .await;
+            let result = cx
+                .background_executor()
+                .spawn(async move {
+                    let result = native.and_then(|()| match action {
+                        Action::RepairCli if owned_only => crate::cli_install::repair_owned()
+                            .and_then(|()| {
+                                if next.preferences.skills {
+                                    crate::cli_install::install_skills_if_present().map(|_| ())
+                                } else {
+                                    Ok(())
+                                }
+                            })
+                            .map_err(|error| error.to_string()),
+                        Action::RepairCli => crate::cli_install::install()
+                            .and_then(|_| {
+                                if next.preferences.skills {
+                                    crate::cli_install::install_skills_if_present().map(|_| ())
+                                } else {
+                                    Ok(())
+                                }
+                            })
+                            .map(|()| {
+                                next.preferences.cli_enabled = true;
+                            })
+                            .map_err(|error| error.to_string()),
+                        Action::ConfigureShell => crate::cli_install::configure_shell()
+                            .map(|()| {
+                                next.preferences.shell = true;
+                            })
+                            .map_err(|error| error.to_string()),
+                        Action::InstallSkills => crate::cli_install::install_skills()
+                            .map(|_| {
+                                next.preferences.skills = true;
+                            })
+                            .map_err(|error| error.to_string()),
+                        _ => Ok(()),
+                    });
+                    if result.is_ok()
+                        && matches!(
+                            action,
+                            Action::RepairCli | Action::ConfigureShell | Action::InstallSkills
+                        )
+                        && !owned_only
+                    {
+                        next.save(&path).map_err(|error| error.to_string())?;
+                    }
+                    next.health = crate::cli_install::integration_status()
+                        .unwrap_or_else(|error| error.to_string());
+                    next.shell_disclosure = crate::cli_install::shell_disclosure();
+                    next.login_status = login_status;
+                    next.installed_version = crate::updater::installed_app_version().ok();
+                    next.problem = result.err();
+                    next.busy = false;
+                    Ok::<_, String>(next)
+                })
+                .await;
             let _ = model.update(cx, |model, cx| {
                 match result {
                     Ok(state) => model.installation = state,
@@ -296,6 +326,11 @@ impl AppModel {
                             Err(error) => errors.push(error.to_string()),
                         }
                     }
+                    if next.preferences.skills
+                        && let Err(error) = crate::cli_install::install_skills_if_present()
+                    {
+                        errors.push(error.to_string());
+                    }
                     next.onboarding.completed = true;
                     next.onboarding.visible = false;
                     next.busy = false;
@@ -326,6 +361,7 @@ impl AppModel {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn setup(model: &AppModel, cx: &mut Context<AppModel>) -> Option<gpui::AnyElement> {
     if !model.installation.onboarding.visible {
         return None;
@@ -354,6 +390,13 @@ pub(crate) fn setup(model: &AppModel, cx: &mut Context<AppModel>) -> Option<gpui
             "setup-login",
             tr_key!("Start Murvix at login"),
             state.onboarding.login,
+        ),
+        (
+            "setup-skills",
+            tr_key!(
+                "Install the agent skill so Hermes, Pi, and OpenCode see every workspace folder — recommended"
+            ),
+            state.preferences.skills,
         ),
         (
             "setup-downloads",
@@ -387,6 +430,10 @@ pub(crate) fn setup(model: &AppModel, cx: &mut Context<AppModel>) -> Option<gpui
                             "setup-login" => {
                                 model.installation.onboarding.login =
                                     !model.installation.onboarding.login;
+                            }
+                            "setup-skills" => {
+                                model.installation.preferences.skills =
+                                    !model.installation.preferences.skills;
                             }
                             _ => {
                                 model.installation.preferences.automatic_downloads =

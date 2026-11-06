@@ -5,6 +5,7 @@ mod args;
 mod browser;
 mod clipboard;
 mod input;
+mod layout;
 mod manage;
 mod mobile;
 mod open;
@@ -49,6 +50,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         Command::Agent(agent, arguments) => agent::run(agent, &arguments)?,
         Command::Open(folder) => open::run(&folder)?,
         Command::Browser(invocation) => browser::run(*invocation)?,
+        Command::Layout(invocation) => layout::run(*invocation)?,
         Command::InstallSkills(directories) => {
             let home = std::env::home_dir();
             let mut stdout = io::stdout().lock();
